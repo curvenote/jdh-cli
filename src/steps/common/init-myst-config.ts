@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { META_JDH_FILE } from '../../init/bundled-assets.js';
+import { listBundledPluginRelPaths } from '../../init/bundled-plugins.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 const LEGACY_CONFIG = 'curvenote.yml';
@@ -45,6 +46,8 @@ function buildScaffold(projectId: string, extendMetadata: boolean): string {
     ? ['extends:', `  - ${META_JDH_FILE}`, '']
     : [];
 
+  const pluginLines = listBundledPluginRelPaths().flatMap((relPath) => [`    - ${relPath}`]);
+
   return [
     '# See docs at: https://mystmd.org/guide/frontmatter',
     'version: 1',
@@ -53,7 +56,7 @@ function buildScaffold(projectId: string, extendMetadata: boolean): string {
     `  id: ${projectId}`,
     '  open_access: true',
     '  plugins:',
-    '    - plugins/hermeneutics.mjs',
+    ...pluginLines,
     '  # To autogenerate a Table of Contents, run "myst init --write-toc"',
     '  toc:',
     '    - file: article.md',

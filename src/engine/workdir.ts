@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { deployBundledPlugins } from '../init/bundled-plugins.js';
 import type { RunContext } from './types.js';
 import { fileExists } from './context.js';
 import { copyTree } from './spawn-script.js';
@@ -14,7 +15,6 @@ export const WORKDIR_DEPENDENCIES: readonly string[] = [
   'media',
   'generated',
   'pretrained_models',
-  'plugins',
   'requirements.txt',
   'runtime.txt',
 ];
@@ -63,6 +63,9 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
     if (!options.dryRun) copyTree(src, dest);
     copied++;
   }
+
+  const pluginCount = deployBundledPlugins(workdirAbs, options.dryRun);
+  copied += pluginCount;
 
   console.log(
     `${prefix}Done. ${copied} item(s) ${options.dryRun ? 'would be ' : ''}copied, ${skipped} skipped.`,
