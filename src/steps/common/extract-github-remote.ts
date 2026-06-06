@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
-import { findGitRoot } from '../shared/git.js';
+import { findGitRoot, resolveGithubFromGit } from '../shared/git.js';
 import { whenGithubRemote } from '../shared/when.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
@@ -14,72 +14,6 @@ function fileExists(p: string): boolean {
   } catch {
     return false;
   }
-}
-
-function resolveGitDir(repoDir: string): string | null {
-  const gitPath = path.join(repoDir, '.git');
-  if (!fileExists(gitPath)) return null;
-  try {
-    const stat = fs.statSync(gitPath);
-    if (stat.isDirectory()) return gitPath;
-    const content = fs.readFileSync(gitPath, 'utf8').trim();
-    const m = content.match(/^gitdir:\s*(.+)$/m);
-    if (m) return path.resolve(repoDir, m[1].trim());
-    return gitPath;
-  } catch {
-    return null;
-  }
-}
-
-function getRemotes(repoDir: string): Record<string, string> {
-  const gitDir = resolveGitDir(repoDir);
-  if (!gitDir) return {};
-
-  const configPath = path.join(gitDir, 'config');
-  if (!fileExists(configPath)) return {};
-
-  let content: string;
-  try {
-    content = fs.readFileSync(configPath, 'utf8');
-  } catch {
-    return {};
-  }
-
-  const remotes: Record<string, string> = {};
-  let currentRemote: string | null = null;
-
-  for (const line of content.split(/\r?\n/)) {
-    const remoteMatch = line.match(/^\[remote "(.+)"\]$/);
-    if (remoteMatch) {
-      currentRemote = remoteMatch[1];
-      continue;
-    }
-    if (currentRemote) {
-      const urlMatch = line.match(/^\s*url\s*=\s*(.+)$/);
-      if (urlMatch) {
-        remotes[currentRemote] = urlMatch[1].trim();
-      }
-    }
-  }
-  return remotes;
-}
-
-function normalizeGithubUrl(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, '');
-
-  const ssh = trimmed.match(/^git@github\.com:(.+?)(?:\.git)?$/);
-  if (ssh) return `https://github.com/${ssh[1]}`;
-
-  const https = trimmed.match(/^https?:\/\/github\.com\/(.+?)(?:\.git)?$/i);
-  if (https) return `https://github.com/${https[1]}`;
-
-  return trimmed;
-}
-
-function chooseRemoteUrl(remotes: Record<string, string>): string | null {
-  if (remotes.origin) return remotes.origin;
-  const keys = Object.keys(remotes);
-  return keys.length > 0 ? remotes[keys[0]] : null;
 }
 
 function readExistingProjectGithub(configPath: string): string | null {
@@ -126,18 +60,11 @@ async function extractGithubRemote(options: {
     return;
   }
 
-  const remotes = getRemotes(repoDir);
-  if (Object.keys(remotes).length === 0) {
+  const url = resolveGithubFromGit(repoDir);
+  if (!url) {
     process.stdout.write('No git remotes found; leaving project.github unset.\n');
     return;
   }
-
-  const rawUrl = chooseRemoteUrl(remotes);
-  if (!rawUrl) {
-    process.stdout.write('No git remotes found; leaving project.github unset.\n');
-    return;
-  }
-  const url = normalizeGithubUrl(rawUrl);
 
   if (!insertProjectGithub(configPath, url, options.dryRun)) {
     throw new Error('Could not update project.github in curvenote file.');
