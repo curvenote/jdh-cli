@@ -65,9 +65,12 @@ describe('jupytext pipeline', () => {
     expect(fileExists(path.join(improved, 'references.bib'))).toBe(true);
 
     const myst = fs.readFileSync(path.join(improved, 'myst.yml'), 'utf8');
-    expect(myst).toContain('license: CC-BY-NC-ND-4.0');
     expect(myst).toContain('plugins/hermeneutics.mjs');
+    expect(myst).not.toContain('license:');
     expect(fileExists(path.join(improved, 'jdh-meta.yml'))).toBe(true);
+    const meta = fs.readFileSync(path.join(improved, 'jdh-meta.yml'), 'utf8');
+    expect(meta).toContain('license: CC-BY-NC-ND-4.0');
+    expect(meta).toContain('exports:');
     expect(myst).toContain('extends:');
     expect(myst).toContain('jdh-meta.yml');
 
