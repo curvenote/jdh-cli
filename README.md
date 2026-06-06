@@ -2,21 +2,27 @@
 
 Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.yml`, `article.md`, assets).
 
-**All pipeline logic lives in this package** (`src/steps/`). The `BHmHNQKJaSWT/script/*.ts` files remain for reference and manual testing but are no longer invoked by the CLI.
+**All pipeline logic lives in this package** (`src/steps/`).
 
-### Entry point
+### Commands
+
+| Command | Description |
+| --- | --- |
+| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline |
+| `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
+| `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
+
+### Jupytext ruleset
 
 | Command | Ruleset | Folders |
 | --- | --- | --- |
 | `jdh-cli <file.md>` | `jupytext` | `steps/common/` + `steps/jupytext/` |
 
-The 11-step jupytext pipeline supports custom steps and directives for the JDH article-repo layout.
-
 ### Source layout
 
 ```
 jdh-cli/src/
-  commands/              CLI (convert)
+  commands/              convert, clean, build
   engine/                runner, workdir, step context
   rulesets/              jupytext ruleset
   steps/                 self-contained pipeline steps
@@ -31,16 +37,35 @@ jdh-cli/src/
 cd jdh-cli
 bun install
 bun run compile
+bun run build
+bun test
 bun src/index.ts --help
 bun src/index.ts ../BHmHNQKJaSWT/article.md --list-steps --project-root ../BHmHNQKJaSWT
-bun run build
 ```
 
-### Article repo
+### Article repo integration
 
-```bash
-cd ../BHmHNQKJaSWT
-npm run improve   # jdh-cli article.md
+In the article repo `package.json`:
+
+```json
+{
+  "scripts": {
+    "improve": "jdh-cli article.md --project-root .",
+    "clean": "jdh-cli clean --project-root .",
+    "build": "jdh-cli build --project-root .",
+    "ib": "npm run improve && npm run build"
+  },
+  "devDependencies": {
+    "jdh-cli": "file:../jdh-cli"
+  }
+}
 ```
+
+Prerequisites:
+
+- Build jdh-cli first: `cd jdh-cli && bun run build`
+- Install in article repo: `npm install`
+- `myst` CLI for PDF builds
+- Sibling `jdh-typst-template` at `../../jdh-typst-template` (relative to `_improved/`)
 
 For Word (`.docx`) conversion, use the separate **doc-convert** package.

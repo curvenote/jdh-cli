@@ -20,6 +20,7 @@
     "build:cli": "bun build src/index.ts --outfile=dist/jdh-cli.cjs --target=node --format=cjs --minify",
     "build:watch": "bun run copy:version && bun build src/index.ts --outfile=dist/jdh-cli.cjs --target=node --format=cjs --minify --sourcemap=inline --watch",
     "build": "bun run clean && bun run copy:version && bun run build:cli",
+    "test": "bun test",
     "start": "bun src/index.ts",
     "build:standalone": "bun run copy:version && bun build --compile src/index.ts --outfile dist/jdh-cli"
   },
