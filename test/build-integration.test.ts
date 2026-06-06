@@ -67,6 +67,17 @@ describe('build integration (meta-jdh extends)', () => {
 
       expect(fileExists(PDF_PATH)).toBe(true);
       expect(fs.statSync(PDF_PATH).size).toBeGreaterThan(0);
+
+      const typDir = path.join(WORKDIR, '_build', 'temp');
+      if (fileExists(typDir)) {
+        const typFiles = fs.readdirSync(typDir, { recursive: true }) as string[];
+        const articleTyp = typFiles.find((f) => String(f).endsWith('article.typ'));
+        if (articleTyp) {
+          const typPath = path.join(typDir, String(articleTyp));
+          const typ = fs.readFileSync(typPath, 'utf8');
+          expect(typ).not.toContain('display(Image');
+        }
+      }
     },
     120_000,
   );

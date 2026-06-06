@@ -91,7 +91,7 @@ function normalizeFigureTags(content: string): string {
 /**
  * Process article: normalize figure-n-* -> fig:n, then replace figure-tagged Python blocks and update refs.
  */
-function processArticle(content: string): { content: string; figureNumToLabel: Map<number, string> } {
+export function processArticle(content: string): { content: string; figureNumToLabel: Map<number, string> } {
   const figureNumToLabel = new Map<number, string>();
 
   content = normalizeFigureTags(content);
@@ -152,16 +152,7 @@ function processArticle(content: string): { content: string; figureNumToLabel: M
     const imagePath = extractImagePath(b.body)!;
     const captionRaw = extractCaptionFromCode(b.body)!;
     const caption = stripFigureNumberPrefix(captionRaw);
-    const codeLabel = `code:${figureTag}`;
-
-    const codeBody = b.body.replace(/\n?```\s*$/, '').trimEnd();
     const replacement = [
-      '```{code-block} python',
-      `:label: ${codeLabel}`,
-      '',
-      codeBody,
-      '```',
-      '',
       '```{figure} ' + imagePath,
       `:label: ${figureTag}`,
       '',
@@ -228,8 +219,9 @@ function processArticle(content: string): { content: string; figureNumToLabel: M
 }
 
 /**
- * Detects Python code cells tagged as figures, converts them to MyST code-block + figure
- * directives, and updates figure references in the article.
+ * Detects Python code cells tagged as figures, converts them to MyST `{figure}`
+ * directives (figure source code is omitted from the workdir — see hide-figure-code
+ * plugin and docs/plugins.md), and updates figure references in the article.
  */
 async function improveNotebookFigures(
   options: RunImproveNotebookFiguresOptions,
@@ -262,12 +254,12 @@ async function improveNotebookFigures(
 }
 
 /**
- * Convert figure-tagged Python code cells to MyST `{code-block}` + `{figure}`
- * directives and update figure cross-references.
+ * Convert figure-tagged Python code cells to MyST `{figure}` directives and update
+ * figure cross-references. Figure display code is not written to the workdir.
  */
 export const improveNotebookFiguresStep: PipelineStep = {
   id: 'improveNotebookFigures',
-  label: 'Improve notebook figures (code-block + figure directives)',
+  label: 'Improve notebook figures (figure directives)',
   inputs: ['markdown'],
   run: async (ctx) => {
     const o = stepOpts(ctx);

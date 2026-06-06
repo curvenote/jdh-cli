@@ -66,6 +66,8 @@ describe('jupytext pipeline', () => {
 
     const myst = fs.readFileSync(path.join(improved, 'myst.yml'), 'utf8');
     expect(myst).toContain('plugins/hermeneutics.mjs');
+    expect(myst).toContain('plugins/narrative-code.mjs');
+    expect(myst).toContain('plugins/hide-figure-code.mjs');
     expect(fileExists(path.join(improved, 'plugins', 'hermeneutics.mjs'))).toBe(true);
     expect(myst).not.toContain('license:');
     expect(fileExists(path.join(improved, 'meta-jdh.yml'))).toBe(true);

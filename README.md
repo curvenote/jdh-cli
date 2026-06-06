@@ -9,7 +9,7 @@ Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.
 | Command | Description |
 | --- | --- |
 | `jdh-cli init` | Create `myst.yml` and copy bundled `meta-jdh.yml` for a new article repo |
-| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline (deploys bundled MyST plugins into `_improved/plugins/`) |
+| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs/plugins.md](docs/plugins.md)) |
 | `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
 | `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
 

@@ -21,6 +21,8 @@ describe('bundled plugins', () => {
   test('lists bundled plugin paths', () => {
     const paths = listBundledPluginRelPaths();
     expect(paths).toContain('plugins/hermeneutics.mjs');
+    expect(paths).toContain('plugins/narrative-code.mjs');
+    expect(paths).toContain('plugins/hide-figure-code.mjs');
     expect(paths.every((p) => p.startsWith('plugins/'))).toBe(true);
   });
 
@@ -29,6 +31,7 @@ describe('bundled plugins', () => {
     const count = deployBundledPlugins(tmpDir, false);
 
     expect(count).toBeGreaterThan(0);
+    expect(count).toBeGreaterThanOrEqual(3);
     const deployed = path.join(tmpDir, 'plugins', 'hermeneutics.mjs');
     expect(fileExists(deployed)).toBe(true);
 

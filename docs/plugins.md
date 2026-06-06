@@ -1,0 +1,132 @@
+# MyST plugins (JDH)
+
+jdh-cli bundles MyST JavaScript plugins under `templates/plugins/`. On every
+`improve` run, `prepareWorkdir` copies all `*.mjs` files into
+`_improved/plugins/` and `initMystConfig` registers them in `myst.yml`.
+
+Plugins run at **MyST build time** (not during `improve`). They shape the AST
+and insert Typst-specific `raw` nodes for PDF export via `jdh-typst-template`.
+
+Typst/HTML styling for HTML is out of scope for now; PDF (Typst) is the target.
+
+## Plugin overview
+
+| Plugin | File | When it runs | Purpose |
+| --- | --- | --- | --- |
+| Hermeneutics | `hermeneutics.mjs` | MyST build | `:::{hermeneutics}` → cyan commentary blocks + sidebar code markers |
+| Narrative code | `narrative-code.mjs` | MyST build | Gray full-bleed code cells in the main article flow |
+| Hide figure code | `hide-figure-code.mjs` | MyST build | Removes legacy `code:fig:*` blocks from the AST (PDF safety net) |
+
+## Hermeneutics
+
+**Source tagging (improve pipeline):** Jupytext regions or fenced cells tagged
+`hermeneutics` are wrapped in `:::{hermeneutics}` by the
+`improveHermeneuticsBlocks` step.
+
+**Plugin:** Registers the `hermeneutics` directive → `block[kind=hermeneutics]`.
+A document transform inserts `#hermeneutics-block[...]` raw Typst wrappers.
+
+**Typst:** `#hermeneutics-block` in `jdh.typ` — cyan fill, right bleed, optional
+sidebar “HERMENEUTICS CODE EXCERPT / END” markers on code inside the block.
+
+See also: [MyST blocks](https://mystmd.org/guide/blocks),
+[JavaScript plugins](https://mystmd.org/guide/javascript-plugins).
+
+## Narrative code
+
+**What it is:** Code shown to the reader as part of the argument — plain
+monospace, gray background bleeding to the right page edge, no syntax
+highlighting, with truncation/fade controlled by `jdh-theme.code` in
+`jdh-typst-template`.
+
+**Eligibility (both produce the same styling):**
+
+- Untagged fenced code blocks in the main flow (e.g. `` ```python ``)
+- Fences explicitly tagged `narrative` (`` ```python tags=["narrative"] ``)
+
+**Excluded:**
+
+- Code inside `:::{hermeneutics}` (handled by the hermeneutics plugin + template)
+- Figure boilerplate (see below)
+
+**Plugin:** Document transform wraps each eligible `code` AST node with:
+
+```typst
+#narrative-code-block[
+  ...code...
+]
+```
+
+**Typst:** `#narrative-code-block` in `jdh.typ` — gray fill (`#E8E8E8`), right
+bleed, `spacing: 1em`. Truncation (`max-lines`, `fade-lines`, font size, “N lines
+more”) reuses `jdh-theme.code` (shared with hermeneutics code inside cyan blocks).
+
+## Figure cells — Option B (hide source code in PDF)
+
+Notebook cells tagged as figures (e.g. `tags=["figure-1-*"]`) contain Python
+that calls `display(Image(...))`. Readers should see the **figure image and
+caption**, not the boilerplate source.
+
+### Improve pipeline
+
+`improveNotebookFigures` converts each figure-tagged cell to a single MyST
+`{figure}` directive only. It **does not** write a companion `{code-block}` into
+`_improved/article.md`.
+
+Before (legacy):
+
+```markdown
+```{code-block} python
+:label: code:fig:1
+display(Image("./media/figure1.png", ...))
+```
+
+```{figure} ./media/figure1.png
+:label: fig:1
+Caption text
+```
+```
+
+After (current):
+
+```markdown
+```{figure} ./media/figure1.png
+:label: fig:1
+Caption text
+```
+```
+
+Cross-references in prose use `fig:N` / `[](#fig:1)` — not `code:fig:*`.
+
+### hide-figure-code.mjs (safety net)
+
+If an article still contains a `{code-block}` labelled `code:fig:*` (hand-edited
+or pre-migration workdir), this plugin **removes those nodes from the AST** before
+Typst export so `display(Image(...))` never appears in the PDF.
+
+This is **Option B**: figure source is hidden in PDF output; only `{figure}` renders.
+
+### Why not narrative styling for figure code?
+
+Figure cells are embedding boilerplate, not narrative code. Applying gray
+full-bleed styling would show a redundant code box above every figure.
+
+## Adding a new plugin
+
+1. Add `templates/plugins/your-plugin.mjs`
+2. `bun run build` (copies to `dist/plugins/`)
+3. Plugins auto-deploy on next `improve` and auto-register in `_improved/myst.yml`
+4. Document behaviour here and any Typst support needed in `jdh-typst-template`
+
+## Theme tuning (Typst)
+
+Shared code truncation — `jdh-theme.code` in `jdh-typst-template/jdh.typ`:
+
+- `font`, `size`, `line-height`
+- `max-lines`, `fade-lines`
+- `more-text-size`, etc.
+
+Container fills (independent):
+
+- `jdh-theme.hermeneutics` — cyan blocks + code-marker sidebar
+- `jdh-theme.narrative-code` — gray narrative code blocks
