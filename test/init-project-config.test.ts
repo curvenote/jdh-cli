@@ -56,6 +56,19 @@ describe('init project config', () => {
     expect(result.projectId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  test('initProjectConfig creates target directory when missing', () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-init-nested-'));
+    const nested = path.join(tmpDir, 'my-article');
+
+    const result = initProjectConfig(nested);
+    expect(result.status).toBe('created');
+    if (result.status !== 'created') return;
+
+    expect(fileExists(nested)).toBe(true);
+    expect(fileExists(result.mystPath)).toBe(true);
+    expect(fileExists(result.metaJdhPath)).toBe(true);
+  });
+
   test('initProjectConfig reports already initialized when myst.yml exists', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-init-existing-'));
     fs.writeFileSync(path.join(tmpDir, 'myst.yml'), 'version: 1\n');

@@ -55,16 +55,17 @@ export type InitProjectResult =
       metaJdhPath: string;
       projectId: string;
       github: string | null;
-      dryRun: boolean;
     };
 
 /** Create `myst.yml` and copy bundled `meta-jdh.yml` when no project config exists yet. */
-export function initProjectConfig(dir: string, dryRun = false): InitProjectResult {
+export function initProjectConfig(dir: string): InitProjectResult {
   const projectRoot = path.resolve(dir);
   const existing = findExistingProjectConfig(projectRoot);
   if (existing) {
     return { status: 'already-initialized', existing, dir: projectRoot };
   }
+
+  fs.mkdirSync(projectRoot, { recursive: true });
 
   const projectId = crypto.randomUUID();
   const github = resolveGithubFromGit(projectRoot);
@@ -73,10 +74,8 @@ export function initProjectConfig(dir: string, dryRun = false): InitProjectResul
   const mystPath = path.join(projectRoot, MYST_CONFIG);
   const metaJdhPath = path.join(projectRoot, META_JDH_FILE);
 
-  if (!dryRun) {
-    fs.writeFileSync(mystPath, mystContent);
-    fs.writeFileSync(metaJdhPath, metaJdhContent);
-  }
+  fs.writeFileSync(mystPath, mystContent);
+  fs.writeFileSync(metaJdhPath, metaJdhContent);
 
   return {
     status: 'created',
@@ -84,6 +83,5 @@ export function initProjectConfig(dir: string, dryRun = false): InitProjectResul
     metaJdhPath,
     projectId,
     github,
-    dryRun,
   };
 }

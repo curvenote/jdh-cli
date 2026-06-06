@@ -15,7 +15,8 @@ Creates myst.yml (with extends: meta-jdh.yml) and copies the bundled meta-jdh.ym
 template (license, exports, toc). Sets project.id and project.github from git.
 
 If myst.yml or curvenote.yml already exists, reports that the folder is
-already initialized and makes no changes.
+already initialized and makes no changes. Creates the target directory
+when it does not exist yet.
 
 Examples:
   $ jdh-cli init
