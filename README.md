@@ -40,6 +40,7 @@ bun install
 bun run compile
 bun run build
 bun test
+bun test test/build-integration.test.ts   # requires myst CLI + ../jdh-typst-template
 bun src/index.ts --help
 bun src/index.ts ../BHmHNQKJaSWT/article.md --list-steps --project-root ../BHmHNQKJaSWT
 ```
