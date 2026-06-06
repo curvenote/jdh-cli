@@ -9,7 +9,7 @@ export const WORKDIR_DEPENDENCIES: readonly string[] = [
   'article.ipynb',
   'myst.yml',
   'curvenote.yml',
-  'jdh-meta.yml',
+  'meta-jdh.yml',
   'data',
   'media',
   'generated',

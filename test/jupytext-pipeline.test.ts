@@ -44,7 +44,7 @@ describe('jupytext pipeline', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-cli-test-'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.md'), path.join(tmpDir, 'article.md'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.ipynb'), path.join(tmpDir, 'article.ipynb'));
-    for (const dep of ['jdh-meta.yml', 'myst.yml', 'plugins', 'data', 'generated']) {
+    for (const dep of ['meta-jdh.yml', 'myst.yml', 'plugins', 'data', 'generated']) {
       const src = path.join(ARTICLE_REPO, dep);
       const dest = path.join(tmpDir, dep);
       if (!fileExists(src)) continue;
@@ -67,12 +67,12 @@ describe('jupytext pipeline', () => {
     const myst = fs.readFileSync(path.join(improved, 'myst.yml'), 'utf8');
     expect(myst).toContain('plugins/hermeneutics.mjs');
     expect(myst).not.toContain('license:');
-    expect(fileExists(path.join(improved, 'jdh-meta.yml'))).toBe(true);
-    const meta = fs.readFileSync(path.join(improved, 'jdh-meta.yml'), 'utf8');
+    expect(fileExists(path.join(improved, 'meta-jdh.yml'))).toBe(true);
+    const meta = fs.readFileSync(path.join(improved, 'meta-jdh.yml'), 'utf8');
     expect(meta).toContain('license: CC-BY-NC-ND-4.0');
     expect(meta).toContain('exports:');
     expect(myst).toContain('extends:');
-    expect(myst).toContain('jdh-meta.yml');
+    expect(myst).toContain('meta-jdh.yml');
 
     const article = fs.readFileSync(path.join(improved, 'article.md'), 'utf8');
     expect(article).toMatch(/^#\s+/m);

@@ -6,7 +6,7 @@ import { stepOpts } from '../../engine/step-context.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 const LEGACY_CONFIG = 'curvenote.yml';
-const JDH_META_FILE = 'jdh-meta.yml';
+const META_JDH_FILE = 'meta-jdh.yml';
 
 function fileExists(p: string): boolean {
   try {
@@ -42,7 +42,7 @@ function readExistingProjectId(configPath: string): string | null {
 
 function buildScaffold(projectId: string, extendMetadata: boolean): string {
   const extendsBlock = extendMetadata
-    ? ['extends:', `  - ${JDH_META_FILE}`, '']
+    ? ['extends:', `  - ${META_JDH_FILE}`, '']
     : [];
 
   return [
@@ -73,7 +73,7 @@ async function initMystConfig(options: {
   cwd: string;
 }): Promise<void> {
   const configPath = path.resolve(options.cwd, options.configPath || DEFAULT_CONFIG);
-  const metadataInWorkdir = path.join(options.cwd, JDH_META_FILE);
+  const metadataInWorkdir = path.join(options.cwd, META_JDH_FILE);
   const extendMetadata = fileExists(metadataInWorkdir);
 
   const existedBefore = fileExists(configPath);
@@ -100,8 +100,8 @@ async function initMystConfig(options: {
     );
     process.stdout.write(
       extendMetadata
-        ? `[dry-run] extends: ${JDH_META_FILE} (copied alongside myst.yml in workdir)\n`
-        : `[dry-run] no ${JDH_META_FILE} in workdir; extends omitted\n`,
+        ? `[dry-run] extends: ${META_JDH_FILE} (copied alongside myst.yml in workdir)\n`
+        : `[dry-run] no ${META_JDH_FILE} in workdir; extends omitted\n`,
     );
     process.stdout.write(scaffold);
     return;
@@ -112,13 +112,13 @@ async function initMystConfig(options: {
     `${existedBefore ? 'Overwrote' : 'Created'} ${configPath} with canonical scaffold (id ${idSource}: ${projectId}).\n`,
   );
   if (extendMetadata) {
-    process.stdout.write(`  extends: ${JDH_META_FILE}\n`);
+    process.stdout.write(`  extends: ${META_JDH_FILE}\n`);
   }
 }
 
 /**
  * Write a canonical JDH `myst.yml` scaffold, preserving an existing project id
- * and extending `jdh-meta.yml` when present in the workdir.
+ * and extending `meta-jdh.yml` when present in the workdir.
  */
 export const initMystConfigStep: PipelineStep = {
   id: 'initMystConfig',

@@ -7,6 +7,6 @@ export function stepOpts(ctx: RunContext) {
     cwd: ctx.workdirAbs,
     dryRun: ctx.options.dryRun,
     projectRoot: ctx.projectRoot,
-    metadataPath: path.join(ctx.projectRoot, 'jdh-meta.yml'),
+    metadataPath: path.join(ctx.projectRoot, 'meta-jdh.yml'),
   };
 }
