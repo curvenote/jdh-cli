@@ -38,7 +38,9 @@ jdh-cli/src/
 cd jdh-cli
 bun install
 bun run compile
-bun run build
+bun run build              # one-off production build
+bun run dev:build          # watch dist/jdh-cli.cjs (+ templates) while editing src/
+bun run dev                # bun link + dev:build
 bun test
 bun test test/build-integration.test.ts   # requires myst CLI + ../jdh-typst-template
 bun src/index.ts --help
