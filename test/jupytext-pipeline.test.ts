@@ -67,6 +67,9 @@ describe('jupytext pipeline', () => {
     const myst = fs.readFileSync(path.join(improved, 'myst.yml'), 'utf8');
     expect(myst).toContain('license: CC-BY-NC-ND-4.0');
     expect(myst).toContain('plugins/hermeneutics.mjs');
+    expect(fileExists(path.join(improved, 'metadata.yml'))).toBe(true);
+    expect(myst).toContain('extends:');
+    expect(myst).toContain('metadata.yml');
 
     const article = fs.readFileSync(path.join(improved, 'article.md'), 'utf8');
     expect(article).toMatch(/^#\s+/m);

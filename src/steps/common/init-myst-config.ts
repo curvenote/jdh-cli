@@ -6,8 +6,7 @@ import { stepOpts } from '../../engine/step-context.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 const LEGACY_CONFIG = 'curvenote.yml';
-
-type MetadataEntry = { key: string; rawValue: string };
+const METADATA_FILE = 'metadata.yml';
 
 function fileExists(p: string): boolean {
   try {
@@ -41,49 +40,17 @@ function readExistingProjectId(configPath: string): string | null {
   return readProjectIdFromFile(legacyPath);
 }
 
-function readMetadataEntries(metadataPath: string): MetadataEntry[] {
-  if (!fileExists(metadataPath)) return [];
-  let content: string;
-  try {
-    content = fs.readFileSync(metadataPath, 'utf8');
-  } catch {
-    return [];
-  }
-
-  const entries: MetadataEntry[] = [];
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const m = line.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/);
-    if (!m) continue;
-    const key = m[1];
-    const rawValue = m[2];
-    if (!rawValue) continue;
-    entries.push({ key, rawValue });
-  }
-  return entries;
-}
-
-function buildScaffold(projectId: string, metadataEntries: MetadataEntry[]): string {
-  const reservedProjectKeys = new Set([
-    'id',
-    'open_access',
-    'license',
-    'plugins',
-    'toc',
-    'exports',
-  ]);
-
-  const metadataProjectLines = metadataEntries
-    .filter((entry) => !reservedProjectKeys.has(entry.key))
-    .map((entry) => `  ${entry.key}: ${entry.rawValue}`);
+function buildScaffold(projectId: string, extendMetadata: boolean): string {
+  const extendsBlock = extendMetadata
+    ? ['extends:', `  - ${METADATA_FILE}`, '']
+    : [];
 
   return [
     '# See docs at: https://mystmd.org/guide/frontmatter',
     'version: 1',
+    ...extendsBlock,
     'project:',
     `  id: ${projectId}`,
-    ...metadataProjectLines,
     '  open_access: true',
     '  license: CC-BY-NC-ND-4.0',
     '  plugins:',
@@ -109,19 +76,16 @@ function buildScaffold(projectId: string, metadataEntries: MetadataEntry[]): str
 
 async function initMystConfig(options: {
   configPath: string;
-  metadataPath?: string;
   forcedId?: string;
   dryRun: boolean;
   cwd: string;
 }): Promise<void> {
   const configPath = path.resolve(options.cwd, options.configPath || DEFAULT_CONFIG);
-  const metadataPath = options.metadataPath
-    ? path.resolve(options.cwd, options.metadataPath)
-    : path.resolve(path.dirname(configPath), '..', 'metadata.yml');
+  const metadataInWorkdir = path.join(options.cwd, METADATA_FILE);
+  const extendMetadata = fileExists(metadataInWorkdir);
 
   const existedBefore = fileExists(configPath);
   const existingId = readExistingProjectId(configPath);
-  const metadataEntries = readMetadataEntries(metadataPath);
 
   let projectId: string;
   let idSource: 'forced' | 'preserved' | 'generated';
@@ -136,14 +100,16 @@ async function initMystConfig(options: {
     idSource = 'generated';
   }
 
-  const scaffold = buildScaffold(projectId, metadataEntries);
+  const scaffold = buildScaffold(projectId, extendMetadata);
 
   if (options.dryRun) {
     process.stdout.write(
       `[dry-run] would write ${configPath} (${existedBefore ? 'overwrite' : 'create'}, id ${idSource}: ${projectId})\n`,
     );
     process.stdout.write(
-      `[dry-run] metadata source: ${metadataPath} (${metadataEntries.length} field${metadataEntries.length === 1 ? '' : 's'} merged into project)\n`,
+      extendMetadata
+        ? `[dry-run] extends: ${METADATA_FILE} (copied alongside myst.yml in workdir)\n`
+        : `[dry-run] no ${METADATA_FILE} in workdir; extends omitted\n`,
     );
     process.stdout.write(scaffold);
     return;
@@ -153,11 +119,14 @@ async function initMystConfig(options: {
   process.stdout.write(
     `${existedBefore ? 'Overwrote' : 'Created'} ${configPath} with canonical scaffold (id ${idSource}: ${projectId}).\n`,
   );
+  if (extendMetadata) {
+    process.stdout.write(`  extends: ${METADATA_FILE}\n`);
+  }
 }
 
 /**
  * Write a canonical JDH `myst.yml` scaffold, preserving an existing project id
- * and merging optional fields from `metadata.yml`.
+ * and extending `metadata.yml` when present in the workdir.
  */
 export const initMystConfigStep: PipelineStep = {
   id: 'initMystConfig',
@@ -167,7 +136,6 @@ export const initMystConfigStep: PipelineStep = {
     const o = stepOpts(ctx);
     await initMystConfig({
       configPath: 'myst.yml',
-      metadataPath: o.metadataPath,
       dryRun: o.dryRun,
       cwd: o.cwd,
     });
