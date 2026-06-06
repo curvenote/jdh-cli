@@ -1,38 +1,38 @@
-## doc-convert
+## jdh-cli
 
-Convert and improve documents into a MyST-ready project (`myst.yml`, `article.md`, assets).
+Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.yml`, `article.md`, assets).
 
 **All pipeline logic lives in this package** (`src/steps/`). The `BHmHNQKJaSWT/script/*.ts` files remain for reference and manual testing but are no longer invoked by the CLI.
 
-### Entry points (rulesets)
+### Entry point
 
 | Command | Ruleset | Folders |
 | --- | --- | --- |
-| `doc-convert --jupytext <file.md>` | `jupytext` | `steps/common/` + `steps/jupytext/` |
-| `doc-convert <file.md>` | `markdown` | `steps/common/` |
-| `doc-convert <file.docx>` | `docx` | `steps/docx/` + `steps/common/` |
+| `jdh-cli <file.md>` | `jupytext` | `steps/common/` + `steps/jupytext/` |
+
+The 11-step jupytext pipeline supports custom steps and directives for the JDH article-repo layout.
 
 ### Source layout
 
 ```
-doc-convert/src/
+jdh-cli/src/
   commands/              CLI (convert)
   engine/                runner, workdir, step context
-  rulesets/              compose steps per entry point
+  rulesets/              jupytext ruleset
   steps/                 self-contained pipeline steps
     common/              shared steps (one file each)
     jupytext/            notebook / region steps
-    docx/                Pandoc bootstrap
     shared/              when guards, myst-config helpers
 ```
 
 ### Development
 
 ```bash
-cd doc-convert
+cd jdh-cli
 bun install
 bun run compile
-bun src/index.ts --jupytext ../BHmHNQKJaSWT/article.md --list-steps --project-root ../BHmHNQKJaSWT
+bun src/index.ts --help
+bun src/index.ts ../BHmHNQKJaSWT/article.md --list-steps --project-root ../BHmHNQKJaSWT
 bun run build
 ```
 
@@ -40,5 +40,7 @@ bun run build
 
 ```bash
 cd ../BHmHNQKJaSWT
-npm run improve   # doc-convert --jupytext article.md
+npm run improve   # jdh-cli article.md
 ```
+
+For Word (`.docx`) conversion, use the separate **doc-convert** package.

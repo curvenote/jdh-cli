@@ -39,7 +39,6 @@ export function buildRunContext(
     articleIpynb: path.join(workdirAbs, 'article.ipynb'),
     mystYml: path.join(workdirAbs, 'myst.yml'),
     options,
-    scriptsDir: path.join(projectRoot, 'script'),
   };
 }
 

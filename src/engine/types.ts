@@ -1,6 +1,6 @@
 export type StepDisposition = 'run' | 'skip' | 'warn-skip';
 
-export type RulesetId = 'jupytext' | 'markdown' | 'docx';
+export type RulesetId = 'jupytext';
 
 /**
  * Artifact kinds a pipeline step reads or transforms.
@@ -9,8 +9,6 @@ export type RulesetId = 'jupytext' | 'markdown' | 'docx';
  * about prerequisites (e.g. bibtex steps need `references.bib` in the workdir).
  */
 export type StepInputType =
-  /** Word document — typically the CLI entry file for the docx ruleset. */
-  | 'docx'
   /** `article.md` body (GFM / MyST), including jupytext region comments. */
   | 'markdown'
   /** `article.ipynb` — citation-manager / Zotero metadata in notebook cells. */
@@ -52,7 +50,6 @@ export interface RunContext {
   articleIpynb: string;
   mystYml: string;
   options: ConvertOptions;
-  scriptsDir: string;
 }
 
 export interface PipelineStep {

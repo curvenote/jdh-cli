@@ -7,15 +7,15 @@ import version from './version.js';
 (process as NodeJS.Process & { noDeprecation?: boolean }).noDeprecation = true;
 
 const program = new Command();
-program.name('doc-convert');
+program.name('jdh-cli');
 program.description(
-  'Convert and improve documents into a MyST-ready project (myst.yml + article.md).',
+  'Convert and improve Jupytext notebooks into a MyST-ready project (myst.yml + article.md).',
 );
 program.showHelpAfterError(true);
 
 addConvertCommand(program);
 
-program.version(`v${version}`, '-v, --version', 'Print the current version of doc-convert');
+program.version(`v${version}`, '-v, --version', 'Print the current version of jdh-cli');
 
 program.exitOverride();
 

@@ -1,4 +1,3 @@
-import path from 'node:path';
 import type { Command } from 'commander';
 import { CliError } from '../cli/errors.js';
 import { buildRunContext, fileExists, parseConvertOptions, resolveInputPath } from '../engine/context.js';
@@ -7,8 +6,7 @@ import { getRuleset, inferRulesetId } from '../rulesets/index.js';
 
 export function addConvertCommand(program: Command): void {
   program
-    .argument('<input>', 'Input file (.md with optional --jupytext, or .docx)')
-    .option('--jupytext', 'Treat input as Jupytext-exported markdown (full pipeline)')
+    .argument('<input>', 'Jupytext-exported markdown input (.md)')
     .option('--workdir <path>', 'Output workdir name or path', '_improved')
     .option('--project-root <path>', 'Article repo root for scripts and assets (default: input directory)')
     .option('-d, --dry-run', 'Do not write files')
@@ -21,10 +19,9 @@ export function addConvertCommand(program: Command): void {
       'after',
       `
 Examples:
-  $ doc-convert manuscript.docx
-  $ doc-convert manuscript.docx --project-root ./article --workdir _improved
-  $ doc-convert article.md --jupytext
-  $ doc-convert manuscript.docx --list-steps
+  $ jdh-cli article.md
+  $ jdh-cli article.md --project-root ./article --workdir _improved
+  $ jdh-cli article.md --list-steps
 `,
     )
     .action(async (input: string, opts) => {
@@ -43,19 +40,13 @@ Examples:
         projectRoot: opts.projectRoot,
       });
 
-      const rulesetId = inferRulesetId(inputAbs, Boolean(opts.jupytext));
+      const rulesetId = inferRulesetId(inputAbs);
       const ruleset = getRuleset(rulesetId);
       const ctx = buildRunContext(rulesetId, inputAbs, options);
 
       if (opts.listSteps) {
         listRulesetSteps(ruleset, ctx);
         return;
-      }
-
-      // DOCX: project root is dirname of docx unless overridden
-      if (rulesetId === 'docx' && !opts.projectRoot) {
-        ctx.projectRoot = path.dirname(inputAbs);
-        ctx.scriptsDir = path.join(ctx.projectRoot, 'script');
       }
 
       await runRuleset(ruleset, ctx);
