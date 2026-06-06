@@ -44,7 +44,7 @@ describe('jupytext pipeline', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-cli-test-'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.md'), path.join(tmpDir, 'article.md'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.ipynb'), path.join(tmpDir, 'article.ipynb'));
-    for (const dep of ['jdh-meta.yml', 'curvenote.yml', 'plugins', 'data', 'generated']) {
+    for (const dep of ['jdh-meta.yml', 'myst.yml', 'plugins', 'data', 'generated']) {
       const src = path.join(ARTICLE_REPO, dep);
       const dest = path.join(tmpDir, dep);
       if (!fileExists(src)) continue;
