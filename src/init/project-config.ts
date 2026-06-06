@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileExists } from '../engine/context.js';
 import { resolveGithubFromGit } from '../steps/shared/git.js';
+import { META_JDH_FILE, readBundledMetaJdhTemplate } from './bundled-assets.js';
 
 export const MYST_CONFIG = 'myst.yml';
 export const LEGACY_CONFIG = 'curvenote.yml';
@@ -23,10 +24,17 @@ export function buildInitMystYaml(options: {
   projectId: string;
   github?: string;
   siteTemplate?: string;
+  extendMetaJdh?: boolean;
 }): string {
+  const extendsBlock =
+    options.extendMetaJdh !== false
+      ? ['extends:', `  - ${META_JDH_FILE}`, '']
+      : [];
+
   const lines = [
     '# See docs at: https://mystmd.org/guide/frontmatter',
     'version: 1',
+    ...extendsBlock,
     'project:',
     `  id: ${options.projectId}`,
   ];
@@ -41,9 +49,16 @@ export function buildInitMystYaml(options: {
 
 export type InitProjectResult =
   | { status: 'already-initialized'; existing: ExistingConfig; dir: string }
-  | { status: 'created'; path: string; projectId: string; github: string | null; dryRun: boolean };
+  | {
+      status: 'created';
+      mystPath: string;
+      metaJdhPath: string;
+      projectId: string;
+      github: string | null;
+      dryRun: boolean;
+    };
 
-/** Create `myst.yml` in `dir` when no project config exists yet. */
+/** Create `myst.yml` and copy bundled `meta-jdh.yml` when no project config exists yet. */
 export function initProjectConfig(dir: string, dryRun = false): InitProjectResult {
   const projectRoot = path.resolve(dir);
   const existing = findExistingProjectConfig(projectRoot);
@@ -53,16 +68,20 @@ export function initProjectConfig(dir: string, dryRun = false): InitProjectResul
 
   const projectId = crypto.randomUUID();
   const github = resolveGithubFromGit(projectRoot);
-  const content = buildInitMystYaml({ projectId, github: github ?? undefined });
-  const configPath = path.join(projectRoot, MYST_CONFIG);
+  const mystContent = buildInitMystYaml({ projectId, github: github ?? undefined });
+  const metaJdhContent = readBundledMetaJdhTemplate();
+  const mystPath = path.join(projectRoot, MYST_CONFIG);
+  const metaJdhPath = path.join(projectRoot, META_JDH_FILE);
 
   if (!dryRun) {
-    fs.writeFileSync(configPath, content);
+    fs.writeFileSync(mystPath, mystContent);
+    fs.writeFileSync(metaJdhPath, metaJdhContent);
   }
 
   return {
     status: 'created',
-    path: configPath,
+    mystPath,
+    metaJdhPath,
     projectId,
     github,
     dryRun,

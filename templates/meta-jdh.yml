@@ -1,0 +1,13 @@
+version: 1
+project:
+  license: CC-BY-NC-ND-4.0
+  open_access: true
+  toc:
+    - file: article.md
+  exports:
+    - format: pdf
+      template: ../../jdh-typst-template
+      article: article.md
+      output: article.pdf
+      qr_code: ./generated/qr.png
+      fingerprint: ./generated/fingerprint.png

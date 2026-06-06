@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
+import { META_JDH_FILE } from '../src/init/bundled-assets.js';
 import {
   SPA_PREVIEW_TEMPLATE,
   buildInitMystYaml,
@@ -20,27 +21,38 @@ describe('init project config', () => {
     }
   });
 
-  test('buildInitMystYaml includes id, github, and spa-preview site template', () => {
+  test('buildInitMystYaml includes extends, id, github, and spa-preview site template', () => {
     const yaml = buildInitMystYaml({
       projectId: 'test-uuid',
       github: 'https://github.com/jdh-observer/BHmHNQKJaSWT',
     });
+    expect(yaml).toContain('extends:');
+    expect(yaml).toContain(META_JDH_FILE);
     expect(yaml).toContain('id: test-uuid');
     expect(yaml).toContain('github: https://github.com/jdh-observer/BHmHNQKJaSWT');
     expect(yaml).toContain(`template: ${SPA_PREVIEW_TEMPLATE}`);
   });
 
-  test('initProjectConfig creates myst.yml in a folder without existing config', () => {
+  test('initProjectConfig creates myst.yml and bundled meta-jdh.yml', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-init-'));
 
     const result = initProjectConfig(tmpDir);
     expect(result.status).toBe('created');
     if (result.status !== 'created') return;
 
-    expect(fileExists(result.path)).toBe(true);
-    const content = fs.readFileSync(result.path, 'utf8');
-    expect(content).toMatch(/id: [0-9a-f-]{36}/);
-    expect(content).toContain(SPA_PREVIEW_TEMPLATE);
+    expect(fileExists(result.mystPath)).toBe(true);
+    expect(fileExists(result.metaJdhPath)).toBe(true);
+
+    const myst = fs.readFileSync(result.mystPath, 'utf8');
+    expect(myst).toMatch(/id: [0-9a-f-]{36}/);
+    expect(myst).toContain(`extends:\n  - ${META_JDH_FILE}`);
+    expect(myst).toContain(SPA_PREVIEW_TEMPLATE);
+
+    const meta = fs.readFileSync(result.metaJdhPath, 'utf8');
+    expect(meta).toContain('license: CC-BY-NC-ND-4.0');
+    expect(meta).toContain('exports:');
+    expect(meta).toContain('../../jdh-typst-template');
+
     expect(result.projectId).toMatch(/^[0-9a-f-]{36}$/);
   });
 

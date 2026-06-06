@@ -8,7 +8,8 @@
     "jdh-cli": "./dist/jdh-cli.cjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "scripts": {
     "clean": "rm -rf dist",
@@ -19,7 +20,8 @@
     "dev": "bun run link && bun run copy:version && bun build src/index.ts --outfile=dist/jdh-cli.cjs --target=node --format=cjs --minify=false --sourcemap=inline --watch",
     "build:cli": "bun build src/index.ts --outfile=dist/jdh-cli.cjs --target=node --format=cjs --minify",
     "build:watch": "bun run copy:version && bun build src/index.ts --outfile=dist/jdh-cli.cjs --target=node --format=cjs --minify --sourcemap=inline --watch",
-    "build": "bun run clean && bun run copy:version && bun run build:cli",
+    "build": "bun run clean && bun run copy:version && bun run copy:templates && bun run build:cli",
+    "copy:templates": "bun scripts/copy-templates.ts",
     "test": "bun test",
     "start": "bun src/index.ts",
     "build:standalone": "bun run copy:version && bun build --compile src/index.ts --outfile dist/jdh-cli"

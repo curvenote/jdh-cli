@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
+import { META_JDH_FILE } from '../../init/bundled-assets.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 const LEGACY_CONFIG = 'curvenote.yml';
-const META_JDH_FILE = 'meta-jdh.yml';
 
 function fileExists(p: string): boolean {
   try {

@@ -6,13 +6,13 @@ import { initProjectConfig } from '../init/project-config.js';
 export function addInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Create myst.yml for a new JDH article repo')
+    .description('Create myst.yml and meta-jdh.yml for a new JDH article repo')
     .argument('[dir]', 'Directory to initialize', '.')
     .addHelpText(
       'after',
       `
-Creates myst.yml with a new project.id, project.github from the git remote
-(origin, or the only remote), and a site template for spa-preview.
+Creates myst.yml (with extends: meta-jdh.yml) and copies the bundled meta-jdh.yml
+template (license, exports, toc). Sets project.id and project.github from git.
 
 If myst.yml or curvenote.yml already exists, reports that the folder is
 already initialized and makes no changes.
@@ -37,7 +37,8 @@ Examples:
         return;
       }
 
-      console.log(`Created ${result.path}`);
+      console.log(`Created ${result.mystPath}`);
+      console.log(`Created ${result.metaJdhPath} (from bundled template)`);
       console.log(`  project.id: ${result.projectId}`);
       if (result.github) {
         console.log(`  project.github: ${result.github}`);
