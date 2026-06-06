@@ -25,7 +25,7 @@ export type StepInputType =
   /** Git remotes from the enclosing repository (`.git/config`). */
   | 'git'
   /**
-   * Project-root assets copied or merged into the workdir (`metadata.yml`,
+   * Project-root assets copied or merged into the workdir (`jdh-meta.yml`,
    * `media/`, `plugins/`, etc.).
    */
   | 'project';

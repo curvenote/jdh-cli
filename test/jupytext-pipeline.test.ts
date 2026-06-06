@@ -44,7 +44,7 @@ describe('jupytext pipeline', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-cli-test-'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.md'), path.join(tmpDir, 'article.md'));
     fs.copyFileSync(path.join(ARTICLE_REPO, 'article.ipynb'), path.join(tmpDir, 'article.ipynb'));
-    for (const dep of ['metadata.yml', 'curvenote.yml', 'plugins', 'data', 'generated']) {
+    for (const dep of ['jdh-meta.yml', 'curvenote.yml', 'plugins', 'data', 'generated']) {
       const src = path.join(ARTICLE_REPO, dep);
       const dest = path.join(tmpDir, dep);
       if (!fileExists(src)) continue;
@@ -67,9 +67,9 @@ describe('jupytext pipeline', () => {
     const myst = fs.readFileSync(path.join(improved, 'myst.yml'), 'utf8');
     expect(myst).toContain('license: CC-BY-NC-ND-4.0');
     expect(myst).toContain('plugins/hermeneutics.mjs');
-    expect(fileExists(path.join(improved, 'metadata.yml'))).toBe(true);
+    expect(fileExists(path.join(improved, 'jdh-meta.yml'))).toBe(true);
     expect(myst).toContain('extends:');
-    expect(myst).toContain('metadata.yml');
+    expect(myst).toContain('jdh-meta.yml');
 
     const article = fs.readFileSync(path.join(improved, 'article.md'), 'utf8');
     expect(article).toMatch(/^#\s+/m);
