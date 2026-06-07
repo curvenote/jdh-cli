@@ -32,6 +32,7 @@ describe('build integration (meta-jdh extends)', () => {
   const canRun =
     fileExists(CLI) &&
     fileExists(path.join(ARTICLE_REPO, 'article.md')) &&
+    fileExists(path.join(ARTICLE_REPO, 'meta-jdh.yml')) &&
     fileExists(TYPST_TEMPLATE) &&
     mystAvailable();
 
