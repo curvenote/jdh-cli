@@ -101,8 +101,9 @@ export function truncateColumns(table, options = {}) {
     return { table, hiddenCols: 0 };
   }
 
-  const leftCount = Math.floor(maxColumns / 2);
-  const rightCount = Math.floor(maxColumns / 2);
+  // Ellipsis counts toward maxColumns: left + 1 + right === maxColumns
+  const leftCount = Math.ceil((maxColumns - 1) / 2);
+  const rightCount = Math.floor((maxColumns - 1) / 2);
 
   const pickColumns = (row) => {
     if (row.length <= leftCount + rightCount) return [...row];

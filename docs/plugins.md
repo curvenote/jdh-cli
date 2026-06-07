@@ -154,8 +154,9 @@ the table AST, and emits one Typst `raw` block (inside a one-child `div`)
 with `#jdh-table-enter`, `#tablex(...)`, and `#jdh-table-footer()`.
 
 **Column truncation:** When source columns exceed `jdh-theme.table.max-columns`
-(default 6), shows `floor(n/2)` from the start, an ellipsis column (`…`), and
-`floor(n/2)` from the end.
+(default 6), shows `ceil((n-1)/2)` from the start, an ellipsis column (`…`), and
+`floor((n-1)/2)` from the end — ellipsis included in the `n` column budget (6 visible
+cells total when `max-columns` is 6).
 
 **Typst:** `#jdh-table-style` / `#jdh-table-shell` / `#jdh-table-more-cell` in `jdh.typ` — tablex zebra rows, bold headers, no gridlines,
 gray border with slight inset; “K rows more” is a full-width tablex row (not a separate block).
