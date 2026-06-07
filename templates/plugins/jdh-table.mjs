@@ -229,7 +229,8 @@ function tableNodeToTypst(tableNode, hiddenRows = 0) {
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
   const dataRowCount = rows.filter((row) => !isHeaderRow(row)).length;
-  let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows}, hidden-rows: ${hiddenRows}, data-rows: ${dataRowCount})\n#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
+  const colSpec = Array.from({ length: columns }, () => '1fr').join(', ');
+  let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows}, hidden-rows: ${hiddenRows}, data-rows: ${dataRowCount})\n#tablex(columns: (${colSpec}), header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
   for (const row of rows) {
     for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
       out += `${typstCell(childText(cell))},\n`;
