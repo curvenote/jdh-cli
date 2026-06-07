@@ -5,7 +5,7 @@
  * jdh-typst-template can render gray full-bleed code (see `jdh.typ`).
  *
  * Eligible code:
- * - Untagged fenced blocks in the main article flow
+ * - Untagged fenced blocks anywhere in the document (except exclusions below)
  * - Blocks tagged `narrative` (same styling; tag is optional explicit intent)
  *
  * Excluded:

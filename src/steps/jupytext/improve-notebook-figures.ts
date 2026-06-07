@@ -200,6 +200,23 @@ export function processArticle(content: string): { content: string; figureNumToL
       if (inSkip(offset)) return match;
       return '[](#' + label + ')';
     });
+    // Legacy figure code-block labels (Option B no longer emits code:fig:* nodes).
+    const codeFigLabel = `code:${label}`;
+    const codeFigLiteral = codeFigLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(
+      new RegExp('\\[\\]\\(#' + codeFigLiteral + '\\)', 'g'),
+      (match: string, offset: number) => {
+        if (inSkip(offset)) return match;
+        return '[](#' + label + ')';
+      },
+    );
+    result = result.replace(
+      new RegExp('\\{ref\\}`' + codeFigLiteral + '`', 'g'),
+      (match: string, offset: number) => {
+        if (inSkip(offset)) return match;
+        return '[](#' + label + ')';
+      },
+    );
   }
 
   for (const [num, label] of figureNumToLabel) {

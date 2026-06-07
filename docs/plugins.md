@@ -18,7 +18,7 @@ Typst/HTML styling for HTML is out of scope for now; PDF (Typst) is the target.
 | Plugin | File | When it runs | Purpose |
 | --- | --- | --- | --- |
 | Hermeneutics | `hermeneutics.mjs` | MyST build | `:::{hermeneutics}` → cyan commentary blocks + sidebar code markers |
-| Narrative code | `narrative-code.mjs` | MyST build | Gray full-bleed code cells in the main article flow |
+| Narrative code | `narrative-code.mjs` | MyST build | Gray full-bleed styling for eligible block code (except hermeneutics / figure) |
 | Hide figure code | `hide-figure-code.mjs` | MyST build | Removes legacy `code:fig:*` blocks from the AST (PDF safety net) |
 
 ## Hermeneutics
@@ -45,8 +45,12 @@ highlighting, with truncation/fade controlled by `jdh-theme.code` in
 
 **Eligibility (both produce the same styling):**
 
-- Untagged fenced code blocks in the main flow (e.g. `` ```python ``)
+- Untagged fenced code blocks (e.g. `` ```python ``)
 - Fences explicitly tagged `narrative` (`` ```python tags=["narrative"] ``)
+
+**Scope:** Every eligible block-level `code` node in the document AST receives
+narrative styling — not only top-level article body code. Code inside
+admonitions, tab sets, tables, etc. is included unless excluded below.
 
 **Excluded:**
 
@@ -100,7 +104,9 @@ Caption text
 ```
 ```
 
-Cross-references in prose use `fig:N` / `[](#fig:1)` — not `code:fig:*`.
+Cross-references in prose use `fig:N` / `[](#fig:1)`. Legacy links to the removed
+figure `{code-block}` labels (`code:fig:N`, `{ref}\`code:fig:1\``) are rewritten to
+the corresponding `fig:N` target during `improveNotebookFigures`.
 
 ### hide-figure-code.mjs (safety net)
 
