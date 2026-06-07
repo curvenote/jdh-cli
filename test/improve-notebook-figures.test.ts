@@ -25,7 +25,7 @@ describe('improve notebook figures', () => {
 
   test('rewrites legacy code:fig cross-references to fig:N', () => {
     const input = [
-      'See the source at [](#code:fig:1).',
+      'See the source at [](#code:fig:1) and {ref}`code:fig:1`.',
       '',
       '```python tags=["figure-1-*"]',
       'from IPython.display import Image, display',
@@ -38,5 +38,6 @@ describe('improve notebook figures', () => {
 
     expect(content).toContain('[](#fig:1)');
     expect(content).not.toContain('code:fig:');
+    expect(content).not.toMatch(/\{ref\}`code:fig:1`/);
   });
 });
