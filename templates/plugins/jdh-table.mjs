@@ -1,8 +1,9 @@
 /**
  * MyST plugin: `jdh-table` directive for pipeline-produced tables.
  *
- * Parses GFM tables inside `:::{jdh-table}`, truncates rows/columns, and wraps
- * Typst export in `#jdh-table-block[...]` for JDH styling (see `jdh.typ`).
+ * Parses GFM tables inside `:::{jdh-table}`, truncates rows/columns, and emits
+ * a single Typst `raw` block (inside a one-child `div`) so myst-to-typst keeps
+ * the table as one figure child while `#tablex` runs in code mode.
  *
  * Refs: https://mystmd.org/guide/javascript-plugins
  */
@@ -158,27 +159,68 @@ function gfmToTableNode(gfm, align = 'center') {
   return { type: 'table', align, children: rows };
 }
 
-function replaceTableWithWrappedBlock(children, newTable, hiddenRows, hiddenCols) {
+function isHeaderRow(row) {
+  if (row?.type !== 'tableRow') return false;
+  if (row.header === true) return true;
+  const cells = (row.children ?? []).filter((child) => child.type === 'tableCell');
+  return cells.length > 0 && cells.every((cell) => cell.header);
+}
+
+function countColumns(tableNode) {
+  const firstRow = (tableNode.children ?? []).find((child) => child.type === 'tableRow');
+  return (firstRow?.children ?? [])
+    .filter((cell) => cell.type === 'tableCell')
+    .reduce((total, cell) => total + (cell.colspan ?? 1), 0);
+}
+
+function countHeaderRows(tableNode) {
+  return (tableNode.children ?? []).filter((child) => isHeaderRow(child)).length;
+}
+
+/** Escape cell text for Typst `[...]` tablex cells (mirrors myst-to-typst export). */
+function typstCell(text) {
+  if (!text) return '[]';
+  const escaped = text.replace(/\\/g, '\\\\').replace(/#/g, '\\#');
+  return `[${escaped}]`;
+}
+
+/** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */
+function tableNodeToTypst(tableNode) {
+  const columns = countColumns(tableNode);
+  const headerRows = countHeaderRows(tableNode);
+  const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
+  let out = `#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..tableStyle, ..columnStyle,\n`;
+  for (const row of rows) {
+    for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
+      out += `${typstCell(childText(cell))},\n`;
+    }
+  }
+  out += ')\n';
+  return out;
+}
+
+/**
+ * Replace table content with a single-child `div` wrapping one `raw` Typst block.
+ * myst-to-typst treats a lone table child as code-mode export; the `div` keeps
+ * enter/table/footer as one figure child while `#`-prefixed raw Typst executes.
+ */
+function replaceTableWithTypstWrap(children, tableNode, hiddenRows, hiddenCols) {
+  const typst = [
+    `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
+    tableNodeToTypst(tableNode),
+    '#jdh-table-footer()',
+  ].join('\n');
+  const wrap = {
+    type: 'div',
+    children: [{ type: 'raw', typst: `${typst}\n` }],
+  };
+
   for (let i = 0; i < (children ?? []).length; i++) {
     if (children[i].type === 'table') {
-      children[i] = {
-        type: 'block',
-        kind: 'jdh-table-wrap',
-        children: [
-          {
-            type: 'raw',
-            typst: `#jdh-table-block(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})[\n`,
-          },
-          newTable,
-          { type: 'raw', typst: '\n]' },
-        ],
-      };
+      children[i] = wrap;
       return true;
     }
-    if (
-      children[i].children &&
-      replaceTableWithWrappedBlock(children[i].children, newTable, hiddenRows, hiddenCols)
-    ) {
+    if (children[i].children && replaceTableWithTypstWrap(children[i].children, tableNode, hiddenRows, hiddenCols)) {
       return true;
     }
   }
@@ -203,21 +245,21 @@ function processJdhTableContainer(node) {
   });
 
   const newTable = gfmToTableNode(truncated, align);
-  if (!replaceTableWithWrappedBlock(node.children, newTable, hiddenRows, hiddenCols)) {
+  if (!replaceTableWithTypstWrap(node.children, newTable, hiddenRows, hiddenCols)) {
     node.children = [
       {
-        type: 'block',
-        kind: 'jdh-table-wrap',
+        type: 'div',
         children: [
           {
             type: 'raw',
-            typst: `#jdh-table-block(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})[\n`,
+            typst: [
+              `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
+              tableNodeToTypst(newTable),
+              '#jdh-table-footer()',
+            ].join('\n') + '\n',
           },
-          newTable,
-          { type: 'raw', typst: '\n]' },
         ],
       },
-      ...(node.children ?? []),
     ];
   }
 

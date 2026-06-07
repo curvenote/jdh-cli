@@ -149,13 +149,14 @@ directives in article source are unchanged.
 | `:max-rows: 0` | — | Disable row truncation |
 
 **Plugin:** Parses the GFM body, truncates rows/columns (`plugins/lib/table-truncate.mjs`),
-rebuilds the table AST, and wraps Typst export in `#jdh-table-block[...]`.
+rebuilds the table AST, and emits one Typst `raw` block (inside a one-child `div`)
+with `#jdh-table-enter`, `#tablex(...)`, and `#jdh-table-footer()`.
 
 **Column truncation:** When source columns exceed `jdh-theme.table.max-columns`
 (default 6), shows `floor(n/2)` from the start, an ellipsis column (`…`), and
 `floor(n/2)` from the end.
 
-**Typst:** `#jdh-table-block` in `jdh.typ` — zebra rows, bold tight headers,
+**Typst:** `#jdh-table-enter` / `#jdh-table-footer` in `jdh.typ` — zebra rows, bold tight headers,
 white border, caption below table, solid “K rows more” footer (no fade).
 
 ## Adding a new plugin
