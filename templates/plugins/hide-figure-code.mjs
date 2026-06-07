@@ -19,9 +19,6 @@ function isFigureCodeNode(node) {
   if (typeof node.label === 'string' && node.label.startsWith(FIGURE_CODE_PREFIX)) {
     return true;
   }
-  if (node.type === 'codeBlock' && isFigureCodeNode({ identifier: node.identifier, label: node.label })) {
-    return true;
-  }
   return false;
 }
 
