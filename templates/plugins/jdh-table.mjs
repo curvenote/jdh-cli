@@ -224,28 +224,32 @@ function typstCell(text) {
 }
 
 /** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */
-function tableNodeToTypst(tableNode) {
+function tableNodeToTypst(tableNode, hiddenRows = 0) {
   const columns = countColumns(tableNode);
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
-  let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows})\n#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
+  const dataRowCount = rows.filter((row) => !isHeaderRow(row)).length;
+  let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows}, hidden-rows: ${hiddenRows}, data-rows: ${dataRowCount})\n#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
   for (const row of rows) {
     for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
       out += `${typstCell(childText(cell))},\n`;
     }
+  }
+  if (hiddenRows > 0) {
+    out += `jdh-table-more-cell(${columns}, ${hiddenRows}),\n`;
   }
   out += ')\n';
   return out;
 }
 
 function buildTypstTableWrap(tableNode, hiddenRows, hiddenCols) {
-  const tableTypst = tableNodeToTypst(tableNode).trim();
+  const tableTypst = tableNodeToTypst(tableNode, hiddenRows).trim();
   const typst = [
     `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
-    '#jdh-table-body[',
+    '#jdh-table-shell[',
     tableTypst,
     ']',
-    '#jdh-table-footer()',
+    '#jdh-table-leave()',
   ].join('\n');
   return {
     type: 'div',
