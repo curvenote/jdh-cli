@@ -156,7 +156,7 @@ with `#jdh-table-enter`, `#tablex(...)`, and `#jdh-table-footer()`.
 (default 6), shows `floor(n/2)` from the start, an ellipsis column (`…`), and
 `floor(n/2)` from the end.
 
-**Typst:** `#jdh-table-enter` / `#jdh-table-footer` in `jdh.typ` — zebra rows, bold tight headers,
+**Typst:** `#jdh-table-style` / `#jdh-table-body` / `#jdh-table-enter` / `#jdh-table-footer` in `jdh.typ` — tablex zebra rows, bold headers, no gridlines,
 white border, caption below table, solid “K rows more” footer (no fade).
 
 ## Adding a new plugin

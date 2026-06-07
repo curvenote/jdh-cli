@@ -189,7 +189,7 @@ function tableNodeToTypst(tableNode) {
   const columns = countColumns(tableNode);
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
-  let out = `#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..tableStyle, ..columnStyle,\n`;
+  let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows})\n#tablex(columns: ${columns}, header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
   for (const row of rows) {
     for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
       out += `${typstCell(childText(cell))},\n`;
@@ -205,9 +205,12 @@ function tableNodeToTypst(tableNode) {
  * enter/table/footer as one figure child while `#`-prefixed raw Typst executes.
  */
 function replaceTableWithTypstWrap(children, tableNode, hiddenRows, hiddenCols) {
+  const tableTypst = tableNodeToTypst(tableNode).trim();
   const typst = [
     `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
-    tableNodeToTypst(tableNode),
+    '#jdh-table-body[',
+    tableTypst,
+    ']',
     '#jdh-table-footer()',
   ].join('\n');
   const wrap = {
@@ -246,6 +249,7 @@ function processJdhTableContainer(node) {
 
   const newTable = gfmToTableNode(truncated, align);
   if (!replaceTableWithTypstWrap(node.children, newTable, hiddenRows, hiddenCols)) {
+    const tableTypst = tableNodeToTypst(newTable).trim();
     node.children = [
       {
         type: 'div',
@@ -254,7 +258,9 @@ function processJdhTableContainer(node) {
             type: 'raw',
             typst: [
               `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
-              tableNodeToTypst(newTable),
+              '#jdh-table-body[',
+              tableTypst,
+              ']',
               '#jdh-table-footer()',
             ].join('\n') + '\n',
           },
