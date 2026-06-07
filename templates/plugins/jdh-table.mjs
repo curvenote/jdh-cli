@@ -15,18 +15,52 @@ import {
   truncateTable,
 } from './lib/table-truncate.mjs';
 
+/** Minimal copy of myst-common `normalizeLabel` (plugins cannot depend on myst-common in tests). */
+function normalizeLabel(label) {
+  if (!label) return undefined;
+  const identifier = label
+    .replace(/[\t\n\r ]+/g, ' ')
+    .replace(/[''""]+/g, '')
+    .trim()
+    .toLowerCase();
+  return { identifier, label };
+}
+
+function addCommonDirectiveOptions(data, node) {
+  if (typeof data.options?.class === 'string') {
+    node.class = data.options.class;
+  }
+  const rawLabel = data.options?.label ?? data.options?.name;
+  if (rawLabel) {
+    const normalized = normalizeLabel(rawLabel) ?? {};
+    if (normalized.label) node.label = normalized.label;
+    if (normalized.identifier) node.identifier = normalized.identifier;
+  }
+  if (typeof data.options?.enumerated === 'boolean') {
+    node.enumerated = data.options.enumerated;
+  }
+  if (data.options?.enumerator) {
+    node.enumerator = data.options.enumerator;
+  }
+  return node;
+}
+
 const jdhTableDirective = {
   name: 'jdh-table',
   doc: 'JDH table with row/column truncation and Typst styling. Emitted by improveJupytextTables.',
   arg: {
-    type: 'String',
+    type: 'myst',
     doc: 'Table caption (no "Table N:" prefix; numbering is automatic).',
   },
   options: {
     label: { type: String, required: true },
+    name: { type: String, required: false },
     'max-rows': { type: Number, required: false },
     'header-rows': { type: Number, required: false },
     align: { type: String, required: false },
+    class: { type: String, required: false },
+    enumerated: { type: Boolean, alias: ['numbered'], required: false },
+    enumerator: { type: String, alias: ['number'], required: false },
   },
   body: {
     type: 'myst',
@@ -34,20 +68,25 @@ const jdhTableDirective = {
   },
   run(data) {
     const opts = data.options ?? {};
-    return [
-      {
-        type: 'container',
-        kind: 'table',
-        label: opts.label,
-        identifier: opts.label,
-        children: data.body ?? [],
-        data: {
-          jdhTable: true,
-          jdhTableOptions: opts,
-          jdhTableCaption: data.arg ?? '',
-        },
+    const children = [];
+    if (data.arg?.length) {
+      children.push({
+        type: 'caption',
+        children: [{ type: 'paragraph', children: data.arg }],
+      });
+    }
+    children.push(...(data.body ?? []));
+    const container = {
+      type: 'container',
+      kind: 'table',
+      children,
+      data: {
+        jdhTable: true,
+        jdhTableOptions: opts,
       },
-    ];
+    };
+    addCommonDirectiveOptions(data, container);
+    return [container];
   },
 };
 
@@ -199,12 +238,7 @@ function tableNodeToTypst(tableNode) {
   return out;
 }
 
-/**
- * Replace table content with a single-child `div` wrapping one `raw` Typst block.
- * myst-to-typst treats a lone table child as code-mode export; the `div` keeps
- * enter/table/footer as one figure child while `#`-prefixed raw Typst executes.
- */
-function replaceTableWithTypstWrap(children, tableNode, hiddenRows, hiddenCols) {
+function buildTypstTableWrap(tableNode, hiddenRows, hiddenCols) {
   const tableTypst = tableNodeToTypst(tableNode).trim();
   const typst = [
     `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
@@ -213,17 +247,23 @@ function replaceTableWithTypstWrap(children, tableNode, hiddenRows, hiddenCols) 
     ']',
     '#jdh-table-footer()',
   ].join('\n');
-  const wrap = {
+  return {
     type: 'div',
     children: [{ type: 'raw', typst: `${typst}\n` }],
   };
+}
 
+/**
+ * Replace table content with a single-child `div` wrapping one `raw` Typst block.
+ * Preserves caption (and other non-table) siblings on the container.
+ */
+function replaceTableWithTypstWrap(children, wrap) {
   for (let i = 0; i < (children ?? []).length; i++) {
     if (children[i].type === 'table') {
       children[i] = wrap;
       return true;
     }
-    if (children[i].children && replaceTableWithTypstWrap(children[i].children, tableNode, hiddenRows, hiddenCols)) {
+    if (children[i].children && replaceTableWithTypstWrap(children[i].children, wrap)) {
       return true;
     }
   }
@@ -248,25 +288,11 @@ function processJdhTableContainer(node) {
   });
 
   const newTable = gfmToTableNode(truncated, align);
-  if (!replaceTableWithTypstWrap(node.children, newTable, hiddenRows, hiddenCols)) {
-    const tableTypst = tableNodeToTypst(newTable).trim();
-    node.children = [
-      {
-        type: 'div',
-        children: [
-          {
-            type: 'raw',
-            typst: [
-              `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
-              '#jdh-table-body[',
-              tableTypst,
-              ']',
-              '#jdh-table-footer()',
-            ].join('\n') + '\n',
-          },
-        ],
-      },
-    ];
+  const wrap = buildTypstTableWrap(newTable, hiddenRows, hiddenCols);
+
+  if (!replaceTableWithTypstWrap(node.children, wrap)) {
+    const captions = (node.children ?? []).filter((child) => child.type === 'caption');
+    node.children = [...captions, wrap];
   }
 
   node.data = {

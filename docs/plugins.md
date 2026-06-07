@@ -148,8 +148,9 @@ directives in article source are unchanged.
 | `:header-rows:` | auto (rows before `\|---\|`) | Multi-row headers |
 | `:max-rows: 0` | — | Disable row truncation |
 
-**Plugin:** Parses the GFM body, truncates rows/columns (`plugins/lib/table-truncate.mjs`),
-rebuilds the table AST, and emits one Typst `raw` block (inside a one-child `div`)
+**Plugin:** Mirrors the built-in `{table}` directive AST (caption + label + enumeration
+options), then truncates rows/columns (`plugins/lib/table-truncate.mjs`), rebuilds
+the table AST, and emits one Typst `raw` block (inside a one-child `div`)
 with `#jdh-table-enter`, `#tablex(...)`, and `#jdh-table-footer()`.
 
 **Column truncation:** When source columns exceed `jdh-theme.table.max-columns`
