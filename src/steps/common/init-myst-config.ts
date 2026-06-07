@@ -46,7 +46,7 @@ function buildScaffold(projectId: string, extendMetadata: boolean): string {
     ? ['extends:', `  - ${META_JDH_FILE}`, '']
     : [];
 
-  const pluginLines = listBundledPluginRelPaths().flatMap((relPath) => [`    - ${relPath}`]);
+  const pluginLines = listBundledPluginRelPaths().map((relPath) => `    - ${relPath}`);
 
   return [
     '# See docs at: https://mystmd.org/guide/frontmatter',

@@ -4,6 +4,10 @@ jdh-cli bundles MyST JavaScript plugins under `templates/plugins/`. On every
 `improve` run, `prepareWorkdir` copies all `*.mjs` files into
 `_improved/plugins/` and `initMystConfig` registers them in `myst.yml`.
 
+**Article repos do not ship their own `plugins/` directory.** Any local
+`plugins/` folder in an article repo is ignored; add or extend plugins in
+jdh-cli instead (see [Adding a new plugin](#adding-a-new-plugin)).
+
 Plugins run at **MyST build time** (not during `improve`). They shape the AST
 and insert Typst-specific `raw` nodes for PDF export via `jdh-typst-template`.
 

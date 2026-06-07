@@ -16,8 +16,12 @@ export function resolveBundledPluginsDir(): string {
   }
 
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  // Source layout (`src/init/…` during dev / tests).
   candidates.push(path.join(moduleDir, '..', '..', 'templates', PLUGINS_DIR));
   candidates.push(path.join(moduleDir, '..', '..', 'dist', PLUGINS_DIR));
+  // Shipped bundle (`dist/jdh-cli.cjs` — moduleDir is `dist/`).
+  candidates.push(path.join(moduleDir, '..', 'templates', PLUGINS_DIR));
+  candidates.push(path.join(moduleDir, PLUGINS_DIR));
 
   for (const candidate of candidates) {
     if (fileExists(candidate)) return candidate;
@@ -28,25 +32,31 @@ export function resolveBundledPluginsDir(): string {
   );
 }
 
-/** Relative myst.yml plugin paths for every bundled `*.mjs` plugin. */
-export function listBundledPluginRelPaths(): string[] {
+/** Basenames of every bundled `*.mjs` plugin (sorted). */
+function listBundledPluginFiles(): string[] {
   const dir = resolveBundledPluginsDir();
-  return fs
+  const plugins = fs
     .readdirSync(dir)
     .filter((name) => name.endsWith('.mjs'))
-    .sort()
-    .map((name) => `${PLUGINS_DIR}/${name}`);
+    .sort();
+
+  if (plugins.length === 0) {
+    throw new Error(`No bundled plugins (*.mjs) found in ${dir}`);
+  }
+
+  return plugins;
+}
+
+/** Relative myst.yml plugin paths for every bundled `*.mjs` plugin. */
+export function listBundledPluginRelPaths(): string[] {
+  return listBundledPluginFiles().map((name) => `${PLUGINS_DIR}/${name}`);
 }
 
 /** Copy all bundled plugins into `<workdir>/plugins/`. */
 export function deployBundledPlugins(workdirAbs: string, dryRun: boolean): number {
   const srcDir = resolveBundledPluginsDir();
   const destDir = path.join(workdirAbs, PLUGINS_DIR);
-  const plugins = fs.readdirSync(srcDir).filter((name) => name.endsWith('.mjs'));
-
-  if (plugins.length === 0) {
-    throw new Error(`No bundled plugins (*.mjs) found in ${srcDir}`);
-  }
+  const plugins = listBundledPluginFiles();
 
   const prefix = dryRun ? '[dry-run] ' : '';
   console.log(`${prefix}Deploying ${plugins.length} bundled plugin(s) → ${PLUGINS_DIR}/`);

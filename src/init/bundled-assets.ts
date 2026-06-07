@@ -16,8 +16,12 @@ export function resolveBundledMetaJdhPath(): string {
   }
 
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  // Source layout (`src/init/…` during dev / tests).
   candidates.push(path.join(moduleDir, '..', '..', 'templates', META_JDH_FILE));
   candidates.push(path.join(moduleDir, '..', '..', 'dist', META_JDH_FILE));
+  // Shipped bundle (`dist/jdh-cli.cjs` — moduleDir is `dist/`).
+  candidates.push(path.join(moduleDir, '..', 'templates', META_JDH_FILE));
+  candidates.push(path.join(moduleDir, META_JDH_FILE));
 
   for (const candidate of candidates) {
     if (fileExists(candidate)) return candidate;
