@@ -1,8 +1,9 @@
 # MyST plugins (JDH)
 
-jdh-cli bundles MyST JavaScript plugins under `templates/plugins/`. On every
-`improve` run, `prepareWorkdir` copies all `*.mjs` files into
-`_improved/plugins/` and `initMystConfig` registers them in `myst.yml`.
+jdh-cli bundles MyST JavaScript plugins under `templates/plugins/` (including
+`plugins/lib/` helpers). On every `improve` run, `prepareWorkdir` copies the
+plugin tree into `_improved/plugins/` and `initMystConfig` registers top-level
+`*.mjs` plugins in `myst.yml`.
 
 **Article repos do not ship their own `plugins/` directory.** Any local
 `plugins/` folder in an article repo is ignored; add or extend plugins in
@@ -19,6 +20,7 @@ Typst/HTML styling for HTML is out of scope for now; PDF (Typst) is the target.
 | --- | --- | --- | --- |
 | Hermeneutics | `hermeneutics.mjs` | MyST build | `:::{hermeneutics}` → cyan commentary blocks + sidebar code markers |
 | Narrative code | `narrative-code.mjs` | MyST build | Gray full-bleed styling for eligible block code (except hermeneutics / figure) |
+| JDH table | `jdh-table.mjs` | MyST build | `:::{jdh-table}` → row/column truncation + Typst styling |
 | Hide figure code | `hide-figure-code.mjs` | MyST build | Removes legacy `code:fig:*` blocks from the AST (PDF safety net) |
 
 ## Hermeneutics
@@ -121,6 +123,41 @@ This is **Option B**: figure source is hidden in PDF output; only `{figure}` ren
 Figure cells are embedding boilerplate, not narrative code. Applying gray
 full-bleed styling would show a redundant code box above every figure.
 
+## JDH tables
+
+**Improve pipeline:** `improveJupytextTables` converts every notebook table
+`#region` into `:::{jdh-table}` (never `:::{table}`). Hand-written `:::{table}`
+directives in article source are unchanged.
+
+```markdown
+:::{jdh-table} Absolute and relative frequencies…
+:label: table:1
+:max-rows: 4
+:header-rows: 2
+:align: center
+
+| … | … |
+| --- | --- |
+| … | … |
+:::
+```
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `:max-rows:` | `4` (matches `jdh-theme.table.max-rows`) | Data rows shown before “K rows more” |
+| `:header-rows:` | auto (rows before `\|---\|`) | Multi-row headers |
+| `:max-rows: 0` | — | Disable row truncation |
+
+**Plugin:** Parses the GFM body, truncates rows/columns (`plugins/lib/table-truncate.mjs`),
+rebuilds the table AST, and wraps Typst export in `#jdh-table-block[...]`.
+
+**Column truncation:** When source columns exceed `jdh-theme.table.max-columns`
+(default 6), shows `floor(n/2)` from the start, an ellipsis column (`…`), and
+`floor(n/2)` from the end.
+
+**Typst:** `#jdh-table-block` in `jdh.typ` — zebra rows, bold tight headers,
+white border, caption below table, solid “K rows more” footer (no fade).
+
 ## Adding a new plugin
 
 1. Add `templates/plugins/your-plugin.mjs`
@@ -140,3 +177,4 @@ Container fills (independent):
 
 - `jdh-theme.hermeneutics` — cyan blocks + code-marker sidebar
 - `jdh-theme.narrative-code` — gray narrative code blocks
+- `jdh-theme.table` — truncation defaults, zebra striping, “K rows more” footer

@@ -22,6 +22,7 @@ describe('bundled plugins', () => {
     const paths = listBundledPluginRelPaths();
     expect(paths).toContain('plugins/hermeneutics.mjs');
     expect(paths).toContain('plugins/narrative-code.mjs');
+    expect(paths).toContain('plugins/jdh-table.mjs');
     expect(paths).toContain('plugins/hide-figure-code.mjs');
     expect(paths.every((p) => p.startsWith('plugins/'))).toBe(true);
   });
@@ -31,11 +32,14 @@ describe('bundled plugins', () => {
     const count = deployBundledPlugins(tmpDir, false);
 
     expect(count).toBeGreaterThan(0);
-    expect(count).toBeGreaterThanOrEqual(3);
+    expect(count).toBeGreaterThanOrEqual(4);
     const deployed = path.join(tmpDir, 'plugins', 'hermeneutics.mjs');
     expect(fileExists(deployed)).toBe(true);
 
     const bundled = path.join(resolveBundledPluginsDir(), 'hermeneutics.mjs');
     expect(fs.readFileSync(deployed, 'utf8')).toBe(fs.readFileSync(bundled, 'utf8'));
+
+    const lib = path.join(tmpDir, 'plugins', 'lib', 'table-truncate.mjs');
+    expect(fileExists(lib)).toBe(true);
   });
 });

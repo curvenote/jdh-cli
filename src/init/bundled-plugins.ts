@@ -52,7 +52,7 @@ export function listBundledPluginRelPaths(): string[] {
   return listBundledPluginFiles().map((name) => `${PLUGINS_DIR}/${name}`);
 }
 
-/** Copy all bundled plugins into `<workdir>/plugins/`. */
+/** Copy all bundled plugins (including `plugins/lib/`) into `<workdir>/plugins/`. */
 export function deployBundledPlugins(workdirAbs: string, dryRun: boolean): number {
   const srcDir = resolveBundledPluginsDir();
   const destDir = path.join(workdirAbs, PLUGINS_DIR);
@@ -62,10 +62,7 @@ export function deployBundledPlugins(workdirAbs: string, dryRun: boolean): numbe
   console.log(`${prefix}Deploying ${plugins.length} bundled plugin(s) → ${PLUGINS_DIR}/`);
 
   if (!dryRun) {
-    fs.mkdirSync(destDir, { recursive: true });
-    for (const name of plugins) {
-      fs.copyFileSync(path.join(srcDir, name), path.join(destDir, name));
-    }
+    copyPluginsTree(srcDir, destDir);
   }
 
   for (const name of plugins) {
@@ -73,4 +70,17 @@ export function deployBundledPlugins(workdirAbs: string, dryRun: boolean): numbe
   }
 
   return plugins.length;
+}
+
+function copyPluginsTree(srcDir: string, destDir: string): void {
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const name of fs.readdirSync(srcDir)) {
+    const srcPath = path.join(srcDir, name);
+    const destPath = path.join(destDir, name);
+    if (fs.statSync(srcPath).isDirectory()) {
+      copyPluginsTree(srcPath, destPath);
+    } else if (name.endsWith('.mjs')) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
 }

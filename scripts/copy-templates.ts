@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,10 +8,17 @@ mkdirSync(dist, { recursive: true });
 
 copyFileSync(join(root, 'templates', 'meta-jdh.yml'), join(dist, 'meta-jdh.yml'));
 
-const pluginsSrc = join(root, 'templates', 'plugins');
-const pluginsDest = join(dist, 'plugins');
-mkdirSync(pluginsDest, { recursive: true });
-for (const name of readdirSync(pluginsSrc)) {
-  if (!name.endsWith('.mjs')) continue;
-  copyFileSync(join(pluginsSrc, name), join(pluginsDest, name));
+function copyPluginsDir(srcDir: string, destDir: string): void {
+  mkdirSync(destDir, { recursive: true });
+  for (const name of readdirSync(srcDir)) {
+    const srcPath = join(srcDir, name);
+    const destPath = join(destDir, name);
+    if (statSync(srcPath).isDirectory()) {
+      copyPluginsDir(srcPath, destPath);
+    } else if (name.endsWith('.mjs')) {
+      copyFileSync(srcPath, destPath);
+    }
+  }
 }
+
+copyPluginsDir(join(root, 'templates', 'plugins'), join(dist, 'plugins'));

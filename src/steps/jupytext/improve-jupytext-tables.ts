@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
+import { countHeaderRows } from '../../../templates/plugins/lib/table-truncate.mjs';
 
 
 const DEFAULT_ARTICLE = 'article.md';
@@ -146,11 +147,14 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
   let result = content;
   for (const r of regions) {
     const tableBlock = content.slice(r.openEnd, r.tableEnd).replace(/^\n+|\n+$/g, '');
+    const headerRows = countHeaderRows(tableBlock);
+    const headerLine =
+      headerRows > 1 ? [`:header-rows: ${headerRows}`, ''] : [''];
     const replacement = [
-      ':::{table} ' + r.caption,
+      ':::{jdh-table} ' + r.caption,
       `:label: ${r.label}`,
       ':align: center',
-      '',
+      ...headerLine,
       tableBlock,
       ':::',
     ].join('\n');
@@ -159,9 +163,16 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
   }
 
   if (tableNumToLabel.size === 0) {
-    const existingTableRe = /:::\s*\{table\}[^\n]+\n:label:\s*([^\s\n]+)/g;
+    const existingTableRe = /:::\s*\{jdh-table\}[^\n]+\n:label:\s*([^\s\n]+)/g;
     let em: RegExpExecArray | null;
     while ((em = existingTableRe.exec(result)) !== null) {
+      const label = em[1];
+      const numMatch = label.match(/(?:^table:(\d+)$|table[-_]?(\d+))/i);
+      if (numMatch) tableNumToLabel.set(parseInt(numMatch[1] ?? numMatch[2], 10), label);
+    }
+    // Legacy `{table}` blocks from earlier pipeline runs.
+    const legacyTableRe = /:::\s*\{table\}[^\n]+\n:label:\s*([^\s\n]+)/g;
+    while ((em = legacyTableRe.exec(result)) !== null) {
       const label = em[1];
       const numMatch = label.match(/(?:^table:(\d+)$|table[-_]?(\d+))/i);
       if (numMatch) tableNumToLabel.set(parseInt(numMatch[1] ?? numMatch[2], 10), label);
@@ -170,8 +181,12 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
 
   const skipRanges: { start: number; end: number }[] = [];
   let dm: RegExpExecArray | null;
-  const tableDirRe = /:::\s*\{table\}[^]*?:::/g;
+  const tableDirRe = /:::\s*\{jdh-table\}[^]*?:::/g;
   while ((dm = tableDirRe.exec(result)) !== null) {
+    skipRanges.push({ start: dm.index, end: dm.index + dm[0].length });
+  }
+  const legacyDirRe = /:::\s*\{table\}[^]*?:::/g;
+  while ((dm = legacyDirRe.exec(result)) !== null) {
     skipRanges.push({ start: dm.index, end: dm.index + dm[0].length });
   }
   skipRanges.sort((a, b) => a.start - b.start);
@@ -206,13 +221,16 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
     });
   }
 
+  result = result.replace(/(:::\s*\{jdh-table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
   result = result.replace(/(:::\s*\{table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
 
   return { content: result, tableNumToLabel };
 }
 
+export { processArticle };
+
 /**
- * Detects Jupytext table regions, wraps GFM tables in MyST {table} directives, and updates cross-references.
+ * Detects Jupytext table regions, wraps GFM tables in MyST `{jdh-table}` directives, and updates cross-references.
  */
 async function improveJupytextTables(
   options: RunImproveJupytextTablesOptions,
@@ -245,12 +263,12 @@ async function improveJupytextTables(
 }
 
 /**
- * Wrap jupytext table `#region` blocks in MyST `{table}` directives and
+ * Wrap jupytext table `#region` blocks in MyST `{jdh-table}` directives and
  * normalize cross-references to `:label:` anchors.
  */
 export const improveJupytextTablesStep: PipelineStep = {
   id: 'improveJupytextTables',
-  label: 'Improve Jupytext tables (table directives)',
+  label: 'Improve Jupytext tables (jdh-table directives)',
   inputs: ['markdown'],
   run: async (ctx) => {
     const o = stepOpts(ctx);
