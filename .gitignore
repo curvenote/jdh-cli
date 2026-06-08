@@ -6,3 +6,6 @@ dist
 package-lock.json
 # roborev snapshots
 /.roborev/
+
+# MyST docs site build output
+docs/_build/

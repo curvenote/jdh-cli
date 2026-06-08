@@ -2,6 +2,8 @@
 
 Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.yml`, `article.md`, assets).
 
+**Documentation:** [docs/](docs/) — MyST site with CLI usage, pipeline, and plugin/directive reference. Build with `cd docs && myst build --html`.
+
 **All pipeline logic lives in this package** (`src/steps/`).
 
 ### Commands
@@ -9,7 +11,7 @@ Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.
 | Command | Description |
 | --- | --- |
 | `jdh-cli init` | Create `myst.yml` and copy bundled `meta-jdh.yml` for a new article repo |
-| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs/plugins.md](docs/plugins.md)) |
+| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs](docs/)) |
 | `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
 | `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
 

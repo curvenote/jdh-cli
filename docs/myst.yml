@@ -1,0 +1,26 @@
+# jdh-cli documentation site — build with `myst build --html` from this directory
+version: 1
+project:
+  id: jdh-cli-docs
+  title: jdh-cli
+  description: Convert and improve Jupytext articles into MyST-ready projects
+  authors:
+    - name: Journal of Digital History
+  toc:
+    - file: index.md
+    - title: Usage
+      children:
+        - file: cli.md
+        - file: pipeline.md
+    - title: Plugins & directives
+      children:
+        - file: plugins/index.md
+        - file: plugins/hermeneutics.md
+        - file: plugins/jdh-table.md
+        - file: plugins/narrative-code.md
+        - file: plugins/hide-figure-code.md
+    - file: typst.md
+site:
+  template: book-theme
+  options:
+    logo_text: jdh-cli
