@@ -92,7 +92,7 @@ function parseContributor(content: string): ExtractedFrontmatter['contributor'] 
 
   let name = header.replace(/^#+\s*/, '').trim();
   name = name
-    .replace(/\[\!\[orcid\]\([^\)]*\)\]\([^\)]*orcid\.org\/[^\)]*\)/gi, '')
+    .replace(/[![orcid]\([^)]*\)\]\([^)]*orcid\.org\/[^)]*\)/gi, '')
     .trim();
 
   const affiliationLines = lines.slice(1).map((l) => l.trim()).filter(Boolean);

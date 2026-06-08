@@ -1,4 +1,4 @@
-import type { PipelineStep, RunContext, Ruleset, StepDisposition } from './types.js';
+import type { RunContext, Ruleset, StepDisposition } from './types.js';
 import { fileExists } from './context.js';
 
 function dispositionLabel(d: StepDisposition): string {

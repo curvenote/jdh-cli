@@ -23,6 +23,8 @@
     "build:watch": "bun run dev:build",
     "build": "bun run clean && bun run copy:version && bun run copy:templates && bun run build:cli",
     "copy:templates": "bun scripts/copy-templates.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "bun test",
     "start": "bun src/index.ts",
     "build:standalone": "bun run copy:version && bun build --compile src/index.ts --outfile dist/jdh-cli"
@@ -31,9 +33,13 @@
     "commander": "^14.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "@types/node": "^24.0.0",
-    "typescript": "^5.8.0"
+    "eslint": "^10.4.1",
+    "globals": "^17.6.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.60.1"
   },
   "engines": {
     "node": ">=20 <25"

@@ -373,6 +373,7 @@ function extractCitationManagerMappingsFromMd(md: string): Map<string, CitationM
       const msg = e instanceof Error ? e.message : String(e);
       throw new Error(
         `Failed to parse citation-manager JSON in article.md region comment: ${msg}`,
+        { cause: e },
       );
     }
     const citations = parsed?.citations;

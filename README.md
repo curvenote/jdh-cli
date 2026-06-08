@@ -41,6 +41,7 @@ jdh-cli/src/
 cd jdh-cli
 bun install
 bun run compile
+bun run lint
 bun run build              # one-off production build
 bun run dev:build          # watch dist/jdh-cli.cjs (+ templates) while editing src/
 bun run dev                # bun link + dev:build

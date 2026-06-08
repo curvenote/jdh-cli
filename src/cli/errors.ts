@@ -9,7 +9,7 @@ export class CliError extends Error {
   }
 }
 
-function shouldShowStack(err: unknown): boolean {
+function shouldShowStack(): boolean {
   return process.env.DEBUG === '1' || process.env.DOC_CONVERT_DEBUG === '1';
 }
 
@@ -42,7 +42,7 @@ export function handleCliFailure(err: unknown): never {
 
   console.error(`\nerror: ${message}\n`);
 
-  if (shouldShowStack(err) && err instanceof Error && err.stack) {
+  if (shouldShowStack() && err instanceof Error && err.stack) {
     console.error(err.stack);
   }
 
