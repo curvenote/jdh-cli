@@ -80,6 +80,13 @@ function extractOrcidId(s: string): string | null {
   return m?.[1] ?? null;
 }
 
+/** Strip MyST/Markdown ORCID badge links from an author name line. */
+export function stripOrcidMarkdownFromName(name: string): string {
+  return name
+    .replace(/\s*\[!\[[^\]]*\]\([^)]*\)\]\([^)]*orcid\.org\/[^)]*\)/gi, '')
+    .trim();
+}
+
 function parseContributor(content: string): ExtractedFrontmatter['contributor'] {
   const lines = content
     .split('\n')
@@ -91,9 +98,7 @@ function parseContributor(content: string): ExtractedFrontmatter['contributor'] 
   const orcid = extractOrcidId(header);
 
   let name = header.replace(/^#+\s*/, '').trim();
-  name = name
-    .replace(/[![orcid]\([^)]*\)\]\([^)]*orcid\.org\/[^)]*\)/gi, '')
-    .trim();
+  name = stripOrcidMarkdownFromName(name);
 
   const affiliationLines = lines.slice(1).map((l) => l.trim()).filter(Boolean);
 
