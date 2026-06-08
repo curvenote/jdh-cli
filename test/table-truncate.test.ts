@@ -117,4 +117,15 @@ describe('table-truncate', () => {
     ].join('\n');
     expect(countHeaderRows(pandas)).toBe(2);
   });
+
+  test('countHeaderRows does not treat first data row as header', () => {
+    const singleHeader = [
+      '| Rank | Country |',
+      '| --- | --- |',
+      '| 1 | France |',
+      '| 2 | Germany |',
+      '| 3 | Spain |',
+    ].join('\n');
+    expect(countHeaderRows(singleHeader)).toBe(1);
+  });
 });

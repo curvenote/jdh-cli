@@ -139,7 +139,7 @@ function looksLikeColumnHeaderRow(row) {
 
 /**
  * Count header rows; handles pandas exports where row 2 is a dashed “separator”
- * between group headers and column names.
+ * between group headers and column names, followed by a second separator before data.
  * @param {string} markdown
  */
 export function countHeaderRows(markdown) {
@@ -150,7 +150,12 @@ export function countHeaderRows(markdown) {
     .filter((line) => line.length > 0 && line.includes('|'));
   const sepIdx = lines.findIndex(isSeparatorRow);
   if (sepIdx < 0) return 0;
-  if (sepIdx === 1 && lines.length > 2 && looksLikeColumnHeaderRow(splitGfmRow(lines[2]))) {
+  if (
+    sepIdx === 1 &&
+    lines.length > 3 &&
+    looksLikeColumnHeaderRow(splitGfmRow(lines[2])) &&
+    isSeparatorRow(lines[3])
+  ) {
     return 2;
   }
   return sepIdx;

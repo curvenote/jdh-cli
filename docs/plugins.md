@@ -145,7 +145,7 @@ directives in article source are unchanged.
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `:max-rows:` | `4` (matches `jdh-theme.table.max-rows`) | Data rows shown before “K rows more” |
-| `:header-rows:` | auto (rows before `\|---\|`) | Multi-row headers |
+| `:header-rows:` | auto (rows before `\|---\|`; pandas double-separator pattern → 2) | Multi-row headers |
 | `:max-rows: 0` | — | Disable row truncation |
 
 **Plugin:** Mirrors the built-in `{table}` directive AST (caption + label + enumeration
