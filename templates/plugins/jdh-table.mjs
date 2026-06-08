@@ -90,6 +90,10 @@ const jdhTableDirective = {
   },
 };
 
+/**
+ * Plain text for table cells. Rich inline nodes (emphasis, links, etc.) are flattened
+ * to text/inlineCode only; full inline-to-Typst conversion is out of scope for pipeline tables.
+ */
 function childText(node) {
   if (!node) return '';
   if (node.type === 'text') return node.value ?? '';
@@ -207,20 +211,55 @@ function isHeaderRow(row) {
 
 function countColumns(tableNode) {
   const firstRow = (tableNode.children ?? []).find((child) => child.type === 'tableRow');
-  return (firstRow?.children ?? [])
-    .filter((cell) => cell.type === 'tableCell')
-    .reduce((total, cell) => total + (cell.colspan ?? 1), 0);
+  // Count physical cells only; emission does not emit cellx(colspan) yet.
+  return (firstRow?.children ?? []).filter((cell) => cell.type === 'tableCell').length;
 }
 
 function countHeaderRows(tableNode) {
   return (tableNode.children ?? []).filter((child) => isHeaderRow(child)).length;
 }
 
-/** Escape cell text for Typst `[...]` tablex cells (mirrors myst-to-typst export). */
+const BACKSLASH_PLACEHOLDER = 'xxxxJDHBACKSLASHxxxx';
+const TILDE_PLACEHOLDER = 'xxxxJHDTILDExxxx';
+
+/** Typst special chars inside content blocks (mirrors myst-to-typst href/text replacements). */
+const TYPST_TEXT_REPLACEMENTS = {
+  '&': '\\&',
+  '`': '\\`',
+  $: '\\$',
+  '#': '\\#',
+  _: '\\_',
+  '*': '\\*',
+  '{': '\\{',
+  '}': '\\}',
+  '[': '\\[',
+  ']': '\\]',
+  '^': '\\^',
+  '@': '\\@',
+  ';': '\\;',
+  '<': '\\<',
+  '>': '\\>',
+  '=': '\\=',
+};
+
+/** Escape plain text for Typst content (plugins cannot depend on myst-to-typst in tests). */
+function stringToTypstText(text) {
+  const escaped = (text ?? '')
+    .replace(/\\/g, BACKSLASH_PLACEHOLDER)
+    .replace(/~/g, TILDE_PLACEHOLDER);
+  let out = '';
+  for (const char of escaped) {
+    out += TYPST_TEXT_REPLACEMENTS[char] ?? char;
+  }
+  return out
+    .replace(new RegExp(BACKSLASH_PLACEHOLDER, 'g'), '\\\\')
+    .replace(new RegExp(TILDE_PLACEHOLDER, 'g'), '$tilde$');
+}
+
+/** Escape cell text for Typst `[...]` tablex cells. */
 function typstCell(text) {
   if (!text) return '[]';
-  const escaped = text.replace(/\\/g, '\\\\').replace(/#/g, '\\#');
-  return `[${escaped}]`;
+  return `[${stringToTypstText(text)}]`;
 }
 
 /** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */
@@ -325,3 +364,12 @@ const plugin = {
 };
 
 export default plugin;
+
+/** @internal Exported for unit tests only. */
+export {
+  buildTypstTableWrap,
+  replaceTableWithTypstWrap,
+  stringToTypstText,
+  tableNodeToTypst,
+  typstCell,
+};
