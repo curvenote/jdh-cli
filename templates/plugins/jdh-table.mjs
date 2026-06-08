@@ -56,6 +56,7 @@ const jdhTableDirective = {
     label: { type: String, required: true },
     name: { type: String, required: false },
     'max-rows': { type: Number, required: false },
+    'max-columns': { type: Number, required: false },
     'header-rows': { type: Number, required: false },
     align: { type: String, required: false },
     class: { type: String, required: false },
@@ -320,6 +321,9 @@ function processJdhTableContainer(node) {
   const opts = node.data?.jdhTableOptions ?? {};
   const maxRowsOpt = opts['max-rows'] ?? opts.maxRows;
   const maxRows = maxRowsOpt === undefined ? DEFAULT_MAX_ROWS : Number(maxRowsOpt);
+  const maxColumnsOpt = opts['max-columns'] ?? opts.maxColumns;
+  const maxColumns =
+    maxColumnsOpt === undefined ? DEFAULT_MAX_COLUMNS : Number(maxColumnsOpt);
   const headerRowsOpt = opts['header-rows'] ?? opts.headerRows;
   const align = opts.align ?? 'center';
 
@@ -328,7 +332,7 @@ function processJdhTableContainer(node) {
 
   const { table: truncated, hiddenRows, hiddenCols } = truncateTable(parsed, {
     maxRows,
-    maxColumns: DEFAULT_MAX_COLUMNS,
+    maxColumns,
   });
 
   const newTable = gfmToTableNode(truncated, align);

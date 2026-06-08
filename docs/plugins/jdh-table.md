@@ -21,6 +21,7 @@ Hand-written `:::{table}` directives in article source keep default MyST styling
 :::{jdh-table} Absolute and relative frequencies of responses
 :label: table:1
 :max-rows: 4
+:max-columns: 6
 :header-rows: 2
 :align: center
 
@@ -39,13 +40,14 @@ Caption is the directive argument (no "Table N:" prefix — numbering is automat
 | `label` | string | **yes** | — | Cross-reference anchor (e.g. `table:1`) |
 | `name` | string | no | — | Alias for `label` |
 | `max-rows` | number | no | `4` | Data rows shown before "K rows more"; `0` disables truncation |
+| `max-columns` | number | no | `6` | Data columns shown before ellipsis truncation; ellipsis is extra |
 | `header-rows` | number | no | auto | Rows treated as headers; pipeline sets when > 1 detected |
 | `align` | string | no | `center` | Table alignment |
 | `class` | string | no | — | CSS class (HTML) |
 | `enumerated` | boolean | no | — | Table numbering; alias `numbered` |
 | `enumerator` | string | no | — | Custom enumerator; alias `number` |
 
-Pipeline output always includes `:label:`, `:align: center`, and `:header-rows:` when multiple header rows are detected. It does **not** emit `:max-rows:` (plugin default applies).
+Pipeline output always includes `:label:`, `:align: center`, and `:header-rows:` when multiple header rows are detected. It does **not** emit `:max-rows:` or `:max-columns:` (plugin defaults apply).
 
 ### Truncation defaults
 
@@ -54,9 +56,9 @@ From `plugins/lib/table-truncate.mjs` (overridable via `jdh-theme.table` in Typs
 | Constant | Value | Meaning |
 | --- | --- | --- |
 | `DEFAULT_MAX_ROWS` | `4` | Data rows before summary row |
-| `DEFAULT_MAX_COLUMNS` | `6` | Visible column budget including ellipsis |
+| `DEFAULT_MAX_COLUMNS` | `6` | Data columns shown before ellipsis truncation |
 
-**Column truncation:** when source columns exceed `max-columns`, shows `ceil((n-1)/2)` from the start, an ellipsis column (`…`), and `floor((n-1)/2)` from the end.
+**Column truncation:** when source columns exceed `max-columns`, shows `ceil(n/2)` from the start, an ellipsis column (`…`), and `floor(n/2)` from the end — **6 data columns plus ellipsis** when `max-columns: 6`.
 
 ## AST behaviour
 

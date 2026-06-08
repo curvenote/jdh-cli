@@ -20,6 +20,16 @@ describe('jdh-table directive', () => {
     expect(container.data?.jdhTable).toBe(true);
   });
 
+  test('stores max-columns in jdhTableOptions', () => {
+    const [container] = jdhTable.run({
+      arg: [{ type: 'text', value: 'Caption.' }],
+      body: [{ type: 'table', children: [] }],
+      options: { label: 'table:3', 'max-columns': 8 },
+    });
+
+    expect(container.data?.jdhTableOptions?.['max-columns']).toBe(8);
+  });
+
   test('supports enumeration options', () => {
     const [container] = jdhTable.run({
       arg: [{ type: 'text', value: 'Caption.' }],

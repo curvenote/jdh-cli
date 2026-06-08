@@ -60,9 +60,9 @@ describe('table-truncate', () => {
     const { table: out, hiddenCols } = truncateColumns(parseGfmTable(seven), {
       maxColumns: 6,
     });
-    expect(out.headerRows[0]).toEqual(['c1', 'c2', 'c3', '…', 'c6', 'c7']);
-    expect(out.headerRows[0]).toHaveLength(6);
-    expect(hiddenCols).toBe(2);
+    expect(out.headerRows[0]).toEqual(['c1', 'c2', 'c3', '…', 'c5', 'c6', 'c7']);
+    expect(out.headerRows[0]).toHaveLength(7);
+    expect(hiddenCols).toBe(1);
   });
 
   test('truncateColumns samples start and end with ellipsis', () => {
@@ -73,8 +73,8 @@ describe('table-truncate', () => {
     ].join('\n');
     const table = parseGfmTable(wide);
     const { table: out, hiddenCols } = truncateColumns(table, { maxColumns: 6 });
-    expect(out.headerRows[0]).toEqual(['c1', 'c2', 'c3', '…', 'c9', 'c10']);
-    expect(hiddenCols).toBe(5);
+    expect(out.headerRows[0]).toEqual(['c1', 'c2', 'c3', '…', 'c8', 'c9', 'c10']);
+    expect(hiddenCols).toBe(4);
   });
 
   test('truncateTable applies row then column truncation', () => {
@@ -90,9 +90,9 @@ describe('table-truncate', () => {
       maxColumns: 6,
     });
     expect(hiddenRows).toBe(1);
-    expect(hiddenCols).toBe(3);
+    expect(hiddenCols).toBe(2);
     expect(out.dataRows).toHaveLength(2);
-    expect(out.headerRows[0]).toEqual(['a', 'b', 'c', '…', 'g', 'h']);
+    expect(out.headerRows[0]).toEqual(['a', 'b', 'c', '…', 'f', 'g', 'h']);
   });
 
   test('serializeGfmTable round-trips structure', () => {
