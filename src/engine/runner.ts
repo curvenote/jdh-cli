@@ -36,7 +36,7 @@ export async function runRuleset(ruleset: Ruleset, ctx: RunContext): Promise<voi
     if (
       ctx.options.dryRun &&
       !fileExists(ctx.workdirAbs) &&
-      (step.id === 'prepareWorkdir' || step.id === 'pandocDocxToMd')
+      step.id === 'prepareWorkdir'
     ) {
       console.log(
         '(dry-run: workdir not created, so remaining steps are skipped. Re-run without --dry-run.)\n',

@@ -27,7 +27,7 @@ jdh-cli article.md --dry-run             # log actions without writing
 | Option | Default | Description |
 | --- | --- | --- |
 | `--workdir <path>` | `_improved` | Output directory (relative to project root) |
-| `--project-root <path>` | input directory | Article repo root for assets and scripts |
+| `--project-root <path>` | input directory | Article repo root for assets |
 | `-d, --dry-run` | off | Preview without writing files |
 | `--orcid-lookup` | off | Enable ORCID enrichment in frontmatter step |
 | `--ror-lookup` / `--no-ror-lookup` | on | ROR affiliation resolution |
@@ -39,7 +39,8 @@ jdh-cli article.md --dry-run             # log actions without writing
 Scaffolds a new article repo when no `myst.yml` exists yet.
 
 ```bash
-jdh-cli init --project-root .
+jdh-cli init            # current directory
+jdh-cli init ../my-article
 ```
 
 Creates `myst.yml` (with `extends: meta-jdh.yml`) and copies the bundled `meta-jdh.yml`. Reports "already initialized" if `myst.yml` or legacy `curvenote.yml` is present.

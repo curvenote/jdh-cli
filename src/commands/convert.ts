@@ -8,7 +8,7 @@ export function addConvertCommand(program: Command): void {
   program
     .argument('<input>', 'Jupytext-exported markdown input (.md)')
     .option('--workdir <path>', 'Output workdir name or path', '_improved')
-    .option('--project-root <path>', 'Article repo root for scripts and assets (default: input directory)')
+    .option('--project-root <path>', 'Article repo root for assets (default: input directory)')
     .option('-d, --dry-run', 'Do not write files')
     .option('--orcid-lookup', 'Enable ORCID enrichment (extract-jupytext-frontmatter step)')
     .option('--ror-lookup', 'Enable ROR affiliation lookups (default on)')

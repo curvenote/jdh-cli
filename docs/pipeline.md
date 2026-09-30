@@ -80,4 +80,4 @@ Plugins take effect on `myst build`, not during `improve`.
 2. For a new plugin: add `templates/plugins/your-plugin.mjs`, run `bun run build`
 3. Document in [plugins/index.md](plugins/index.md) and any Typst support in `jdh-typst-template`
 
-Detailed design for tables: [superpowers/specs/2026-06-07-jdh-table-design.md](superpowers/specs/2026-06-07-jdh-table-design.md).
+Table directive options and truncation rules: [plugins/jdh-table.md](plugins/jdh-table.md).

@@ -36,8 +36,6 @@ Prerequisites: [MyST CLI](https://mystmd.org) for PDF builds; sibling [`jdh-typs
 - **[Plugins & directives](plugins/index.md)** — custom MyST extensions shipped with jdh-cli
 - **[Typst integration](typst.md)** — PDF styling via `jdh-typst-template`
 
-For Word (`.docx`) conversion, use the separate **doc-convert** package.
-
 ## Plugin model
 
 Plugins run at **MyST build time** (not during `improve`). They shape the AST and insert Typst-specific `raw` nodes for PDF export. Article repos do not ship their own `plugins/` directory — add or extend plugins in jdh-cli instead.

@@ -24,15 +24,18 @@ Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.
 ### Source layout
 
 ```
-jdh-cli/src/
-  commands/              convert, init, clean, build
-  engine/                runner, workdir, step context
-  init/                  bundled meta-jdh.yml + MyST plugins
+jdh-cli/
+  src/
+    cli/                 error handling
+    commands/            convert, init, clean, build
+    engine/              runner, workdir, step context
+    init/                bundled meta-jdh.yml + MyST plugins
+    rulesets/            step order for each ruleset (jupytext)
+    steps/               self-contained pipeline steps
+      common/            shared steps (one file each)
+      jupytext/          notebook / region steps
+      shared/            when guards, myst-config helpers
   templates/             shipped assets (meta-jdh.yml, plugins/*.mjs)
-  steps/                 self-contained pipeline steps
-    common/              shared steps (one file each)
-    jupytext/            notebook / region steps
-    shared/              when guards, myst-config helpers
 ```
 
 ### Development
@@ -75,5 +78,3 @@ Prerequisites:
 - Install in article repo: `npm install`
 - `myst` CLI for PDF builds
 - Sibling `jdh-typst-template` at `../../jdh-typst-template` (relative to `_improved/`)
-
-For Word (`.docx`) conversion, use the separate **doc-convert** package.
