@@ -25,7 +25,7 @@ jdh-cli article.md --list-steps
 | 9 | Improve Jupytext tables | `:::{jdh-table}` for every table region |
 | 10 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
 | 11 | Set project.github | `project.github` from git remote |
-| 12 | Set DOI and website | `project.doi` from the JDH API, `project.social.url` = JDH article page (see [CLI](cli.md#doi-and-website)) |
+| 12 | Set DOI and website | `project.doi` from the JDH API, `project.social.url` = JDH article page (see [CLI](cli.md#doi-and-url)) |
 
 Steps 8–10 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
 

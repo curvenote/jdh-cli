@@ -39,8 +39,8 @@ export interface ConvertOptions {
   projectRoot?: string;
   /** Override for project.doi (otherwise looked up from the JDH API). */
   doi?: string;
-  /** Override for project.website (otherwise the JDH article URL). */
-  website?: string;
+  /** Override for the article URL, project.social.url (otherwise the JDH article page). */
+  url?: string;
 }
 
 export interface RunContext {

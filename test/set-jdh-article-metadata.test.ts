@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
   articleIdFromName,
-  articleWebsite,
+  articleUrl,
   doiFromArticleRecord,
   normalizeDoi,
   setJdhArticleMetadata,
@@ -82,9 +82,9 @@ describe('setJdhArticleMetadata', () => {
       projectRoot: root,
       dryRun: false,
       doi: 'https://doi.org/10.1515/jdh-2025-0002',
-      website: 'https://example.org/article',
+      url: 'https://example.org/article',
     });
-    expect(result).toEqual({ doi: '10.1515/jdh-2025-0002', website: 'https://example.org/article' });
+    expect(result).toEqual({ doi: '10.1515/jdh-2025-0002', url: 'https://example.org/article' });
     const content = fs.readFileSync(myst, 'utf8');
     expect(content).toContain('  doi: "10.1515/jdh-2025-0002"\n');
     expect(content).toContain('  social:\n    url: "https://example.org/article"\n    github: jdh\n');
@@ -93,7 +93,7 @@ describe('setJdhArticleMetadata', () => {
     expect(content.match(/^ {2}doi:/gm)).toHaveLength(1);
   });
 
-  test('website falls back to the article URL from the folder name', async () => {
+  test('url falls back to the article URL from the folder name', async () => {
     const { root, workdir, myst } = setup('BHmHNQKJaSWT');
     await setJdhArticleMetadata({
       cwd: workdir,
@@ -102,7 +102,7 @@ describe('setJdhArticleMetadata', () => {
       doi: '10.1515/jdh-2025-0002',
     });
     expect(fs.readFileSync(myst, 'utf8')).toContain(
-      `    url: "${articleWebsite('BHmHNQKJaSWT')}"\n`,
+      `    url: "${articleUrl('BHmHNQKJaSWT')}"\n`,
     );
   });
 
@@ -110,7 +110,7 @@ describe('setJdhArticleMetadata', () => {
     const { root, workdir, myst } = setup('not-an-article');
     const before = fs.readFileSync(myst, 'utf8');
     const result = await setJdhArticleMetadata({ cwd: workdir, projectRoot: root, dryRun: false });
-    expect(result).toEqual({ doi: null, website: null });
+    expect(result).toEqual({ doi: null, url: null });
     expect(fs.readFileSync(myst, 'utf8')).toBe(before);
   });
 });

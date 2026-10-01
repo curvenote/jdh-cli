@@ -51,7 +51,7 @@ export function parseConvertOptions(opts: {
   rorMinScore?: string;
   projectRoot?: string;
   doi?: string;
-  website?: string;
+  url?: string;
 }): ConvertOptions {
   const rorMinScore = opts.rorMinScore != null ? Number(opts.rorMinScore) : 0.8;
   if (!Number.isFinite(rorMinScore) || rorMinScore < 0 || rorMinScore > 1) {
@@ -66,6 +66,6 @@ export function parseConvertOptions(opts: {
     rorMinScore,
     projectRoot: opts.projectRoot,
     doi: opts.doi,
-    website: opts.website,
+    url: opts.url,
   };
 }

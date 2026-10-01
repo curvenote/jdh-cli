@@ -1,25 +1,92 @@
-## jdh-cli
+# jdh-cli
 
-Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.yml`, `article.md`, assets).
+Turns a Journal of Digital History article repo (Jupytext `article.md` + `article.ipynb`) into a MyST project and builds the JDH PDF with the Typst template. Article repos need no setup; jdh-cli supplies the configuration, plugins and defaults in a working folder (`_improved/`).
 
-**Documentation:** [docs/](docs/) — MyST site with CLI usage, pipeline, and plugin/directive reference. Build with `cd docs && myst build --html`.
+## Getting started
 
-**All pipeline logic lives in this package** (`src/steps/`).
+**Prerequisites:** [Bun](https://bun.sh), the [MyST CLI](https://mystmd.org) (`myst`) for PDF builds, and [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) checked out next to `jdh-cli`.
+
+```bash
+# once: build jdh-cli and put it on your PATH
+cd jdh-cli
+bun install
+bun run build
+bun link
+
+# in any JDH article repo
+cd path/to/article-repo
+jdh-cli article.md        # convert into _improved/
+jdh-cli build             # → _improved/article.pdf
+```
 
 ### Commands
 
-| Command | Description |
-| --- | --- |
-| `jdh-cli init` | Optional: write `myst.yml` and `meta-jdh.yml` into an article repo to customise them |
-| `jdh-cli <file.md>` | Run the 12-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs](docs/)) |
-| `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
-| `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
-
-### Jupytext ruleset
-
-| Command | Ruleset | Folders |
+| Command | What it does | Common options |
 | --- | --- | --- |
-| `jdh-cli <file.md>` | `jupytext` | `steps/common/` + `steps/jupytext/` |
+| `jdh-cli article.md` | Convert the article: runs the 12-step pipeline into `_improved/` | `--doi`, `--url`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
+| `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
+| `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place | |
+| `jdh-cli --help` | Help for any command (`jdh-cli build --help`) | `--version` |
+
+Convert, `build` and `clean` also accept `--project-root <path>` (default: the input file's folder for convert, the current folder for `build` and `clean`) and `--workdir <path>` (default `_improved`).
+
+### Convert options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--doi <doi>` | Looked up from the JDH API | Set the article DOI (`project.doi`). Accepts `10.…`, `doi:10.…` or a doi.org URL |
+| `--url <url>` | JDH article page from the repo name | Set the article URL (`project.social.url`) |
+| `--no-ror-lookup` | ROR lookups on | Skip resolving affiliations via the ROR API (faster, offline) |
+| `--ror-min-score <0..1>` | `0.8` | ROR match threshold |
+| `--orcid-lookup` | off | Enrich authors via ORCID |
+| `--list-steps` | | Print the pipeline steps and exit |
+| `-d, --dry-run` | | Show what would happen without writing files |
+
+The DOI and URL come from the JDH API using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`). During production, before an article is published, pass `--doi` (and `--url`) explicitly:
+
+```bash
+jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
+```
+
+## What jdh-cli supplies
+
+A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
+
+- the bundled `meta-jdh.yml` (licence, PDF export), unless the repo has its own
+- placeholder `generated/qr.png` and `generated/fingerprint.png`, unless the repo has its own
+- `myst.yml` with authors, affiliations, DOI, URL and GitHub link
+- the MyST plugins for hermeneutics blocks, narrative code and JDH tables
+- `references.bib` from the notebook's Zotero (citation-manager) data
+- a `.gitignore`, so the article repo stays clean
+
+`jdh-cli build` points the PDF export at `jdh-typst-template` next to jdh-cli; pass `--template` to use another copy.
+
+Files the article repo provides take precedence. With `jdh-cli init`, edits to the repo's `meta-jdh.yml` are used. From the repo's `myst.yml`, only `project.id` is kept today; keeping other edits is planned.
+
+## Pipeline
+
+`jdh-cli article.md --list-steps` prints the 12 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures, tables, hermeneutics blocks, GitHub link, DOI and URL. Figures read `article.ipynb` for captions and report figures that exist only as notebook output.
+
+## Documentation
+
+[docs/](docs/) is a MyST site covering CLI usage, the pipeline, plugins and directives, and Typst integration. Build it with `cd docs && myst build --html`.
+
+## Development
+
+```bash
+cd jdh-cli
+bun install
+bun run compile            # type-check
+bun run lint
+bun test
+bun run build              # production build of dist/
+bun run dev:build          # rebuild dist/ on every save
+bun run dev                # bun link + dev:build
+bun src/index.ts --help    # run from source
+```
+
+`test/build-integration.test.ts` builds a real PDF and needs `myst`, `../jdh-typst-template` and `../art-unpub/BHmHNQKJaSWT`; it skips itself when they're missing.
 
 ### Source layout
 
@@ -29,49 +96,13 @@ jdh-cli/
     cli/                 error handling
     commands/            convert, init, clean, build
     engine/              runner, workdir, step context
-    init/                bundled meta-jdh.yml + MyST plugins
+    init/                bundled meta-jdh.yml, plugins and defaults
     rulesets/            step order for each ruleset (jupytext)
     steps/               self-contained pipeline steps
       common/            shared steps (one file each)
       jupytext/          notebook / region steps
-      shared/            when guards, myst-config helpers
+      shared/            notebook reader, guards, myst-config helpers
   templates/             shipped assets (meta-jdh.yml, plugins/*.mjs, placeholder generated/*.png)
 ```
 
-### Development
-
-```bash
-cd jdh-cli
-bun install
-bun run compile
-bun run lint
-bun run build              # one-off production build
-bun run dev:build          # watch dist/jdh-cli.cjs (+ templates) while editing src/
-bun run dev                # bun link + dev:build
-bun test
-bun test test/build-integration.test.ts   # requires myst CLI + ../jdh-typst-template + ../art-unpub/BHmHNQKJaSWT
-bun src/index.ts --help
-bun src/index.ts ../art-unpub/BHmHNQKJaSWT/article.md --list-steps --project-root ../art-unpub/BHmHNQKJaSWT
-```
-
-### Using jdh-cli on an article repo
-
-Article repos need no setup: a plain JDH repo (`article.md` + `article.ipynb`, as published by the journal) is enough. jdh-cli supplies everything else in the workdir:
-
-- the bundled `meta-jdh.yml` (license, PDF export), unless the repo has its own
-- placeholder `generated/qr.png` and `generated/fingerprint.png`, unless the repo has its own
-- the MyST plugins, `myst.yml`, DOI and website
-- a `.gitignore` inside `_improved/`, so the article repo stays clean
-
-Put `jdh-cli` on your PATH once (`cd jdh-cli && bun run build && bun link`), then from any article repo:
-
-```bash
-jdh-cli article.md        # convert into _improved/
-jdh-cli build             # PDF → _improved/article.pdf
-jdh-cli clean             # remove _improved/
-```
-
-Prerequisites:
-
-- `myst` CLI for PDF builds
-- `jdh-typst-template` checked out next to `jdh-cli` (or pass `jdh-cli build --template <path>`)
+All pipeline logic lives in `src/steps/`.

@@ -33,23 +33,23 @@ jdh-cli article.md --dry-run             # log actions without writing
 | `--ror-lookup` / `--no-ror-lookup` | on | ROR affiliation resolution |
 | `--ror-min-score <float>` | `0.8` | ROR match threshold (0–1) |
 | `--doi <doi>` | JDH API lookup | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL |
-| `--website <url>` | JDH article URL | Set the article website (`project.social.url`) |
+| `--url <url>` | JDH article page | Set the article URL (`project.social.url`) |
 | `--list-steps` | off | List pipeline steps and exit |
 
-### DOI and website
+### DOI and URL
 
-The last step sets the article's DOI and website link in `_improved/myst.yml`. The JDH article id is read from the repo name (`origin` remote, else the project folder name), e.g. `BHmHNQKJaSWT` from `jdh-observer/BHmHNQKJaSWT` or `jdh001-L2gBr3BzwH8Z`.
+The last step sets the article's DOI and URL in `_improved/myst.yml`. The JDH article id is read from the repo name (`origin` remote, else the project folder name), e.g. `BHmHNQKJaSWT` from `jdh-observer/BHmHNQKJaSWT` or `jdh001-L2gBr3BzwH8Z`.
 
 | Field | Written to | Source, in order |
 | --- | --- | --- |
 | DOI | `project.doi` | `--doi`, then the JDH API (`/api/articles/<id>/` → `citation.URL`) |
-| Website | `project.social.url` | `--website`, then `https://journalofdigitalhistory.org/en/article/<id>` |
+| URL | `project.social.url` | `--url`, then `https://journalofdigitalhistory.org/en/article/<id>` |
 
-The API only lists published articles, so during production pass `--doi` explicitly. If no DOI is found the step logs a warning and the PDF shows "DOI unknown".
+The API only lists published articles, so during production pass `--doi` (and `--url`) explicitly. If no DOI is found the step logs a warning and the PDF shows "DOI unknown".
 
 ```bash
 jdh-cli article.md --doi 10.1515/jdh-2025-0002
-jdh-cli article.md --website https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
+jdh-cli article.md --url https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
 ```
 
 ## Init (`jdh-cli init`)

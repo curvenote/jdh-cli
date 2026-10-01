@@ -52,7 +52,7 @@ export function doiFromArticleRecord(record: JdhArticleRecord): string | null {
   return null;
 }
 
-export function articleWebsite(articleId: string): string {
+export function articleUrl(articleId: string): string {
   return `${JDH_ARTICLE_URL}/${articleId}`;
 }
 
@@ -84,7 +84,7 @@ function resolveArticleId(projectRoot: string): string | null {
  * Write `project.doi` and `project.social.url` (MyST's key for a website link)
  * into myst.yml, replacing any existing values.
  */
-function writeProjectMetadata(configPath: string, doi: string | null, website: string | null): void {
+function writeProjectMetadata(configPath: string, doi: string | null, url: string | null): void {
   let content = fs.readFileSync(configPath, 'utf8');
   if (!content.includes('project:\n')) {
     throw new Error(`No project: block in ${configPath}`);
@@ -93,8 +93,8 @@ function writeProjectMetadata(configPath: string, doi: string | null, website: s
     content = content.replace(/^ {2}doi:.*\n/m, '');
     content = content.replace('project:\n', `project:\n  doi: ${JSON.stringify(doi)}\n`);
   }
-  if (website) {
-    const urlLine = `    url: ${JSON.stringify(website)}\n`;
+  if (url) {
+    const urlLine = `    url: ${JSON.stringify(url)}\n`;
     if (/^ {2}social:\n/m.test(content)) {
       content = content.replace(/^( {2}social:\n(?: {4}.*\n)*?) {4}(?:url|website):.*\n/m, '$1');
       content = content.replace(/^ {2}social:\n/m, `  social:\n${urlLine}`);
@@ -110,49 +110,49 @@ export async function setJdhArticleMetadata(options: {
   projectRoot: string;
   dryRun: boolean;
   doi?: string;
-  website?: string;
-}): Promise<{ doi: string | null; website: string | null }> {
+  url?: string;
+}): Promise<{ doi: string | null; url: string | null }> {
   const articleId = resolveArticleId(options.projectRoot);
   let doi = options.doi ? normalizeDoi(options.doi) : null;
-  let website = options.website ?? null;
+  let url = options.url ?? null;
 
   if (!doi && articleId) {
     const record = await fetchArticleRecord(articleId);
     if (record) doi = doiFromArticleRecord(record);
   }
-  if (!website && articleId) {
-    website = articleWebsite(articleId);
+  if (!url && articleId) {
+    url = articleUrl(articleId);
   }
 
-  if (!articleId && (!doi || !website)) {
+  if (!articleId && (!doi || !url)) {
     process.stdout.write('Could not determine the JDH article id from the git remote or folder name.\n');
   }
   if (!doi) process.stdout.write('No DOI found; pass --doi to set one.\n');
-  if (!website) process.stdout.write('No website found; pass --website to set one.\n');
+  if (!url) process.stdout.write('No article URL found; pass --url to set one.\n');
 
-  if (!doi && !website) return { doi, website };
+  if (!doi && !url) return { doi, url };
 
-  const summary = [doi && `project.doi = ${doi}`, website && `project.social.url = ${website}`]
+  const summary = [doi && `project.doi = ${doi}`, url && `project.social.url = ${url}`]
     .filter(Boolean)
     .join(', ');
   if (options.dryRun) {
     process.stdout.write(`[dry-run] would set ${summary}\n`);
   } else {
-    writeProjectMetadata(resolveProjectConfigPath(options.cwd), doi, website);
+    writeProjectMetadata(resolveProjectConfigPath(options.cwd), doi, url);
     process.stdout.write(`Set ${summary}\n`);
   }
-  return { doi, website };
+  return { doi, url };
 }
 
 /**
- * Set `project.doi` and the article website (`project.social.url`) in myst.yml.
+ * Set `project.doi` and the article URL (`project.social.url`) in myst.yml.
  *
- * `--doi` / `--website` win; otherwise the DOI comes from the JDH API
- * (article id = repo name) and the website from the article URL pattern.
+ * `--doi` / `--url` win; otherwise the DOI comes from the JDH API
+ * (article id = repo name) and the URL from the JDH article page pattern.
  */
 export const setJdhArticleMetadataStep: PipelineStep = {
   id: 'setJdhArticleMetadata',
-  label: 'Set project.doi and website link (JDH article lookup)',
+  label: 'Set project.doi and article URL (JDH article lookup)',
   inputs: ['myst', 'git'],
   run: async (ctx) => {
     const o = stepOpts(ctx);
@@ -161,7 +161,7 @@ export const setJdhArticleMetadataStep: PipelineStep = {
       projectRoot: o.projectRoot,
       dryRun: o.dryRun,
       doi: ctx.options.doi,
-      website: ctx.options.website,
+      url: ctx.options.url,
     });
   },
 };
