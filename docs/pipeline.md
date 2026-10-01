@@ -47,6 +47,7 @@ _improved/
     hide-figure-code.mjs
     lib/table-truncate.mjs
   data/                   # mirrored from project root when present
+  notebook-outputs/       # figure images decoded from notebook outputs
   generated/              # QR / fingerprint: the repo's own, else bundled placeholders
   .gitignore              # `*`, keeps the workdir out of the article repo
 ```
@@ -68,8 +69,8 @@ The Jupytext markdown has cell code and tags but no outputs, so the figure step 
 
 - **Tags:** numbered (`figure-1-*`, `figure_1`, `fig:1`) and descriptive (`figure-cartoon-*`) tags both become `fig:…` labels; references such as `[this figure](#figure-cartoon-*)` are retargeted.
 - **Captions,** in order: the `metadata={"jdh": …}` literal in the code; cell metadata `jdh.object.source` (also on the Jupytext fence line); output metadata in the notebook. Output metadata is written at execution time and can be older than edits to the code, so a warning is printed when the sources disagree.
-- **Images:** a cell becomes a `{figure}` when its code displays an image file (`Image("…")` or `Image(filename="…")`). Files outside the copied folders (e.g. saved next to the notebook) are copied into the workdir. If the file can't be found, the cell is left as code.
-- **Not yet converted:** cells whose figure exists only as a notebook output (matplotlib `image/png`, Plotly or Bokeh HTML) are left as code, and the step lists them with their output MIME types. Rendering those is planned (JDH-002, JDH-004).
+- **Images:** a cell becomes a `{figure}` when its code displays an image file (`Image("…")` or `Image(filename="…")`); files outside the copied folders (e.g. saved next to the notebook) are copied into the workdir. Otherwise, or when that file is missing, the cell's notebook image output (`image/png`, `image/jpeg`, `image/gif`, `image/svg+xml`) is decoded to `notebook-outputs/fig-<label>.<ext>` and used instead. With several image outputs, the first is used.
+- **Not yet converted:** cells whose only output is HTML or JavaScript (Plotly, Bokeh, maps) are left as code and listed with their output MIME types (JDH-004). Size hints such as `w-904px` are not applied.
 - **Logs:** `stream` and `error` outputs are never used.
 
 ## Plugin deployment

@@ -166,9 +166,68 @@ describe('improve notebook figures', () => {
       '```',
     ].join('\n');
 
-    const { content, report } = processArticle(input, [], () => false);
+    const { content, report } = processArticle(input, [], () => null);
 
     expect(content).not.toContain('{figure}');
     expect(report.skipped).toEqual([{ label: 'fig:1', reason: 'image file waveform.png not found' }]);
+  });
+
+  test('uses the notebook image output when the code displays no file (JDH-002)', () => {
+    // 6EWgjJtoiW6R fig:plotPCA pattern: matplotlib, no saved file, image/png output.
+    const input = [
+      'See [](#figure-plotPCA-*).',
+      '',
+      '```python jdh={"object": {"source": ["PCA of audio features"]}} tags=["figure-plotPCA-*"]',
+      'plt.scatter(x, y)',
+      'plt.show()',
+      '```',
+    ].join('\n');
+    const cells = readTaggedCells({
+      cells: [
+        {
+          cell_type: 'code',
+          metadata: { tags: ['figure-plotPCA-*'] },
+          source: '',
+          outputs: [
+            { output_type: 'stream' },
+            { output_type: 'display_data', data: { 'image/png': 'iVBOR', 'text/plain': '<Figure>' } },
+          ],
+        },
+      ],
+    });
+    const written: string[] = [];
+    const { content, report } = processArticle(input, cells, ({ label, imagePath, cell }) => {
+      if (imagePath) return null;
+      const out = cell?.outputs.find((o) => o.mime.startsWith('image/'));
+      if (!out) return null;
+      const p = `notebook-outputs/${label.replace(':', '-')}.png`;
+      written.push(p);
+      return { path: p, from: 'output' };
+    });
+
+    expect(content).toContain('```{figure} notebook-outputs/fig-plotPCA.png\n:label: fig:plotPCA\n\nPCA of audio features\n```');
+    expect(content).not.toContain('plt.scatter');
+    expect(content).toContain('See [](#fig:plotPCA).');
+    expect(report.fromOutput).toEqual(['fig:plotPCA']);
+    expect(written).toEqual(['notebook-outputs/fig-plotPCA.png']);
+  });
+
+  test('still reports figures whose only output is HTML (JDH-004)', () => {
+    const input = ['```python jdh={"object": {"source": ["Pie"]}} tags=["figure-pie-*"]', 'fig', '```'].join('\n');
+    const cells = readTaggedCells({
+      cells: [
+        {
+          cell_type: 'code',
+          metadata: { tags: ['figure-pie-*'] },
+          source: 'fig',
+          outputs: [{ output_type: 'display_data', data: { 'text/html': '<div class="plotly-graph-div"></div>' } }],
+        },
+      ],
+    });
+    const { content, report } = processArticle(input, cells, ({ cell }) =>
+      cell?.outputs.some((o) => o.mime.startsWith('image/')) ? { path: 'x.png', from: 'output' } : null,
+    );
+    expect(content).toContain('```python');
+    expect(report.skipped).toEqual([{ label: 'fig:pie', reason: 'no image file in code; notebook output text/html' }]);
   });
 });

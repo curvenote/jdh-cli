@@ -17,6 +17,14 @@ import {
 
 const DEFAULT_ARTICLE = 'article.md';
 const DEFAULT_NOTEBOOK = 'article.ipynb';
+/** Workdir folder for figure images decoded from notebook outputs. */
+const OUTPUTS_DIR = 'notebook-outputs';
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+};
 
 /** A figure tag in the forms JDH authors use: fig:…, figure-1-*, figure_1, figure-cartoon-* */
 const FIGURE_TAG_TOKEN = 'figure[-_][A-Za-z0-9][A-Za-z0-9_-]*(?:-\\*)?';
@@ -109,8 +117,22 @@ function normalizeFigureTags(content: string): string {
   return result;
 }
 
+export interface ImageRequest {
+  label: string;
+  /** Image file the cell's code displays, if any. */
+  imagePath: string | null;
+  cell?: TaggedCell;
+}
+
+export interface ResolvedImage {
+  path: string;
+  from: 'file' | 'output';
+}
+
 export interface FigureReport {
   converted: string[];
+  /** Figures whose image came from the notebook output rather than a file. */
+  fromOutput: string[];
   /** Figure cells left as code, with the reason (e.g. no image file: needs notebook output). */
   skipped: { label: string; reason: string }[];
   /** Figures whose caption differs between code, cell metadata and notebook output. */
@@ -123,13 +145,18 @@ export interface FigureReport {
 export function processArticle(
   content: string,
   notebookCells: readonly TaggedCell[] = [],
-  /** Returns false when an image file can't be made available; the cell then stays as code. */
-  ensureImage: (imagePath: string) => boolean = () => true,
+  /**
+   * Choose the figure image: the file the code displays when available, else the
+   * cell's image output. Returns null when neither exists; the cell then stays as code.
+   */
+  resolveImage: (req: ImageRequest) => ResolvedImage | null = ({ imagePath }) =>
+    imagePath ? { path: imagePath, from: 'file' } : null,
 ): { content: string; figureNumToLabel: Map<number, string>; report: FigureReport } {
   const figureNumToLabel = new Map<number, string>();
-  const report: FigureReport = { converted: [], skipped: [], captionConflicts: [] };
+  const report: FigureReport = { converted: [], fromOutput: [], skipped: [], captionConflicts: [] };
   const notebookFigures = indexFiguresByLabel(notebookCells);
   const captionFor = new Map<number, string>();
+  const imageFor = new Map<number, string>();
 
   content = normalizeFigureTags(content);
 
@@ -182,17 +209,22 @@ export function processArticle(
         const imagePath = extractImagePath(body);
         const mimes = nbCell?.outputs.map((o) => o.mime) ?? [];
         const outputNote = mimes.length ? `; notebook output ${mimes.join(', ')}` : nbCell ? '; no notebook output' : '';
-        const reason = !imagePath
-          ? `no image file in code${outputNote}`
-          : resolved.text == null
+        const image =
+          resolved.text == null ? null : resolveImage({ label: figureTag, imagePath, cell: nbCell });
+        const reason =
+          resolved.text == null
             ? 'no caption in code, cell metadata or notebook output'
-            : !ensureImage(imagePath)
-              ? `image file ${imagePath} not found${outputNote}`
+            : !image
+              ? imagePath
+                ? `image file ${imagePath} not found${outputNote}`
+                : `no image file in code${outputNote}`
               : null;
-        if (reason) {
-          report.skipped.push({ label: figureTag, reason });
+        if (reason || !image) {
+          report.skipped.push({ label: figureTag, reason: reason! });
         } else {
           captionFor.set(openStart, resolved.text!);
+          imageFor.set(openStart, image.path);
+          if (image.from === 'output') report.fromOutput.push(figureTag);
           blocks.push({
             start: openStart,
             end: openStart + fullMatch.length,
@@ -212,7 +244,7 @@ export function processArticle(
     const figureTag = firstFigureTag(tags)!;
     const num = figureNumberFromTag(figureTag);
     if (num != null) figureNumToLabel.set(num, figureTag);
-    const imagePath = extractImagePath(b.body)!;
+    const imagePath = imageFor.get(b.start)!;
     const caption = stripFigureNumberPrefix(captionFor.get(b.start)!);
     report.converted.unshift(figureTag);
     const replacement = [
@@ -315,7 +347,7 @@ async function improveNotebookFigures(
   const notebookCells = notebook ? readTaggedCells(notebook) : [];
   if (!notebook) process.stdout.write('No article.ipynb in workdir; using article.md only.\n');
 
-  const ensureImage = (imagePath: string): boolean => {
+  const ensureFile = (imagePath: string): boolean => {
     if (/^[a-z]+:\/\//i.test(imagePath)) return true;
     const inWorkdir = path.resolve(options.cwd, imagePath);
     if (fs.existsSync(inWorkdir)) return true;
@@ -330,8 +362,27 @@ async function improveNotebookFigures(
     return true;
   };
 
+  const resolveImage = ({ label, imagePath, cell }: ImageRequest): ResolvedImage | null => {
+    if (imagePath && ensureFile(imagePath)) return { path: imagePath, from: 'file' };
+    const images = cell?.outputs.filter((o) => o.mime in IMAGE_EXTENSIONS) ?? [];
+    if (!images.length) return null;
+    if (images.length > 1) {
+      process.stdout.write(`Note: ${label} has ${images.length} image outputs; using the first.\n`);
+    }
+    const { mime, data } = images[0];
+    const rel = `${OUTPUTS_DIR}/${label.replace(/[^A-Za-z0-9_-]+/g, '-')}.${IMAGE_EXTENSIONS[mime]}`;
+    if (!options.dryRun) {
+      const dest = path.resolve(options.cwd, rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      // SVG outputs are text; the others are base64 (possibly split over lines).
+      fs.writeFileSync(dest, mime === 'image/svg+xml' ? data : Buffer.from(data.replace(/\s+/g, ''), 'base64'));
+    }
+    process.stdout.write(`  - write    ${rel} (${mime} output)\n`);
+    return { path: rel, from: 'output' };
+  };
+
   const content = readUtf8(articlePath);
-  const { content: newContent, report } = processArticle(content, notebookCells, ensureImage);
+  const { content: newContent, report } = processArticle(content, notebookCells, resolveImage);
 
   for (const c of report.captionConflicts) {
     process.stdout.write(
@@ -351,7 +402,9 @@ async function improveNotebookFigures(
   process.stdout.write(
     `${options.dryRun ? '[dry-run] Would convert' : 'Converted'} ${report.converted.length} figure block(s)` +
       (report.converted.length ? `: ${report.converted.join(', ')}` : '') +
-      ' and updated refs.\n',
+      ' and updated refs.' +
+      (report.fromOutput.length ? ` From notebook output: ${report.fromOutput.join(', ')}.` : '') +
+      '\n',
   );
 }
 
