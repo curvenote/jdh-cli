@@ -43,6 +43,10 @@ export interface ConvertOptions {
   url?: string;
   /** Read Zotero items from the notebook's citation-manager data (default true). */
   zotero: boolean;
+  /** QR code image for the PDF sidebar: local path or http(s) URL. */
+  qrCode?: string;
+  /** Fingerprint image for the PDF sidebar: local path or http(s) URL. */
+  fingerprint?: string;
 }
 
 export interface RunContext {

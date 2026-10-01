@@ -1,10 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { deployBundledDefaults } from '../init/bundled-assets.js';
+import { deployBundledDefaults, GENERATED_DIR, META_JDH_FILE } from '../init/bundled-assets.js';
 import { authorBibWorkdirName, listProjectBibFiles } from '../steps/shared/author-bib.js';
 import { deployBundledPlugins } from '../init/bundled-plugins.js';
 import type { RunContext } from './types.js';
 import { fileExists } from './context.js';
+import {
+  installSuppliedSidebarImages,
+  pointExportsAtSidebarImages,
+  reportSidebarImages,
+  SIDEBAR_IMAGES,
+} from './sidebar-images.js';
 import { copyTree } from './spawn-script.js';
 
 /** Optional siblings copied into the workdir when present (JDH article layout). */
@@ -76,7 +82,24 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
 
   const pluginCount = deployBundledPlugins(workdirAbs, options.dryRun);
   copied += pluginCount;
-  copied += deployBundledDefaults(workdirAbs, options.dryRun);
+  // QR code and fingerprint: --qr-code / --fingerprint, else the repo's generated/, else placeholders.
+  const supplied = await installSuppliedSidebarImages(
+    workdirAbs,
+    { qrCode: options.qrCode, fingerprint: options.fingerprint },
+    options.dryRun,
+  );
+  const suppliedFiles = new Set(SIDEBAR_IMAGES.filter((i) => supplied.has(i.exportKey)).map((i) => i.file));
+  const fromRepo = new Set(
+    SIDEBAR_IMAGES.filter((i) => !suppliedFiles.has(i.file) && fileExists(path.join(workdirAbs, GENERATED_DIR, i.file))).map(
+      (i) => i.file,
+    ),
+  );
+  copied += supplied.size;
+  copied += deployBundledDefaults(workdirAbs, options.dryRun, suppliedFiles);
+  if (!options.dryRun) {
+    for (const config of [META_JDH_FILE, 'myst.yml']) pointExportsAtSidebarImages(path.join(workdirAbs, config), supplied);
+  }
+  reportSidebarImages(supplied, fromRepo);
 
   // Keep the generated workdir out of the article repo without touching its .gitignore.
   if (!options.dryRun) fs.writeFileSync(path.join(workdirAbs, '.gitignore'), '*\n');

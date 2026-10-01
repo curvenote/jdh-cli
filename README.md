@@ -23,7 +23,7 @@ jdh-cli build             # → _improved/article.pdf
 
 | Command | What it does | Common options |
 | --- | --- | --- |
-| `jdh-cli article.md` | Convert the article: runs the 13-step pipeline into `_improved/` | `--doi`, `--url`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli article.md` | Convert the article: runs the 13-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
 | `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
 | `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place | |
@@ -37,6 +37,8 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | --- | --- | --- |
 | `--doi <doi>` | Looked up from the JDH API | Set the article DOI (`project.doi`). Accepts `10.…`, `doi:10.…` or a doi.org URL |
 | `--url <url>` | JDH article page from the repo name | Set the article URL (`project.social.url`) |
+| `--qr-code <path\|url>` | Repo's `generated/qr.png`, else a placeholder | QR code image for the PDF sidebar: a local file or an http(s) URL. PNG, JPEG, GIF or SVG (checked by its bytes) |
+| `--fingerprint <path\|url>` | Repo's `generated/fingerprint.png`, else a placeholder | Fingerprint image for the PDF sidebar, as for `--qr-code` |
 | `--no-zotero` | Zotero data used | Ignore the notebook's Zotero data and rely on the repo's `.bib` files. For articles that cite `[@key]` directly; `<cite>` tags then become plain text |
 | `--no-ror-lookup` | ROR lookups on | Skip resolving affiliations via the ROR API (faster, offline) |
 | `--ror-min-score <0..1>` | `0.8` | ROR match threshold |
@@ -55,7 +57,7 @@ jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhis
 A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 - the bundled `meta-jdh.yml` (licence, PDF export), unless the repo has its own
-- placeholder `generated/qr.png` and `generated/fingerprint.png`, unless the repo has its own
+- the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else clearly marked placeholders (with a warning, since a real article needs the real images)
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
 - the MyST plugins for hermeneutics blocks, narrative code and JDH tables
 - `references.bib` from the notebook's Zotero (citation-manager) data, plus any `.bib` files in the article repo (e.g. `direct.bib`)

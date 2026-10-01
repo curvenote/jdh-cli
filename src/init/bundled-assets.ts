@@ -56,7 +56,12 @@ export function resolveJdhCliRoot(): string {
  * meta-jdh.yml and placeholder sidebar images. Existing files are kept.
  * Returns the number of files deployed.
  */
-export function deployBundledDefaults(workdirAbs: string, dryRun: boolean): number {
+export function deployBundledDefaults(
+  workdirAbs: string,
+  dryRun: boolean,
+  /** Sidebar images already supplied another way (e.g. `--qr-code`), by file name. */
+  skipImages: ReadonlySet<string> = new Set(),
+): number {
   const prefix = dryRun ? '[dry-run] ' : '';
   const verb = dryRun ? 'would copy' : 'copy    ';
   let deployed = 0;
@@ -71,7 +76,7 @@ export function deployBundledDefaults(workdirAbs: string, dryRun: boolean): numb
   const generatedSrc = resolveBundledGeneratedDir();
   for (const name of GENERATED_IMAGES) {
     const dest = path.join(workdirAbs, GENERATED_DIR, name);
-    if (fileExists(dest)) continue;
+    if (fileExists(dest) || skipImages.has(name)) continue;
     console.log(`  - ${prefix}${verb} ${GENERATED_DIR}/${name}  (placeholder)`);
     if (!dryRun) {
       fs.mkdirSync(path.dirname(dest), { recursive: true });

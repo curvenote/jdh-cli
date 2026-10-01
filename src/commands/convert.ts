@@ -16,6 +16,8 @@ export function addConvertCommand(program: Command): void {
     .option('--ror-min-score <float>', 'ROR match threshold 0..1', '0.8')
     .option('--doi <doi>', 'Set project.doi (default: looked up from the JDH API by repo name)')
     .option('--url <url>', 'Set the article URL, project.social.url (default: JDH article page from repo name)')
+    .option('--qr-code <path|url>', 'QR code image for the PDF sidebar (default: repo generated/qr.png, else a placeholder)')
+    .option('--fingerprint <path|url>', 'Fingerprint image for the PDF sidebar (default: repo generated/fingerprint.png, else a placeholder)')
     .option('--no-zotero', "Ignore the notebook's Zotero (citation-manager) data; use the repo's .bib files only")
     .option('--list-steps', 'Print planned steps for this input and exit')
     .addHelpText(
@@ -26,6 +28,7 @@ Examples:
   $ jdh-cli article.md --project-root ./article --workdir _improved
   $ jdh-cli article.md --list-steps
   $ jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
+  $ jdh-cli article.md --qr-code ./qr.png --fingerprint https://example.org/fingerprint.png
 `,
     )
     .action(async (input: string, opts) => {
@@ -45,6 +48,8 @@ Examples:
         doi: opts.doi,
         url: opts.url,
         zotero: opts.zotero,
+        qrCode: opts.qrCode,
+        fingerprint: opts.fingerprint,
       });
 
       const rulesetId = inferRulesetId(inputAbs);

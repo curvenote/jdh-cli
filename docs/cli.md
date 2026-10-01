@@ -35,6 +35,8 @@ jdh-cli article.md --dry-run             # log actions without writing
 | `--no-zotero` | Zotero data used | Ignore the notebook's Zotero data; use the repo's `.bib` files only |
 | `--doi <doi>` | JDH API lookup | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL |
 | `--url <url>` | JDH article page | Set the article URL (`project.social.url`) |
+| `--qr-code <path\|url>` | repo image, else placeholder | QR code for the PDF sidebar (see below) |
+| `--fingerprint <path\|url>` | repo image, else placeholder | Fingerprint for the PDF sidebar (see below) |
 | `--list-steps` | off | List pipeline steps and exit |
 
 ### DOI and URL
@@ -61,6 +63,20 @@ When no DOI can be found, the step prints one warning saying why, and the build 
 ```bash
 jdh-cli article.md --doi 10.1515/jdh-2025-0002
 jdh-cli article.md --url https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
+```
+
+### QR code and fingerprint
+
+The PDF sidebar shows the article's QR code and fingerprint (`qr_code` and `fingerprint` on the PDF export). For each image, in order:
+
+1. `--qr-code` / `--fingerprint`: a local file (relative to the current directory) or an `http(s)` URL, downloaded during convert. The image is checked by its bytes (PNG, JPEG, GIF or SVG; anything else stops the convert with an error) and written to `generated/qr.<ext>` / `generated/fingerprint.<ext>`; the PDF export is pointed at it.
+2. The article repo's own `generated/qr.png` / `generated/fingerprint.png`.
+3. A bundled placeholder, with a warning: `the PDF will show a PLACEHOLDER QR code`.
+
+jdh-cli doesn't generate either image.
+
+```bash
+jdh-cli article.md --qr-code ./qr.png --fingerprint https://example.org/fingerprint.png
 ```
 
 ## Init (`jdh-cli init`)

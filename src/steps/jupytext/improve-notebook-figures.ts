@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveBundledPlaceholder } from '../../init/bundled-assets.js';
+import { imageFormat } from '../shared/image-format.js';
 import { articleUrl, resolveArticleId } from '../common/set-jdh-article-metadata.js';
 import {
   captionFromCode,
@@ -20,13 +21,6 @@ import {
 
 const DEFAULT_ARTICLE = 'article.md';
 const DEFAULT_NOTEBOOK = 'article.ipynb';
-/** Image format Typst can read, from the file's magic bytes; null for anything else (e.g. WebP). */
-export function imageFormat(bytes: Buffer): 'png' | 'jpg' | 'gif' | null {
-  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg';
-  if (bytes.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif';
-  return null;
-}
 
 /** The article's JDH page from the repo name, or null when the id can't be determined. */
 function jdhArticleUrl(projectRoot: string): string | null {
