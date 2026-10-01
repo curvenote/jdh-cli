@@ -5,6 +5,7 @@ import {
   improveCitationTagsStep,
   initMystConfigStep,
   prepareWorkdirStep,
+  setJdhArticleMetadataStep,
 } from '../steps/common/index.js';
 import {
   citationsJupyterZoteroStep,
@@ -26,5 +27,6 @@ export const jupytextRuleset: Ruleset = {
     extractJupytextPartsStep,
     ...jupytextTransformSteps,
     extractGithubRemoteStep,
+    setJdhArticleMetadataStep,
   ],
 };

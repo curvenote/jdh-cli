@@ -14,6 +14,8 @@ export function addConvertCommand(program: Command): void {
     .option('--ror-lookup', 'Enable ROR affiliation lookups (default on)')
     .option('--no-ror-lookup', 'Disable ROR affiliation lookups')
     .option('--ror-min-score <float>', 'ROR match threshold 0..1', '0.8')
+    .option('--doi <doi>', 'Set project.doi (default: looked up from the JDH API by repo name)')
+    .option('--website <url>', 'Set the article website link, project.social.url (default: JDH article URL from repo name)')
     .option('--list-steps', 'Print planned steps for this input and exit')
     .addHelpText(
       'after',
@@ -22,6 +24,7 @@ Examples:
   $ jdh-cli article.md
   $ jdh-cli article.md --project-root ./article --workdir _improved
   $ jdh-cli article.md --list-steps
+  $ jdh-cli article.md --doi 10.1515/jdh-2025-0002
 `,
     )
     .action(async (input: string, opts) => {
@@ -38,6 +41,8 @@ Examples:
         noRorLookup: opts.noRorLookup,
         rorMinScore: opts.rorMinScore,
         projectRoot: opts.projectRoot,
+        doi: opts.doi,
+        website: opts.website,
       });
 
       const rulesetId = inferRulesetId(inputAbs);

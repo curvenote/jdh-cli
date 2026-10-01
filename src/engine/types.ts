@@ -37,6 +37,10 @@ export interface ConvertOptions {
   rorLookup: boolean;
   rorMinScore: number;
   projectRoot?: string;
+  /** Override for project.doi (otherwise looked up from the JDH API). */
+  doi?: string;
+  /** Override for project.website (otherwise the JDH article URL). */
+  website?: string;
 }
 
 export interface RunContext {
