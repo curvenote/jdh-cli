@@ -8,7 +8,7 @@ title: CLI usage
 
 | Command | Description |
 | --- | --- |
-| `jdh-cli init` | Create `myst.yml` and copy bundled `meta-jdh.yml` for a new article repo |
+| `jdh-cli init` | Optional: write `myst.yml` and `meta-jdh.yml` into an article repo to customise them |
 | `jdh-cli <file.md>` | Run the jupytext conversion pipeline (default workdir `_improved/`) |
 | `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
 | `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
@@ -32,7 +32,25 @@ jdh-cli article.md --dry-run             # log actions without writing
 | `--orcid-lookup` | off | Enable ORCID enrichment in frontmatter step |
 | `--ror-lookup` / `--no-ror-lookup` | on | ROR affiliation resolution |
 | `--ror-min-score <float>` | `0.8` | ROR match threshold (0–1) |
+| `--doi <doi>` | JDH API lookup | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL |
+| `--website <url>` | JDH article URL | Set the article website (`project.social.url`) |
 | `--list-steps` | off | List pipeline steps and exit |
+
+### DOI and website
+
+The last step sets the article's DOI and website link in `_improved/myst.yml`. The JDH article id is read from the repo name (`origin` remote, else the project folder name), e.g. `BHmHNQKJaSWT` from `jdh-observer/BHmHNQKJaSWT` or `jdh001-L2gBr3BzwH8Z`.
+
+| Field | Written to | Source, in order |
+| --- | --- | --- |
+| DOI | `project.doi` | `--doi`, then the JDH API (`/api/articles/<id>/` → `citation.URL`) |
+| Website | `project.social.url` | `--website`, then `https://journalofdigitalhistory.org/en/article/<id>` |
+
+The API only lists published articles, so during production pass `--doi` explicitly. If no DOI is found the step logs a warning and the PDF shows "DOI unknown".
+
+```bash
+jdh-cli article.md --doi 10.1515/jdh-2025-0002
+jdh-cli article.md --website https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
+```
 
 ## Init (`jdh-cli init`)
 
@@ -59,26 +77,14 @@ Runs `myst build --pdf` in the workdir with `TYPST_FONT_PATHS` set for Fira Code
 ```bash
 jdh-cli build
 jdh-cli build --project-root . --workdir _improved
-jdh-cli build --template ../../jdh-typst-template
+jdh-cli build --template /path/to/jdh-typst-template
 ```
 
-Requires a prior `improve` run and the [MyST CLI](https://mystmd.org). The Typst template must exist at the path given by `--template` (default `../../jdh-typst-template` relative to the workdir).
+Requires a prior `improve` run and the [MyST CLI](https://mystmd.org). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
 
 ## Article repo integration
 
-```json
-{
-  "scripts": {
-    "improve": "jdh-cli article.md --project-root .",
-    "clean": "jdh-cli clean --project-root .",
-    "build": "jdh-cli build --project-root .",
-    "ib": "npm run improve && npm run build"
-  },
-  "devDependencies": {
-    "jdh-cli": "file:../jdh-cli"
-  }
-}
-```
+None needed. Run jdh-cli from a plain JDH article repo; it supplies `meta-jdh.yml`, placeholder `generated/` images, plugins and config in the workdir, and writes `_improved/.gitignore`. Files the article repo does provide (its own `meta-jdh.yml`, `myst.yml` or `generated/` images) take precedence.
 
 ## Development
 

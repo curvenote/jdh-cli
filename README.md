@@ -10,8 +10,8 @@ Convert and improve Jupytext-exported articles into a MyST-ready project (`myst.
 
 | Command | Description |
 | --- | --- |
-| `jdh-cli init` | Create `myst.yml` and copy bundled `meta-jdh.yml` for a new article repo |
-| `jdh-cli <file.md>` | Run the 11-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs](docs/)) |
+| `jdh-cli init` | Optional: write `myst.yml` and `meta-jdh.yml` into an article repo to customise them |
+| `jdh-cli <file.md>` | Run the 12-step jupytext conversion pipeline (deploys bundled MyST plugins; see [docs](docs/)) |
 | `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
 | `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
 
@@ -35,7 +35,7 @@ jdh-cli/
       common/            shared steps (one file each)
       jupytext/          notebook / region steps
       shared/            when guards, myst-config helpers
-  templates/             shipped assets (meta-jdh.yml, plugins/*.mjs)
+  templates/             shipped assets (meta-jdh.yml, plugins/*.mjs, placeholder generated/*.png)
 ```
 
 ### Development
@@ -49,32 +49,29 @@ bun run build              # one-off production build
 bun run dev:build          # watch dist/jdh-cli.cjs (+ templates) while editing src/
 bun run dev                # bun link + dev:build
 bun test
-bun test test/build-integration.test.ts   # requires myst CLI + ../jdh-typst-template
+bun test test/build-integration.test.ts   # requires myst CLI + ../jdh-typst-template + ../art-unpub/BHmHNQKJaSWT
 bun src/index.ts --help
-bun src/index.ts ../BHmHNQKJaSWT/article.md --list-steps --project-root ../BHmHNQKJaSWT
+bun src/index.ts ../art-unpub/BHmHNQKJaSWT/article.md --list-steps --project-root ../art-unpub/BHmHNQKJaSWT
 ```
 
-### Article repo integration
+### Using jdh-cli on an article repo
 
-In the article repo `package.json`:
+Article repos need no setup: a plain JDH repo (`article.md` + `article.ipynb`, as published by the journal) is enough. jdh-cli supplies everything else in the workdir:
 
-```json
-{
-  "scripts": {
-    "improve": "jdh-cli article.md --project-root .",
-    "clean": "jdh-cli clean --project-root .",
-    "build": "jdh-cli build --project-root .",
-    "ib": "npm run improve && npm run build"
-  },
-  "devDependencies": {
-    "jdh-cli": "file:../jdh-cli"
-  }
-}
+- the bundled `meta-jdh.yml` (license, PDF export), unless the repo has its own
+- placeholder `generated/qr.png` and `generated/fingerprint.png`, unless the repo has its own
+- the MyST plugins, `myst.yml`, DOI and website
+- a `.gitignore` inside `_improved/`, so the article repo stays clean
+
+Put `jdh-cli` on your PATH once (`cd jdh-cli && bun run build && bun link`), then from any article repo:
+
+```bash
+jdh-cli article.md        # convert into _improved/
+jdh-cli build             # PDF → _improved/article.pdf
+jdh-cli clean             # remove _improved/
 ```
 
 Prerequisites:
 
-- Build jdh-cli first: `cd jdh-cli && bun run build`
-- Install in article repo: `npm install`
 - `myst` CLI for PDF builds
-- Sibling `jdh-typst-template` at `../../jdh-typst-template` (relative to `_improved/`)
+- `jdh-typst-template` checked out next to `jdh-cli` (or pass `jdh-cli build --template <path>`)

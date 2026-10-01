@@ -6,14 +6,15 @@ title: Overview
 
 **jdh-cli** converts Jupytext-exported notebooks into a MyST-ready article project: `myst.yml`, `article.md`, bundled plugins, and assets in a pipeline workdir (default `_improved/`).
 
-All pipeline logic lives in this package (`src/steps/`). Article repos depend on jdh-cli as a dev dependency and call it via `npm run improve` / `npm run build`.
+All pipeline logic lives in this package (`src/steps/`). Article repos need no setup: run `jdh-cli` from a plain JDH article repo and it supplies the rest in the workdir.
 
 ## What it produces
 
 | Output | Location | Purpose |
 | --- | --- | --- |
 | `myst.yml` | workdir | Project config, plugin registration, PDF export |
-| `meta-jdh.yml` | workdir | Shared JDH defaults (license, PDF template) |
+| `meta-jdh.yml` | workdir | Shared JDH defaults (license, PDF export); bundled unless the repo has its own |
+| `generated/*.png` | workdir | QR code and fingerprint; placeholders unless the repo has its own |
 | `article.md` | workdir | Improved MyST markdown |
 | `plugins/*.mjs` | workdir | Bundled MyST plugins (copied on every run) |
 | `references.bib` | workdir | BibTeX from Zotero citations (when present) |
@@ -21,18 +22,18 @@ All pipeline logic lives in this package (`src/steps/`). Article repos depend on
 ## Quick start
 
 ```bash
-cd jdh-cli && bun run build          # build CLI + copy templates
-cd ../article-repo && npm install    # jdh-cli as file:../jdh-cli
-npm run improve                      # jdh-cli article.md --project-root .
-npm run build                        # jdh-cli build → myst build --pdf
+cd jdh-cli && bun run build && bun link   # build CLI and put jdh-cli on PATH
+cd path/to/article-repo
+jdh-cli article.md                        # convert into _improved/
+jdh-cli build                             # myst build --pdf
 ```
 
-Prerequisites: [MyST CLI](https://mystmd.org) for PDF builds; sibling [`jdh-typst-template`](../../jdh-typst-template) for Typst export.
+Prerequisites: [MyST CLI](https://mystmd.org) for PDF builds; [`jdh-typst-template`](../../jdh-typst-template) checked out next to jdh-cli.
 
 ## Documentation map
 
 - **[CLI commands](cli.md)** — `init`, convert, `clean`, `build`
-- **[Improve pipeline](pipeline.md)** — 11-step jupytext ruleset
+- **[Improve pipeline](pipeline.md)** — 12-step jupytext ruleset
 - **[Plugins & directives](plugins/index.md)** — custom MyST extensions shipped with jdh-cli
 - **[Typst integration](typst.md)** — PDF styling via `jdh-typst-template`
 

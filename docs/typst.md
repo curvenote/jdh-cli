@@ -4,7 +4,7 @@ title: Typst integration
 
 # Typst integration
 
-PDF export uses the sibling [`jdh-typst-template`](../../jdh-typst-template) package. `meta-jdh.yml` (bundled with jdh-cli) configures the export:
+PDF export uses [`jdh-typst-template`](../../jdh-typst-template), checked out next to jdh-cli. `meta-jdh.yml` (bundled with jdh-cli) configures the export; `jdh-cli build` rewrites its `template:` to the resolved template path:
 
 ```yaml
 exports:
@@ -50,7 +50,8 @@ Table truncation defaults in the plugin (`max-rows: 4`, `max-columns: 6`) align 
 ## Prerequisites
 
 - [MyST CLI](https://mystmd.org) installed globally or on `PATH`
-- `jdh-typst-template` at `../../jdh-typst-template` relative to `_improved/` (or pass `--template` to `jdh-cli build`)
+- `jdh-typst-template` next to jdh-cli (or pass `--template` to `jdh-cli build`)
+- `generated/qr.png` and `generated/fingerprint.png` in the article repo; otherwise clearly marked placeholders are used
 
 ## HTML export
 
