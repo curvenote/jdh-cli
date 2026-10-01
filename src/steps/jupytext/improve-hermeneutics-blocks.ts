@@ -189,7 +189,7 @@ type ProcessResult = {
   codeBlocksWrapped: number;
 };
 
-function processArticle(content: string): ProcessResult {
+export function processArticle(content: string): ProcessResult {
   const regions = findHermeneuticsRegions(content);
   const codeFences = findHermeneuticsCodeFences(content);
   const existingBlocks = findExistingHermeneuticsBlocks(content);

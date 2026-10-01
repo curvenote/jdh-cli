@@ -2,6 +2,7 @@
  * Steps that only apply to Jupytext-exported markdown (region tags, notebook metadata).
  */
 import type { PipelineStep } from '../../engine/types.js';
+import { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 import { improveHermeneuticsBlocksStep } from './improve-hermeneutics-blocks.js';
 import { improveJupytextTablesStep } from './improve-jupytext-tables.js';
 import { improveNotebookFiguresStep } from './improve-notebook-figures.js';
@@ -14,11 +15,13 @@ export { improveNotebookFiguresStep } from './improve-notebook-figures.js';
 export { improveNotebookTablesStep } from './improve-notebook-tables.js';
 export { improveJupytextTablesStep } from './improve-jupytext-tables.js';
 export { improveHermeneuticsBlocksStep } from './improve-hermeneutics-blocks.js';
+export { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 
 /** Region / notebook transforms (run after extract-jupytext-parts in the full jupytext chain). */
 export const jupytextTransformSteps: PipelineStep[] = [
   improveNotebookFiguresStep,
   improveNotebookTablesStep,
   improveJupytextTablesStep,
+  improveDialogueRegionsStep,
   improveHermeneuticsBlocksStep,
 ];

@@ -4,7 +4,7 @@ title: Improve pipeline
 
 # Improve pipeline
 
-The **jupytext** ruleset runs 13 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
+The **jupytext** ruleset runs 14 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
 
 ```bash
 jdh-cli article.md --list-steps
@@ -24,11 +24,12 @@ jdh-cli article.md --list-steps
 | 8 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |
 | 9 | Improve notebook tables | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped |
 | 10 | Improve Jupytext tables | `:::{jdh-table}` for every table region; `Table N` references → label links for all tables |
-| 11 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
-| 12 | Set project.github | `project.github` from git remote |
-| 13 | Set DOI and website | `project.doi` from the JDH API, `project.social.url` = JDH article page (see [CLI](cli.md#doi-and-url)) |
+| 11 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
+| 12 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
+| 13 | Set project.github | `project.github` from git remote |
+| 14 | Set DOI and website | `project.doi` from the JDH API, `project.social.url` = JDH article page (see [CLI](cli.md#doi-and-url)) |
 
-Steps 8–11 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
+Steps 8–12 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
 
 ## Workdir layout
 
@@ -43,10 +44,12 @@ _improved/
   direct.bib              # author .bib files copied from the repo (references.bib → references.author.bib)
   plugins/
     hermeneutics.mjs
+    jdh-dialogue.mjs
     jdh-table.mjs
     narrative-code.mjs
     hide-figure-code.mjs
     lib/table-truncate.mjs
+    lib/typst-text.mjs
   data/                   # mirrored from project root when present
   notebook-outputs/       # figure images decoded from notebook outputs
   generated/              # QR / fingerprint: the repo's own, else bundled placeholders
@@ -60,6 +63,7 @@ _improved/
 | `#region` with `table-*` tags | `improveJupytextTables` | `:::{jdh-table}` |
 | Code cell tagged `table-*` | `improveNotebookTables` | `:::{jdh-table}` from its notebook output |
 | Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*` | `improveNotebookFigures` | `` ```{figure} `` (placeholder and online link for video and audio) |
+| Region tagged `dialog-*` | `improveDialogueRegions` | `` ```{jdh-dialogue} `` |
 | Region/cell tagged `hermeneutics` | `improveHermeneuticsBlocks` | `:::{hermeneutics}` |
 | Untagged fenced code | — (hand-authored) | Plain `` ```lang `` → narrative-code transform |
 
@@ -96,6 +100,7 @@ project:
   plugins:
     - plugins/hermeneutics.mjs
     - plugins/hide-figure-code.mjs
+    - plugins/jdh-dialogue.mjs
     - plugins/jdh-table.mjs
     - plugins/narrative-code.mjs
 ```

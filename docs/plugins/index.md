@@ -16,6 +16,7 @@ Plugins run at **MyST build time**. They shape the AST and insert Typst `raw` no
 | --- | --- | --- | --- | --- |
 | [Hermeneutics](hermeneutics.md) | `hermeneutics.mjs` | directive + transform | Yes | Cyan commentary blocks |
 | [JDH table](jdh-table.md) | `jdh-table.mjs` | directive + transform | Yes | Row/column truncation + Typst tablex |
+| [JDH dialogue](jdh-dialogue.md) | `jdh-dialogue.mjs` | directive + transform | Yes | Dialogue cells as numbered speech bubbles |
 | [Narrative code](narrative-code.md) | `narrative-code.mjs` | transform only | No | Gray full-bleed code styling |
 | [Hide figure code](hide-figure-code.md) | `hide-figure-code.mjs` | transform only | No (safety net) | Remove legacy `code:fig:*` blocks |
 
@@ -26,7 +27,7 @@ Plugins run at **MyST build time**. They shape the AST and insert Typst `raw` no
 
 ## Shared library
 
-`plugins/lib/table-truncate.mjs` is not a plugin. It provides GFM parsing and truncation math used by `jdh-table.mjs` and tested independently.
+`plugins/lib/` holds shared code, not plugins: `table-truncate.mjs` (GFM parsing and truncation math, used by `jdh-table.mjs` and `jdh-dialogue.mjs`) and `typst-text.mjs` (escaping text for Typst content).
 
 ## Adding a new plugin
 

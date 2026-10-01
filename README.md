@@ -23,7 +23,7 @@ jdh-cli build             # → _improved/article.pdf
 
 | Command | What it does | Common options |
 | --- | --- | --- |
-| `jdh-cli article.md` | Convert the article: runs the 13-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli article.md` | Convert the article: runs the 14-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
 | `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
 | `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place | |
@@ -77,7 +77,7 @@ Files the article repo provides take precedence. With `jdh-cli init`, edits to t
 
 ## Pipeline
 
-`jdh-cli article.md --list-steps` prints the 13 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures, notebook tables, table regions, hermeneutics blocks, GitHub link, DOI and URL. Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
+`jdh-cli article.md --list-steps` prints the 14 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures (including video and audio), notebook tables, table regions, dialogues, hermeneutics blocks, GitHub link, DOI and URL. Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
 
 ## Documentation
 
