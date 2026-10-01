@@ -23,7 +23,7 @@ jdh-cli article.md --list-steps
 | 7 | Extract jupytext parts | Page-level frontmatter from document parts |
 | 8 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |
 | 9 | Improve notebook tables | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped |
-| 10 | Improve Jupytext tables | `:::{jdh-table}` for every table region; `Table N` references → label links for all tables |
+| 10 | Improve Jupytext tables | `` ```{jdh-table} `` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links |
 | 11 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
 | 12 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
 | 13 | Set project.github | `project.github` from git remote |
@@ -60,7 +60,7 @@ _improved/
 
 | Jupytext source | Pipeline step | MyST output |
 | --- | --- | --- |
-| `#region` with `table-*` tags | `improveJupytextTables` | `:::{jdh-table}` |
+| `#region` with `table-*` tags (numbered or descriptive), holding only a table | `improveJupytextTables` | `` ```{jdh-table} `` |
 | Code cell tagged `table-*` | `improveNotebookTables` | `:::{jdh-table}` from its notebook output |
 | Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*` | `improveNotebookFigures` | `` ```{figure} `` (placeholder and online link for video and audio) |
 | Region tagged `dialog-*` | `improveDialogueRegions` | `` ```{jdh-dialogue} `` |
@@ -78,8 +78,19 @@ The Jupytext markdown has cell code and tags but no outputs, so the figure step 
 - **Images:** a cell becomes a `{figure}` when its code displays an image file (`Image("…")` or `Image(filename="…")`); files outside the copied folders (e.g. saved next to the notebook) are copied into the workdir. Otherwise, or when that file is missing, the cell's notebook image output (`image/png`, `image/jpeg`, `image/gif`, `image/svg+xml`) is decoded to `notebook-outputs/fig-<label>.<ext>` and used instead. With several image outputs, the first is used.
 - **Interactive figures and video:** when a figure's only output is HTML or JavaScript (Plotly, Bokeh, maps, widgets), or the cell is tagged `video-*`, it becomes a numbered figure with a placeholder image (`notebook-outputs/placeholder-interactive.svg` / `placeholder-video.svg`). The caption links to the cell in the online article (`<article URL>?idx=<cell index>`). Nothing is rendered: an image output in the notebook is used when present, otherwise the placeholder.
 - **Audio:** cells tagged `sound-*` (or `audio-*`) become a numbered figure labelled `aud:…` with an audio placeholder (`notebook-outputs/placeholder-audio.svg`). The caption ends "Listen to it in the online article." and links to the cell with `?idx=`. With no caption anywhere, the caption is "Audio recording.". A figure that has both an image and an audio player (e.g. a waveform) keeps its image and gets the same link.
+- **Figures in markdown cells:** a region tagged `figure-*` holding a single image (`![alt](src)`, local or remote) becomes a numbered `{figure}`. Its caption comes from the region's `jdh` metadata, else a descriptive alt text. MyST downloads remote images at build.
 - **Left as code:** figure cells whose HTML output is a table and cells with no output at all. Size hints such as `w-904px` are not applied.
 - **Logs:** `stream` and `error` outputs are never used.
+
+## Table regions
+
+Markdown cells tagged `table-*` become a `{jdh-table}` when the cell holds only a GFM table. A cell of prose with a table inside is left as it is.
+
+- **Labels:** numbered tags as before; descriptive tags (`table-sequence-*`) become `table:sequence`. A repeated tag gets `-2`, `-3`.
+- **Captions** come from the region's `jdh` metadata. A table without one is still converted, without a caption.
+- **Hermeneutics:** the region markers are kept and the directive uses a backtick fence, so a `hermeneutics` tag on the same cell still wraps the table.
+- **References:** links to the table's `anchor-*` tag (`[table 1](#anchor-table-overview)`) point at its label. Link text such as "table 1" becomes an auto-numbered reference.
+- **Dialogue:** cells also tagged `dialog-*` are left for the dialogue step.
 
 ## Tables and the notebook
 

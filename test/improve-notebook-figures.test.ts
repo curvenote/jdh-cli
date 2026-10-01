@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { processArticle } from '../src/steps/jupytext/improve-notebook-figures.js';
+import { convertMarkdownFigureRegions, processArticle } from '../src/steps/jupytext/improve-notebook-figures.js';
 import { readTaggedCells } from '../src/steps/shared/notebook-cells.js';
 
 describe('improve notebook figures', () => {
@@ -229,5 +229,36 @@ describe('improve notebook figures', () => {
     );
     expect(content).toContain('```python');
     expect(report.skipped).toEqual([{ label: 'fig:pie', reason: 'no image file in code; notebook output text/html' }]);
+  });
+});
+
+describe('figures in markdown cells (JDH-016)', () => {
+  const region = (attrs: string, body: string) => `<!-- #region ${attrs} -->\n${body}\n<!-- #endregion -->`;
+
+  test('an image region becomes a numbered figure with the caption from its metadata', () => {
+    const md = region(
+      'jdh={"module": "object", "object": {"source": ["Changes to the Italian Eastern borders from 1920 to 1975. Public Domain. Source: Wikipedia."]}} tags=["figure-changes-to-border-*"]',
+      '![Image](https://upload.wikimedia.org/wikipedia/commons/9/9d/Litorale_1.png)',
+    );
+    const { content, converted } = convertMarkdownFigureRegions(md);
+    expect(converted).toEqual(['fig:changes-to-border']);
+    expect(content).toContain(
+      '```{figure} https://upload.wikimedia.org/wikipedia/commons/9/9d/Litorale_1.png\n:label: fig:changes-to-border\n\nChanges to the Italian Eastern borders from 1920 to 1975. Public Domain. Source: Wikipedia.\n```',
+    );
+    expect(content).toStartWith('<!-- #region');
+    expect(content).toEndWith('<!-- #endregion -->');
+  });
+
+  test('without metadata, a descriptive alt text is the caption; a generic one is not', () => {
+    expect(convertMarkdownFigureRegions(region('tags=["figure-map-*"]', '![A map of the border](media/map.png)')).content).toContain(
+      ':label: fig:map\n\nA map of the border\n',
+    );
+    const generic = region('tags=["figure-map-*"]', '![Image](media/map.png)');
+    expect(convertMarkdownFigureRegions(generic).content).toBe(generic);
+  });
+
+  test('regions that are not a single image are left alone', () => {
+    const md = region('tags=["figure-map-*"]', 'Some text\n\n![A map](media/map.png)');
+    expect(convertMarkdownFigureRegions(md).content).toBe(md);
   });
 });

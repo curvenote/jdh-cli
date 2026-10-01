@@ -140,6 +140,34 @@ function normalizeFigureTags(content: string): string {
   return result;
 }
 
+/**
+ * Figures in markdown cells (JDH-016): a region tagged `figure-*` whose body is a
+ * single image `![alt](src)` becomes a numbered `{figure}` with the caption from
+ * the region's `jdh` metadata (else the alt text). Region markers are kept, so a
+ * `hermeneutics` tag still wraps it. Remote images are fetched by MyST at build.
+ */
+export function convertMarkdownFigureRegions(content: string): { content: string; converted: string[] } {
+  const converted: string[] = [];
+  const regionRe = /^(<!--\s*#region\b([^\n]*?)-->)[ \t]*\n([\s\S]*?)\n?(^<!--\s*#endregion\s*-->)/gm;
+  const out = content.replace(regionRe, (whole, open: string, attrs: string, body: string, close: string) => {
+    const tags = parseTagsFromFenceLine(attrs);
+    const found = kindFromTags(tags);
+    if (found?.kind !== 'figure') return whole;
+    const image = body.trim().match(/^!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)$/);
+    if (!image) return whole;
+    const alt = image[1].trim();
+    const caption =
+      captionFromJdh(parseFenceMetadata(attrs, 'jdh')) ?? (alt && !/^(image|figure|img)$/i.test(alt) ? alt : null);
+    if (!caption) return whole;
+    const label = figureLabelFromTag(found.tag);
+    converted.push(label);
+    return [open, '```{figure} ' + image[2], `:label: ${label}`, '', escapeCaption(stripFigureNumberPrefix(caption)), '```', close].join(
+      '\n',
+    );
+  });
+  return { content: out, converted };
+}
+
 export interface ImageRequest {
   label: string;
   kind: 'figure' | 'video' | 'audio';
@@ -474,7 +502,12 @@ async function improveNotebookFigures(
     return placeholder('figure', cell);
   }
 
-  const content = readUtf8(articlePath);
+  const original = readUtf8(articlePath);
+  const markdownFigures = convertMarkdownFigureRegions(original);
+  const content = markdownFigures.content;
+  if (markdownFigures.converted.length) {
+    process.stdout.write(`Figures in markdown cells: ${markdownFigures.converted.join(', ')}.\n`);
+  }
   const { content: newContent, report } = processArticle(content, notebookCells, resolveImage);
 
   for (const c of report.captionConflicts) {
@@ -486,7 +519,7 @@ async function improveNotebookFigures(
     process.stdout.write(`Left as code: ${s.label} (${s.reason}).\n`);
   }
 
-  if (newContent === content) {
+  if (newContent === original) {
     process.stdout.write('No figure-tagged Python blocks converted; no changes.\n');
     return;
   }
