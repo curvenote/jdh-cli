@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
+import { resolveBundledPlaceholder } from '../../init/bundled-assets.js';
+import { articleUrl, resolveArticleId } from '../common/set-jdh-article-metadata.js';
 import {
   captionFromCode,
   captionFromJdh,
@@ -9,6 +11,7 @@ import {
   indexFiguresByLabel,
   kindFromTags,
   loadNotebook,
+  videoLabelFromTag,
   parseFenceMetadata,
   readTaggedCells,
   resolveCaption,
@@ -17,8 +20,16 @@ import {
 
 const DEFAULT_ARTICLE = 'article.md';
 const DEFAULT_NOTEBOOK = 'article.ipynb';
+/** The article's JDH page from the repo name, or null when the id can't be determined. */
+function jdhArticleUrl(projectRoot: string): string | null {
+  const id = resolveArticleId(projectRoot);
+  return id ? articleUrl(id) : null;
+}
+
 /** Workdir folder for figure images decoded from notebook outputs. */
 const OUTPUTS_DIR = 'notebook-outputs';
+/** Outputs that only work in a browser; shown in the PDF as a placeholder. */
+const INTERACTIVE_MIME = /^(text\/html|application\/(javascript|vnd\.plotly|vnd\.bokehjs|vnd\.jupyter\.widget))/;
 const IMAGE_EXTENSIONS: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -34,6 +45,8 @@ interface RunImproveNotebookFiguresOptions {
   notebook?: string;
   /** Article repo root, to copy images that live outside the workdir's copied folders. */
   projectRoot?: string;
+  /** Online article page; placeholders link to `<articleUrl>?idx=<cell index>`. */
+  articleUrl?: string | null;
   dryRun: boolean;
   cwd: string;
 }
@@ -59,12 +72,14 @@ function parseTagsFromFenceLine(line: string): string[] {
   return tags;
 }
 
-/** First figure tag as a MyST label (fig:…), or null when the cell is not a figure. */
+/** First figure or video tag as a MyST label (fig:…, vid:…), or null for other cells. */
 function firstFigureTag(tags: string[]): string | null {
-  const normalized = tags.find((t) => /^fig:/i.test(t));
+  const normalized = tags.find((t) => /^(fig|vid):/i.test(t));
   if (normalized) return normalized;
   const found = kindFromTags(tags);
-  return found?.kind === 'figure' ? figureLabelFromTag(found.tag) : null;
+  if (found?.kind === 'figure') return figureLabelFromTag(found.tag);
+  if (found?.kind === 'video') return videoLabelFromTag(found.tag);
+  return null;
 }
 
 /** Extract figure number from tag (e.g. fig:1 -> 1, figure-1-* -> 1, figure_2 -> 2) */
@@ -119,6 +134,7 @@ function normalizeFigureTags(content: string): string {
 
 export interface ImageRequest {
   label: string;
+  kind: 'figure' | 'video';
   /** Image file the cell's code displays, if any. */
   imagePath: string | null;
   cell?: TaggedCell;
@@ -126,13 +142,18 @@ export interface ImageRequest {
 
 export interface ResolvedImage {
   path: string;
-  from: 'file' | 'output';
+  /** `placeholder`: the figure only exists online (interactive chart, video). */
+  from: 'file' | 'output' | 'placeholder';
+  /** Link to the online version, added to the caption of placeholders. */
+  link?: string;
 }
 
 export interface FigureReport {
   converted: string[];
   /** Figures whose image came from the notebook output rather than a file. */
   fromOutput: string[];
+  /** Figures shown as a placeholder (interactive or video output with no image). */
+  placeholders: string[];
   /** Figure cells left as code, with the reason (e.g. no image file: needs notebook output). */
   skipped: { label: string; reason: string }[];
   /** Figures whose caption differs between code, cell metadata and notebook output. */
@@ -153,10 +174,11 @@ export function processArticle(
     imagePath ? { path: imagePath, from: 'file' } : null,
 ): { content: string; figureNumToLabel: Map<number, string>; report: FigureReport } {
   const figureNumToLabel = new Map<number, string>();
-  const report: FigureReport = { converted: [], fromOutput: [], skipped: [], captionConflicts: [] };
+  const report: FigureReport = { converted: [], fromOutput: [], placeholders: [], skipped: [], captionConflicts: [] };
   const notebookFigures = indexFiguresByLabel(notebookCells);
   const captionFor = new Map<number, string>();
   const imageFor = new Map<number, string>();
+  const linkFor = new Map<number, string>();
 
   content = normalizeFigureTags(content);
 
@@ -210,7 +232,14 @@ export function processArticle(
         const mimes = nbCell?.outputs.map((o) => o.mime) ?? [];
         const outputNote = mimes.length ? `; notebook output ${mimes.join(', ')}` : nbCell ? '; no notebook output' : '';
         const image =
-          resolved.text == null ? null : resolveImage({ label: figureTag, imagePath, cell: nbCell });
+          resolved.text == null
+            ? null
+            : resolveImage({
+                label: figureTag,
+                kind: figureTag.startsWith('vid:') ? 'video' : 'figure',
+                imagePath,
+                cell: nbCell,
+              });
         const reason =
           resolved.text == null
             ? 'no caption in code, cell metadata or notebook output'
@@ -224,7 +253,9 @@ export function processArticle(
         } else {
           captionFor.set(openStart, resolved.text!);
           imageFor.set(openStart, image.path);
+          if (image.link) linkFor.set(openStart, image.link);
           if (image.from === 'output') report.fromOutput.push(figureTag);
+          if (image.from === 'placeholder') report.placeholders.push(figureTag);
           blocks.push({
             start: openStart,
             end: openStart + fullMatch.length,
@@ -245,7 +276,11 @@ export function processArticle(
     const num = figureNumberFromTag(figureTag);
     if (num != null) figureNumToLabel.set(num, figureTag);
     const imagePath = imageFor.get(b.start)!;
-    const caption = stripFigureNumberPrefix(captionFor.get(b.start)!);
+    const link = linkFor.get(b.start);
+    const text = stripFigureNumberPrefix(captionFor.get(b.start)!);
+    const caption = link
+      ? `${text}${/[.!?:]$/.test(text) ? '' : '.'} [View it in the online article.](${link})`
+      : text;
     report.converted.unshift(figureTag);
     const replacement = [
       '```{figure} ' + imagePath,
@@ -362,10 +397,29 @@ async function improveNotebookFigures(
     return true;
   };
 
-  const resolveImage = ({ label, imagePath, cell }: ImageRequest): ResolvedImage | null => {
+  const placeholder = (variant: 'interactive' | 'video', cell?: TaggedCell): ResolvedImage => {
+    const rel = `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
+    if (!options.dryRun) {
+      const dest = path.resolve(options.cwd, rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(resolveBundledPlaceholder(variant), dest);
+    }
+    // The JDH site opens a notebook cell with ?idx=<cell index>.
+    const link = options.articleUrl && cell ? `${options.articleUrl}?idx=${cell.index}` : undefined;
+    return { path: rel, from: 'placeholder', link };
+  };
+
+  const resolveImage = ({ label, kind, imagePath, cell }: ImageRequest): ResolvedImage | null => {
     if (imagePath && ensureFile(imagePath)) return { path: imagePath, from: 'file' };
     const images = cell?.outputs.filter((o) => o.mime in IMAGE_EXTENSIONS) ?? [];
-    if (!images.length) return null;
+    if (!images.length) {
+      if (kind === 'video') return placeholder('video', cell);
+      const outputs = cell?.outputs ?? [];
+      // Dataframe tables are left for the table step (JDH-003), not hidden behind a placeholder.
+      if (outputs.some((o) => o.mime === 'text/html' && /<table/i.test(o.data))) return null;
+      if (outputs.some((o) => INTERACTIVE_MIME.test(o.mime))) return placeholder('interactive', cell);
+      return null;
+    }
     if (images.length > 1) {
       process.stdout.write(`Note: ${label} has ${images.length} image outputs; using the first.\n`);
     }
@@ -404,6 +458,7 @@ async function improveNotebookFigures(
       (report.converted.length ? `: ${report.converted.join(', ')}` : '') +
       ' and updated refs.' +
       (report.fromOutput.length ? ` From notebook output: ${report.fromOutput.join(', ')}.` : '') +
+      (report.placeholders.length ? ` Placeholder (view online): ${report.placeholders.join(', ')}.` : '') +
       '\n',
   );
 }
@@ -422,6 +477,7 @@ export const improveNotebookFiguresStep: PipelineStep = {
       article: 'article.md',
       notebook: 'article.ipynb',
       projectRoot: o.projectRoot,
+      articleUrl: ctx.options.url ?? jdhArticleUrl(o.projectRoot),
       dryRun: o.dryRun,
       cwd: o.cwd,
     });

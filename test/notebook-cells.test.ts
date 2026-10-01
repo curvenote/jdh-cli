@@ -7,6 +7,7 @@ import {
   resolveCaption,
   selectOutputs,
 } from '../src/steps/shared/notebook-cells.js';
+import { captionFromJdh } from '../src/steps/shared/notebook-cells.js';
 
 describe('kindFromTags', () => {
   test('recognises numbered and descriptive tags of each kind', () => {
@@ -118,5 +119,15 @@ describe('readTaggedCells', () => {
       dropped: 1,
     });
     expect(cells[0].outputs[0].mime).toBe('text/html');
+  });
+});
+
+describe('captionFromJdh', () => {
+  test('joins caption pieces with a space when they lack one', () => {
+    // 7XSDVCtnbXva: a URL piece followed by "(Copyright …)" must not run together.
+    expect(captionFromJdh({ object: { source: ['UNData (2016), https://data.un.org/x?a=1&b=2', '(Copyright UNData.)'] } })).toBe(
+      'UNData (2016), https://data.un.org/x?a=1&b=2 (Copyright UNData.)',
+    );
+    expect(captionFromJdh({ object: { source: ['Line one\n', 'line two'] } })).toBe('Line one\nline two');
   });
 });

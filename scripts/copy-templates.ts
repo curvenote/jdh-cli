@@ -23,6 +23,11 @@ function copyPluginsDir(srcDir: string, destDir: string): void {
 
 copyPluginsDir(join(root, 'templates', 'plugins'), join(dist, 'plugins'));
 
+mkdirSync(join(dist, 'placeholders'), { recursive: true });
+for (const name of readdirSync(join(root, 'templates', 'placeholders'))) {
+  if (name.endsWith('.svg')) copyFileSync(join(root, 'templates', 'placeholders', name), join(dist, 'placeholders', name));
+}
+
 mkdirSync(join(dist, 'generated'), { recursive: true });
 for (const name of readdirSync(join(root, 'templates', 'generated'))) {
   if (name.endsWith('.png')) copyFileSync(join(root, 'templates', 'generated', name), join(dist, 'generated', name));

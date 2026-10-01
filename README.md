@@ -67,6 +67,12 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 Files the article repo provides take precedence. With `jdh-cli init`, edits to the repo's `meta-jdh.yml` are used. From the repo's `myst.yml`, only `project.id` is kept today; keeping other edits is planned.
 
+## Design rules
+
+- **The article repo is the input.** jdh-cli works from `article.md`, `article.ipynb` and other files in the article folder. Content a notebook can't provide as data (e.g. an interactive chart with no image output) becomes a placeholder linking to the online article; it isn't rendered or fetched.
+- **No Python dependencies** in the processing chain.
+- Current network lookups, under review against the first rule: DOI from the JDH API (`--doi` overrides), ROR affiliations (`--no-ror-lookup` disables), ORCID (`--orcid-lookup`, off by default).
+
 ## Pipeline
 
 `jdh-cli article.md --list-steps` prints the 12 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures, tables, hermeneutics blocks, GitHub link, DOI and URL. Figures read `article.ipynb` for captions and report figures that exist only as notebook output.

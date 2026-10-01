@@ -75,7 +75,8 @@ async function fetchArticleRecord(articleId: string): Promise<JdhArticleRecord |
   }
 }
 
-function resolveArticleId(projectRoot: string): string | null {
+/** JDH article id from the git remote's repo name, else the folder name. */
+export function resolveArticleId(projectRoot: string): string | null {
   const github = resolveGithubFromGit(projectRoot);
   return (github ? articleIdFromName(github) : null) ?? articleIdFromName(path.basename(projectRoot));
 }

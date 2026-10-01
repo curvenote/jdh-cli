@@ -102,11 +102,25 @@ export function figureLabelFromTag(tag: string): string {
   return `fig:${slug}`;
 }
 
+/** MyST label for a video tag: `video-software-*` → `vid:software`. */
+export function videoLabelFromTag(tag: string): string {
+  if (/^vid:/i.test(tag)) return tag;
+  const slug = tag
+    .replace(/^video[-_]?/i, '')
+    .replace(/[-_]?\*$/, '')
+    .replace(/^[-_]+|[-_]+$/g, '');
+  return `vid:${slug}`;
+}
+
 /** Caption text from a `jdh` metadata object (`jdh.object.source`). */
 export function captionFromJdh(jdh: unknown): string | null {
   if (!jdh || typeof jdh !== 'object') return null;
-  const object = (jdh as { object?: { source?: unknown } }).object;
-  const text = joinText(object?.source).trim();
+  const source = (jdh as { object?: { source?: unknown } }).object?.source;
+  const parts = Array.isArray(source) ? source.map(String) : [joinText(source)];
+  // Caption pieces are separate strings (often sentences without trailing spaces).
+  const text = parts
+    .reduce((acc, part) => (acc && !/\s$/.test(acc) && !/^\s/.test(part) ? `${acc} ${part}` : acc + part), '')
+    .trim();
   return text || null;
 }
 
@@ -231,12 +245,12 @@ export function loadNotebook(notebookPath: string): RawNotebook | null {
   }
 }
 
-/** Index figure cells by MyST label, so markdown cells can be matched by their tag. */
+/** Index figure and video cells by MyST label, so markdown cells can be matched by their tag. */
 export function indexFiguresByLabel(cells: readonly TaggedCell[]): Map<string, TaggedCell> {
   const index = new Map<string, TaggedCell>();
   for (const cell of cells) {
-    if (cell.kind !== 'figure') continue;
-    const label = figureLabelFromTag(cell.tag);
+    if (cell.kind !== 'figure' && cell.kind !== 'video') continue;
+    const label = cell.kind === 'video' ? videoLabelFromTag(cell.tag) : figureLabelFromTag(cell.tag);
     if (!index.has(label)) index.set(label, cell);
   }
   return index;
