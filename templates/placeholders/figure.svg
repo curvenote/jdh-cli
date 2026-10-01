@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300">
+  <rect x="2" y="2" width="996" height="296" rx="10" fill="#F4F6F7" stroke="#B8C2CA" stroke-width="3" stroke-dasharray="14 10"/>
+  <rect x="455" y="88" width="90" height="62" rx="4" fill="none" stroke="#5A6874" stroke-width="5"/><circle cx="478" cy="108" r="7" fill="#0A84A0"/><polyline points="460,145 490,120 510,135 540,110" fill="none" stroke="#0A84A0" stroke-width="5" stroke-linejoin="round"/>
+  <text x="500" y="200" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#16212B">Figure</text>
+  <text x="500" y="244" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="24" fill="#5A6874">Available in the online version of this article</text>
+</svg>

@@ -112,3 +112,19 @@ test('video cells get a video placeholder linking to the online article', async 
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n\nHow to analyse an interview. [View it in the online article.](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
 });
+
+test('image outputs are typed by their bytes, and unreadable formats get a placeholder', async () => {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16]).toString('base64');
+  const webp = Buffer.from('RIFF\u0000\u0000\u0000\u0000WEBPVP8 ').toString('base64');
+  const { workdir, ctx } = setupCells(
+    [
+      codeCell(['figure-a-*'], [{ output_type: 'display_data', data: { 'image/png': jpeg } }]),
+      codeCell(['figure-b-*'], [{ output_type: 'display_data', data: { 'image/png': webp } }]),
+    ],
+    '```python jdh={"object": {"source": ["A"]}} tags=["figure-a-*"]\nshow()\n```\n\n```python jdh={"object": {"source": ["B"]}} tags=["figure-b-*"]\nshow()\n```\n',
+  );
+  await improveNotebookFiguresStep.run(ctx);
+  const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
+  expect(md).toContain('```{figure} notebook-outputs/fig-a.jpg');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n\nB. [View it in the online article.]');
+});

@@ -84,6 +84,6 @@ export function deployBundledDefaults(workdirAbs: string, dryRun: boolean): numb
 }
 
 /** Placeholder images for figures that only exist online (interactive charts, video). */
-export function resolveBundledPlaceholder(variant: 'interactive' | 'video'): string {
+export function resolveBundledPlaceholder(variant: 'interactive' | 'video' | 'figure'): string {
   return path.join(path.dirname(resolveBundledMetaJdhPath()), 'placeholders', `${variant}.svg`);
 }

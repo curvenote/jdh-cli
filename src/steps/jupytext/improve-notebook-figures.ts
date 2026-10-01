@@ -20,6 +20,14 @@ import {
 
 const DEFAULT_ARTICLE = 'article.md';
 const DEFAULT_NOTEBOOK = 'article.ipynb';
+/** Image format Typst can read, from the file's magic bytes; null for anything else (e.g. WebP). */
+export function imageFormat(bytes: Buffer): 'png' | 'jpg' | 'gif' | null {
+  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg';
+  if (bytes.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif';
+  return null;
+}
+
 /** The article's JDH page from the repo name, or null when the id can't be determined. */
 function jdhArticleUrl(projectRoot: string): string | null {
   const id = resolveArticleId(projectRoot);
@@ -397,7 +405,7 @@ async function improveNotebookFigures(
     return true;
   };
 
-  const placeholder = (variant: 'interactive' | 'video', cell?: TaggedCell): ResolvedImage => {
+  const placeholder = (variant: 'interactive' | 'video' | 'figure', cell?: TaggedCell): ResolvedImage => {
     const rel = `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
     if (!options.dryRun) {
       const dest = path.resolve(options.cwd, rel);
@@ -421,18 +429,27 @@ async function improveNotebookFigures(
       return null;
     }
     if (images.length > 1) {
-      process.stdout.write(`Note: ${label} has ${images.length} image outputs; using the first.\n`);
+      process.stdout.write(`Note: ${label} has ${images.length} image outputs; using the first usable one.\n`);
     }
-    const { mime, data } = images[0];
-    const rel = `${OUTPUTS_DIR}/${label.replace(/[^A-Za-z0-9_-]+/g, '-')}.${IMAGE_EXTENSIONS[mime]}`;
-    if (!options.dryRun) {
-      const dest = path.resolve(options.cwd, rel);
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
+    for (const { mime, data } of images) {
       // SVG outputs are text; the others are base64 (possibly split over lines).
-      fs.writeFileSync(dest, mime === 'image/svg+xml' ? data : Buffer.from(data.replace(/\s+/g, ''), 'base64'));
+      const bytes = mime === 'image/svg+xml' ? Buffer.from(data) : Buffer.from(data.replace(/\s+/g, ''), 'base64');
+      // Trust the bytes, not the MIME label: some "image/png" outputs are WebP, which Typst can't read.
+      const ext = mime === 'image/svg+xml' ? 'svg' : imageFormat(bytes);
+      if (!ext) {
+        process.stdout.write(`Note: ${label} ${mime} output isn't PNG, JPEG or GIF data; skipping it.\n`);
+        continue;
+      }
+      const rel = `${OUTPUTS_DIR}/${label.replace(/[^A-Za-z0-9_-]+/g, '-')}.${ext}`;
+      if (!options.dryRun) {
+        const dest = path.resolve(options.cwd, rel);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, bytes);
+      }
+      process.stdout.write(`  - write    ${rel} (${mime} output)\n`);
+      return { path: rel, from: 'output' };
     }
-    process.stdout.write(`  - write    ${rel} (${mime} output)\n`);
-    return { path: rel, from: 'output' };
+    return placeholder('figure', cell);
   };
 
   const content = readUtf8(articlePath);
