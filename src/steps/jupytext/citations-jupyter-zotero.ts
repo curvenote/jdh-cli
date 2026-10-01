@@ -310,7 +310,7 @@ function loadZoteroItemsFromNotebook(notebookPath: string): Record<string, CslIt
 
   if (items && typeof items === 'object') return items as Record<string, CslItem>;
 
-  throw new Error(`No citation-manager items found in notebook metadata: ${notebookPath}`);
+  return {};
 }
 
 function extractBalancedJsonObject(s: string, startIdx: number): string | null {
@@ -494,6 +494,11 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   const mystPath = resolveProjectConfigPath(cwd, options.myst);
 
   const zoteroItems = loadZoteroItemsFromNotebook(notebookPath);
+  if (Object.keys(zoteroItems).length === 0) {
+    // An empty references.bib breaks myst build, so write nothing and leave myst.yml alone.
+    console.log(`No citation-manager items in ${path.relative(cwd, notebookPath)}; skipping references.bib.`);
+    return;
+  }
   const citekeyByZoteroId = buildCitekeyMap(zoteroItems);
 
   const bibEntries: string[] = [];

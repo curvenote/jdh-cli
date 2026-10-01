@@ -4,9 +4,10 @@ import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
 
-const ARTICLE_REPO = path.resolve(import.meta.dir, '../../BHmHNQKJaSWT');
+const JDH_ROOT = path.resolve(import.meta.dir, '../..');
+const ARTICLE_REPO = path.join(JDH_ROOT, 'art-unpub', 'BHmHNQKJaSWT');
 const CLI = path.resolve(import.meta.dir, '../dist/jdh-cli.cjs');
-const TYPST_TEMPLATE = path.resolve(ARTICLE_REPO, '../jdh-typst-template');
+const TYPST_TEMPLATE = path.join(JDH_ROOT, 'jdh-typst-template');
 const WORKDIR = path.join(ARTICLE_REPO, '_improved');
 const PDF_PATH = path.join(WORKDIR, 'article.pdf');
 
@@ -32,7 +33,6 @@ describe('build integration (meta-jdh extends)', () => {
   const canRun =
     fileExists(CLI) &&
     fileExists(path.join(ARTICLE_REPO, 'article.md')) &&
-    fileExists(path.join(ARTICLE_REPO, 'meta-jdh.yml')) &&
     fileExists(TYPST_TEMPLATE) &&
     mystAvailable();
 

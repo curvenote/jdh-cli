@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { deployBundledDefaults } from '../init/bundled-assets.js';
 import { deployBundledPlugins } from '../init/bundled-plugins.js';
 import type { RunContext } from './types.js';
 import { fileExists } from './context.js';
@@ -66,6 +67,10 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
 
   const pluginCount = deployBundledPlugins(workdirAbs, options.dryRun);
   copied += pluginCount;
+  copied += deployBundledDefaults(workdirAbs, options.dryRun);
+
+  // Keep the generated workdir out of the article repo without touching its .gitignore.
+  if (!options.dryRun) fs.writeFileSync(path.join(workdirAbs, '.gitignore'), '*\n');
 
   console.log(
     `${prefix}Done. ${copied} item(s) ${options.dryRun ? 'would be ' : ''}copied, ${skipped} skipped.`,

@@ -15,6 +15,8 @@ program.description(
   'Convert and improve Jupytext notebooks into a MyST-ready project (myst.yml + article.md).',
 );
 program.showHelpAfterError(true);
+// Options belong to the command they follow, so `build --project-root` isn't taken by the root command.
+program.enablePositionalOptions();
 
 addInitCommand(program);
 addCleanCommand(program);

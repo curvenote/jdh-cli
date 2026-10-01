@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
 import { resolveWorkdirAbs } from '../src/engine/paths.js';
 
-const ARTICLE_REPO = path.resolve(import.meta.dir, '../../BHmHNQKJaSWT');
+const ARTICLE_REPO = path.resolve(import.meta.dir, '../../art-unpub/BHmHNQKJaSWT');
 const CLI = path.resolve(import.meta.dir, '../dist/jdh-cli.cjs');
 
 function runCli(args: string[], cwd: string): { status: number; stdout: string; stderr: string } {
@@ -89,7 +89,7 @@ describe('jupytext pipeline', () => {
     fs.mkdirSync(workdirAbs, { recursive: true });
     fs.writeFileSync(path.join(workdirAbs, 'article.md'), '# test\n');
 
-    const res = runCli(['clean', '--project-root', tmpDir], tmpDir);
+    const res = runCli(['clean', '--project-root', tmpDir], os.tmpdir());
     expect(res.status).toBe(0);
     expect(fileExists(workdirAbs)).toBe(false);
   });
