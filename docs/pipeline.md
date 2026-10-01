@@ -16,7 +16,7 @@ jdh-cli article.md --list-steps
 | --- | --- | --- |
 | 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
 | 2 | Init myst.yml | Scaffold config; register all bundled plugins |
-| 3 | Citations (jupyter-zotero) | `references.bib`; rewrite `<cite>` → MyST citations |
+| 3 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
 | 4 | Improve citation tags | Author–year citekeys |
 | 5 | Extract jupytext frontmatter | Author/affiliation metadata → `myst.yml`; article title |
 | 6 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
@@ -38,7 +38,8 @@ _improved/
   myst.yml
   meta-jdh.yml            # the repo's own, else the bundled default
   article.md
-  references.bib          # when citations present
+  references.bib          # Zotero items not covered by an author .bib
+  direct.bib              # author .bib files copied from the repo (references.bib → references.author.bib)
   plugins/
     hermeneutics.mjs
     jdh-table.mjs

@@ -32,6 +32,7 @@ jdh-cli article.md --dry-run             # log actions without writing
 | `--orcid-lookup` | off | Enable ORCID enrichment in frontmatter step |
 | `--ror-lookup` / `--no-ror-lookup` | on | ROR affiliation resolution |
 | `--ror-min-score <float>` | `0.8` | ROR match threshold (0–1) |
+| `--no-zotero` | Zotero data used | Ignore the notebook's Zotero data; use the repo's `.bib` files only |
 | `--doi <doi>` | JDH API lookup | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL |
 | `--url <url>` | JDH article page | Set the article URL (`project.social.url`) |
 | `--list-steps` | off | List pipeline steps and exit |

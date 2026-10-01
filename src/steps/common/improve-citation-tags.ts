@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
+import { listWorkdirAuthorBibFiles, loadAuthorBibEntries } from '../shared/author-bib.js';
 import { whenReferencesBib } from '../shared/when.js';
 
 
@@ -168,6 +169,8 @@ function generateAuthorYearBaseKey(entry: BibEntry): string {
 function buildImprovedKeyMap(
   entries: BibEntry[],
   citationPositions: Map<string, number>,
+  /** Keys already taken by other bibliographies (author .bib files). */
+  reservedKeys: ReadonlySet<string> = new Set(),
 ): Map<string, string> {
   const byBase = new Map<string, { entry: BibEntry; base: string }[]>();
 
@@ -179,7 +182,7 @@ function buildImprovedKeyMap(
   }
 
   const keyMap = new Map<string, string>();
-  const globallyUsed = new Set<string>();
+  const globallyUsed = new Set<string>(reservedKeys);
 
   const bases = Array.from(byBase.keys()).sort((a, b) => a.localeCompare(b));
   for (const base of bases) {
@@ -273,7 +276,10 @@ async function improveCitationTags(
   const articleMd = readUtf8(articlePath);
   const citationPositions = getCitationFirstUsePositions(articleMd);
 
-  const keyMap = buildImprovedKeyMap(entries, citationPositions);
+  const authorKeys = new Set(
+    loadAuthorBibEntries(options.cwd, listWorkdirAuthorBibFiles(options.cwd)).entries.map((e) => e.key),
+  );
+  const keyMap = buildImprovedKeyMap(entries, citationPositions, authorKeys);
 
   const newBibText = rewriteBibtexKeys(bibText, entries, keyMap);
   const newArticleMd = rewriteMarkdownCitations(articleMd, keyMap);

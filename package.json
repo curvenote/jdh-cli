@@ -30,6 +30,7 @@
     "build:standalone": "bun run copy:version && bun build --compile src/index.ts --outfile dist/jdh-cli"
   },
   "dependencies": {
+    "@retorquere/bibtex-parser": "^11.0.0",
     "commander": "^14.0.0",
     "yaml": "^2.9.1"
   },

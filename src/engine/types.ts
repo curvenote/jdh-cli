@@ -41,6 +41,8 @@ export interface ConvertOptions {
   doi?: string;
   /** Override for the article URL, project.social.url (otherwise the JDH article page). */
   url?: string;
+  /** Read Zotero items from the notebook's citation-manager data (default true). */
+  zotero: boolean;
 }
 
 export interface RunContext {

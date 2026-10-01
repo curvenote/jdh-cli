@@ -16,6 +16,7 @@ export function addConvertCommand(program: Command): void {
     .option('--ror-min-score <float>', 'ROR match threshold 0..1', '0.8')
     .option('--doi <doi>', 'Set project.doi (default: looked up from the JDH API by repo name)')
     .option('--url <url>', 'Set the article URL, project.social.url (default: JDH article page from repo name)')
+    .option('--no-zotero', "Ignore the notebook's Zotero (citation-manager) data; use the repo's .bib files only")
     .option('--list-steps', 'Print planned steps for this input and exit')
     .addHelpText(
       'after',
@@ -43,6 +44,7 @@ Examples:
         projectRoot: opts.projectRoot,
         doi: opts.doi,
         url: opts.url,
+        zotero: opts.zotero,
       });
 
       const rulesetId = inferRulesetId(inputAbs);

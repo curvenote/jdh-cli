@@ -52,6 +52,7 @@ export function parseConvertOptions(opts: {
   projectRoot?: string;
   doi?: string;
   url?: string;
+  zotero?: boolean;
 }): ConvertOptions {
   const rorMinScore = opts.rorMinScore != null ? Number(opts.rorMinScore) : 0.8;
   if (!Number.isFinite(rorMinScore) || rorMinScore < 0 || rorMinScore > 1) {
@@ -67,5 +68,6 @@ export function parseConvertOptions(opts: {
     projectRoot: opts.projectRoot,
     doi: opts.doi,
     url: opts.url,
+    zotero: opts.zotero !== false,
   };
 }

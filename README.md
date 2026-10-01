@@ -37,6 +37,7 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | --- | --- | --- |
 | `--doi <doi>` | Looked up from the JDH API | Set the article DOI (`project.doi`). Accepts `10.…`, `doi:10.…` or a doi.org URL |
 | `--url <url>` | JDH article page from the repo name | Set the article URL (`project.social.url`) |
+| `--no-zotero` | Zotero data used | Ignore the notebook's Zotero data and rely on the repo's `.bib` files. For articles that cite `[@key]` directly; `<cite>` tags then become plain text |
 | `--no-ror-lookup` | ROR lookups on | Skip resolving affiliations via the ROR API (faster, offline) |
 | `--ror-min-score <0..1>` | `0.8` | ROR match threshold |
 | `--orcid-lookup` | off | Enrich authors via ORCID |
@@ -57,10 +58,12 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 - placeholder `generated/qr.png` and `generated/fingerprint.png`, unless the repo has its own
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
 - the MyST plugins for hermeneutics blocks, narrative code and JDH tables
-- `references.bib` from the notebook's Zotero (citation-manager) data
+- `references.bib` from the notebook's Zotero (citation-manager) data, plus any `.bib` files in the article repo (e.g. `direct.bib`)
 - a `.gitignore`, so the article repo stays clean
 
 `jdh-cli build` points the PDF export at `jdh-typst-template` next to jdh-cli; pass `--template` to use another copy.
+
+**References.** Any `.bib` in the article repo is used alongside the notebook's Zotero data. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
 
 Files the article repo provides take precedence. With `jdh-cli init`, edits to the repo's `meta-jdh.yml` are used. From the repo's `myst.yml`, only `project.id` is kept today; keeping other edits is planned.
 

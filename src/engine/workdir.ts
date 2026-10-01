@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { deployBundledDefaults } from '../init/bundled-assets.js';
+import { authorBibWorkdirName, listProjectBibFiles } from '../steps/shared/author-bib.js';
 import { deployBundledPlugins } from '../init/bundled-plugins.js';
 import type { RunContext } from './types.js';
 import { fileExists } from './context.js';
@@ -62,6 +63,14 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
     }
     console.log(`  - ${options.dryRun ? 'would copy' : 'copy    '} ${dep}`);
     if (!options.dryRun) copyTree(src, dest);
+    copied++;
+  }
+
+  // Author-supplied bibliographies (e.g. direct.bib); registered by the citations step.
+  for (const bib of listProjectBibFiles(projectRoot)) {
+    const dest = authorBibWorkdirName(bib);
+    console.log(`  - ${options.dryRun ? 'would copy' : 'copy    '} ${bib}${dest !== bib ? ` → ${dest}` : ''}`);
+    if (!options.dryRun) fs.copyFileSync(path.join(projectRoot, bib), path.join(workdirAbs, dest));
     copied++;
   }
 

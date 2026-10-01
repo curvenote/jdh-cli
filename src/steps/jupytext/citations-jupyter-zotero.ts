@@ -4,6 +4,12 @@ import { isSeq } from 'yaml';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import {
+  findAuthorEntry,
+  listProjectBibFiles,
+  listWorkdirAuthorBibFiles,
+  loadAuthorBibEntries,
+} from '../shared/author-bib.js';
 import { updateYamlFile } from '../shared/yaml-doc.js';
 import { whenNotebook } from '../shared/when.js';
 
@@ -47,6 +53,8 @@ export interface JupyterZoteroOptions {
   rewriteMd: boolean;
   updateMyst: boolean;
   stripCitationManagerComments: boolean;
+  /** Read Zotero items from the notebook (default true; --no-zotero turns it off). */
+  zotero?: boolean;
   cwd?: string;
 }
 
@@ -298,6 +306,7 @@ function buildCitekeyMap(itemsById: Record<string, CslItem>): Map<string, string
 }
 
 function loadZoteroItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
+  if (!fileExists(notebookPath)) return {};
   const nb = JSON.parse(readUtf8(notebookPath)) as {
     metadata?: Record<string, unknown>;
   };
@@ -423,28 +432,59 @@ function stripCitationManagerFromAllComments(md: string): string {
   });
 }
 
-function rewriteMdCitationsToMyst(
+/** Zotero item ids (`group/KEY`) from the links inside a `<cite>` element. */
+export function zoteroIdsFromCiteHtml(html: string): string[] {
+  const ids: string[] = [];
+  const re = /#zotero(?:%7C|\|)(\d+)(?:%2F|\/)([A-Z0-9]+)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) ids.push(`${m[1]}/${m[2]}`);
+  return ids;
+}
+
+const HTML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/** Visible text of a `<cite>` element, e.g. "(Meadows & Sternfeld, 2023)". */
+export function citeVisibleText(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&#(\d+);/g, (_m, n: string) => String.fromCharCode(Number(n)))
+    .replace(/&([a-z]+);/gi, (m, name: string) => HTML_ENTITIES[name.toLowerCase()] ?? m)
+    .trim();
+}
+
+/**
+ * Rewrite citation-manager `<cite id>` elements to MyST citations.
+ *
+ * Keys come from the cell's citation-manager mapping; when that is empty (a
+ * known plugin failure), from the Zotero item key in the citation's own link.
+ * Citations that still can't be resolved become their visible text and are
+ * returned in `unresolved`.
+ */
+export function rewriteMdCitationsToMyst(
   md: string,
   citeIdToRefs: Map<string, CitationManagerRef[]>,
-  citekeyByZoteroId: Map<string, string>,
-  _opts: { stripCitationManagerComments: boolean },
-): string {
-  let out = md;
+  keyForZoteroId: (zoteroId: string) => string | undefined,
+): { md: string; unresolved: string[] } {
+  const unresolved: string[] = [];
 
-  out = out.replace(/<cite\s+id="([^"]+)"[^>]*>[\s\S]*?<\/cite>/g, (full, citeId: string) => {
-    const refs = citeIdToRefs.get(citeId);
-    if (!refs || refs.length === 0) return full;
+  let out = md.replace(
+    /<cite\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/cite>/g,
+    (_full, citeId: string, inner: string, offset: number, whole: string) => {
+      const mapped = (citeIdToRefs.get(citeId) ?? [])
+        .filter((r) => r && r.source === 'zotero' && r.id)
+        .map((r) => r.id);
+      const ids = mapped.length ? mapped : zoteroIdsFromCiteHtml(inner);
+      const keys = [...new Set(ids.map(keyForZoteroId).filter((k): k is string => Boolean(k)))];
+      if (keys.length) return `[${keys.map((k) => `@${k}`).join('; ')}]`;
 
-    const keys: string[] = [];
-    for (const r of refs) {
-      if (!r || r.source !== 'zotero' || !r.id) continue;
-      const key = citekeyByZoteroId.get(r.id);
-      if (key) keys.push(`@${key}`);
-    }
-    if (keys.length === 0) return full;
-    if (keys.length === 1) return `[@${keys[0].slice(1)}]`;
-    return `[${keys.join('; ')}]`;
-  });
+      let text = citeVisibleText(inner);
+      unresolved.push(text || citeId);
+      // Avoid "((Author, 2023))" when the article already wraps the citation in parentheses.
+      const wrapped = whole[offset - 1] === '(' && whole[offset + _full.length] === ')';
+      if (wrapped && /^\(.*\)$/.test(text)) text = text.slice(1, -1);
+      return text;
+    },
+  );
 
   out = out.replace(/\[@[^\]]+?\](?:\s*,\s*\[@[^\]]+?\])+/g, (chunk) => {
     const keys: string[] = [];
@@ -458,7 +498,7 @@ function rewriteMdCitationsToMyst(
   out = out.replace(/\(\s*(\[@[^\]]+?\])\s*\)/g, '$1');
   out = stripCitationManagerFromAllComments(out);
 
-  return out;
+  return { md: out, unresolved };
 }
 
 /** Add `bibPath` to `project.bibliography` in myst.yml, keeping existing entries. */
@@ -483,62 +523,88 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   const notebookPath = path.resolve(cwd, options.notebook);
   const bibPath = path.resolve(cwd, options.bib);
   const mystPath = resolveProjectConfigPath(cwd, options.myst);
+  const log: string[] = ['Done.'];
 
-  const zoteroItems = loadZoteroItemsFromNotebook(notebookPath);
-  if (Object.keys(zoteroItems).length === 0) {
-    // An empty references.bib breaks myst build, so write nothing and leave myst.yml alone.
-    console.log(`No citation-manager items in ${path.relative(cwd, notebookPath)}; skipping references.bib.`);
-    return;
-  }
-  const citekeyByZoteroId = buildCitekeyMap(zoteroItems);
+  const zoteroItems = options.zotero === false ? {} : loadZoteroItemsFromNotebook(notebookPath);
+  if (options.zotero === false) log.push('- Zotero:   skipped (--no-zotero)');
 
-  const bibEntries: string[] = [];
-  const ids = Object.keys(zoteroItems).sort();
-  for (const id of ids) {
-    const item = zoteroItems[id];
-    const citekey = citekeyByZoteroId.get(id)!;
-    const bibType = pickBibtexType(item);
-    const fields = buildBibtexFields(item, citekey);
-    bibEntries.push(renderBibtexEntry(bibType, citekey, fields));
+  const authorBibs = loadAuthorBibEntries(cwd, listWorkdirAuthorBibFiles(cwd));
+  for (const file of authorBibs.emptyFiles) {
+    process.stdout.write(`Skipping ${file}: no BibTeX entries.\n`);
   }
 
-  const bibText =
-    `% Generated from ${path.basename(notebookPath)} notebook metadata (citation-manager)\n` +
-    `% Entries: ${bibEntries.length}\n\n` +
-    bibEntries.join('\n');
-
-  writeUtf8(bibPath, bibText, options.dryRun);
-
-  if (options.rewriteMd) {
-    const md = readUtf8(articlePath);
-    const citeIdToRefs = extractCitationManagerMappingsFromMd(md);
-    const rewritten = rewriteMdCitationsToMyst(md, citeIdToRefs, citekeyByZoteroId, {
-      stripCitationManagerComments: options.stripCitationManagerComments,
-    });
-
-    if (rewritten !== md) {
-      writeUtf8(articlePath, rewritten, options.dryRun);
+  // The author's .bib wins when it describes the same work as a Zotero item.
+  const authorKeyByZoteroId = new Map<string, string>();
+  for (const [id, item] of Object.entries(zoteroItems)) {
+    const match = findAuthorEntry(
+      { doi: extractDoi(item), title: item.title ?? null, year: getIssuedDateParts(item).year },
+      authorBibs.entries,
+    );
+    if (match) {
+      authorKeyByZoteroId.set(id, match.key);
+      process.stdout.write(`Using ${match.file} entry ${match.key} for Zotero item ${id}.\n`);
     }
   }
 
-  if (options.updateMyst && fileExists(mystPath)) {
-    ensureMystBibliography(mystPath, path.basename(bibPath), options.dryRun);
+  const ownItems = Object.fromEntries(
+    Object.entries(zoteroItems).filter(([id]) => !authorKeyByZoteroId.has(id)),
+  );
+  const citekeyByZoteroId = buildCitekeyMap(ownItems);
+  const bibEntries = Object.keys(ownItems)
+    .sort()
+    .map((id) => {
+      const citekey = citekeyByZoteroId.get(id)!;
+      return renderBibtexEntry(pickBibtexType(ownItems[id]), citekey, buildBibtexFields(ownItems[id], citekey));
+    });
+
+  // An empty references.bib breaks myst build, so only write it when there are entries.
+  const bibliography: string[] = [];
+  if (bibEntries.length) {
+    writeUtf8(
+      bibPath,
+      `% Generated from ${path.basename(notebookPath)} notebook metadata (citation-manager)\n` +
+        `% Entries: ${bibEntries.length}\n\n` +
+        bibEntries.join('\n'),
+      options.dryRun,
+    );
+    bibliography.push(path.basename(bibPath));
+    log.push(`- BibTeX:   ${path.relative(cwd, bibPath)} (${bibEntries.length} entries)`);
+  } else if (!authorBibs.usableFiles.length) {
+    log.push('- BibTeX:   no citation-manager items; references.bib not written');
+  }
+  bibliography.push(...authorBibs.usableFiles);
+  if (authorBibs.usableFiles.length) {
+    log.push(
+      `- Author:   ${authorBibs.usableFiles.join(', ')} (${authorBibs.entries.length} entries; ${authorKeyByZoteroId.size} replace Zotero items)`,
+    );
   }
 
-  console.log(
-    [
-      'Done.',
-      `- Notebook: ${path.relative(cwd, notebookPath)}`,
-      `- BibTeX:   ${path.relative(cwd, bibPath)} (${bibEntries.length} entries)`,
-      options.rewriteMd ? `- Rewrote:  ${path.relative(cwd, articlePath)}` : null,
-      options.updateMyst && fileExists(mystPath)
-        ? `- Updated:  ${path.relative(cwd, mystPath)}`
-        : null,
-      options.dryRun ? '(dry-run: no files written)' : null,
-    ]
-      .filter(Boolean)
-      .join('\n'),
-  );
+  if (options.rewriteMd && fileExists(articlePath)) {
+    const md = readUtf8(articlePath);
+    const { md: rewritten, unresolved } = rewriteMdCitationsToMyst(
+      md,
+      extractCitationManagerMappingsFromMd(md),
+      (id) => authorKeyByZoteroId.get(id) ?? citekeyByZoteroId.get(id),
+    );
+    if (rewritten !== md) {
+      writeUtf8(articlePath, rewritten, options.dryRun);
+      log.push(`- Rewrote:  ${path.relative(cwd, articlePath)}`);
+    }
+    if (unresolved.length) {
+      process.stdout.write(
+        `Warning: ${unresolved.length} citation(s) not found in any bibliography; kept as plain text: ` +
+          `${unresolved.slice(0, 5).join('; ')}${unresolved.length > 5 ? '; …' : ''}\n`,
+      );
+    }
+  }
+
+  if (options.updateMyst && bibliography.length && fileExists(mystPath)) {
+    for (const bib of bibliography) ensureMystBibliography(mystPath, bib, options.dryRun);
+    log.push(`- Updated:  ${path.relative(cwd, mystPath)} (bibliography: ${bibliography.join(', ')})`);
+  }
+
+  if (options.dryRun) log.push('(dry-run: no files written)');
+  console.log(log.join('\n'));
 }
 
 /**
@@ -547,9 +613,10 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
  */
 export const citationsJupyterZoteroStep: PipelineStep = {
   id: 'citationsJupyterZotero',
-  label: 'Extract citations + BibTeX + rewrite markdown (jupyter-zotero)',
-  inputs: ['ipynb', 'markdown', 'myst'],
-  when: whenNotebook,
+  label: 'Extract citations + BibTeX + rewrite markdown (Zotero and author .bib)',
+  inputs: ['ipynb', 'markdown', 'myst', 'bibtex'],
+  // Run for notebooks (Zotero items) and for repos that bring their own .bib.
+  when: (ctx) => (listProjectBibFiles(ctx.projectRoot).length ? 'run' : whenNotebook(ctx)),
   run: async (ctx) => {
     const o = stepOpts(ctx);
     await jupyterZotero({
@@ -561,6 +628,7 @@ export const citationsJupyterZoteroStep: PipelineStep = {
       rewriteMd: true,
       updateMyst: true,
       stripCitationManagerComments: false,
+      zotero: ctx.options.zotero,
       cwd: o.cwd,
     });
   },
