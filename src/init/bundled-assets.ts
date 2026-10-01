@@ -88,7 +88,7 @@ export function deployBundledDefaults(
   return deployed;
 }
 
-/** Placeholder images for figures that only exist online (interactive charts, video). */
-export function resolveBundledPlaceholder(variant: 'interactive' | 'video' | 'figure'): string {
+/** Placeholder images for figures that only exist online (interactive charts, video, audio). */
+export function resolveBundledPlaceholder(variant: 'interactive' | 'video' | 'audio' | 'figure'): string {
   return path.join(path.dirname(resolveBundledMetaJdhPath()), 'placeholders', `${variant}.svg`);
 }

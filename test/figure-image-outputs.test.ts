@@ -128,3 +128,62 @@ test('image outputs are typed by their bytes, and unreadable formats get a place
   expect(md).toContain('```{figure} notebook-outputs/fig-a.jpg');
   expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n\nB. [View it in the online article.]');
 });
+
+const AUDIO_HTML = '<audio controls="controls"><source src="data:audio/mpeg;base64,//uQRAAA" type="audio/mpeg" /></audio>';
+const URL = 'https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ';
+
+test('audio cells get an audio placeholder linking to the player online (JDH-007)', async () => {
+  const caption = { jdh: { object: { type: 'image', source: ['**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html'] } } };
+  const { workdir, ctx } = setupCells(
+    [
+      markdownCell,
+      codeCell(['sound-franklin-*'], [{ output_type: 'display_data', data: { 'text/html': AUDIO_HTML }, metadata: caption }]),
+    ],
+    '```python tags=["sound-franklin-*"]\ndisplay(Audio(audio_url), metadata=metadata)\n```\n',
+  );
+  await improveNotebookFiguresStep.run(ctx);
+  const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
+  expect(md).toContain(
+    '```{figure} notebook-outputs/placeholder-audio.svg\n:label: aud:franklin\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html ' +
+      `[Listen to it in the online article.](${URL}?idx=1)\n\`\`\``,
+  );
+  expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'placeholder-audio.svg'))).toBe(true);
+});
+
+test('audio cells with no caption still become a numbered, linked entry', async () => {
+  const { workdir, ctx } = setupCells(
+    [codeCell(['narrative', 'hermeneutics', 'sound-worldcup-*'], [{ output_type: 'execute_result', data: { 'text/html': AUDIO_HTML } }])],
+    '```python tags=["narrative", "hermeneutics", "sound-worldcup-*"]\nipd.Audio("media/a.m4v")\n```\n',
+  );
+  await improveNotebookFiguresStep.run(ctx);
+  expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
+    `:label: aud:worldcup\n\nAudio recording. [Listen to it in the online article.](${URL}?idx=0)`,
+  );
+});
+
+test('a figure with an image and an audio player keeps the image and links to the player', async () => {
+  const { workdir, ctx } = setupCells(
+    [
+      codeCell(['figure-waveform-*'], [
+        { output_type: 'display_data', data: { 'image/png': PNG_B64 } },
+        { output_type: 'display_data', data: { 'text/html': AUDIO_HTML } },
+      ]),
+    ],
+    '```python jdh={"object": {"source": ["Waveform of a sample"]}} tags=["figure-waveform-*"]\nplot()\n```\n',
+  );
+  await improveNotebookFiguresStep.run(ctx);
+  expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
+    '```{figure} notebook-outputs/fig-waveform.png\n:label: fig:waveform\n\n' +
+      `Waveform of a sample. [Listen to it in the online article.](${URL}?idx=0)`,
+  );
+});
+
+test('no extra full stop after a caption that ends in quotes and emphasis', async () => {
+  const caption = { jdh: { object: { source: ['*“Interview with Bao Ninh.”*'] } } };
+  const { workdir, ctx } = setupCells(
+    [codeCell(['sound-baoninh-*'], [{ output_type: 'display_data', data: { 'text/html': AUDIO_HTML }, metadata: caption }])],
+    '```python tags=["sound-baoninh-*"]\ndisplay(Audio(u), metadata=metadata)\n```\n',
+  );
+  await improveNotebookFiguresStep.run(ctx);
+  expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain('*“Interview with Bao Ninh.”* [Listen to it');
+});

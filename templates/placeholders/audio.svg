@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300">
+  <rect x="2" y="2" width="996" height="296" rx="10" fill="#F4F6F7" stroke="#B8C2CA" stroke-width="3" stroke-dasharray="14 10"/>
+  <g fill="#0A84A0">
+    <rect x="452" y="108" width="8" height="20" rx="4"/><rect x="466" y="96" width="8" height="44" rx="4"/><rect x="480" y="84" width="8" height="68" rx="4"/>
+    <rect x="494" y="100" width="8" height="36" rx="4"/><rect x="508" y="90" width="8" height="56" rx="4"/><rect x="522" y="80" width="8" height="76" rx="4"/>
+    <rect x="536" y="98" width="8" height="40" rx="4"/>
+  </g>
+  <text x="500" y="200" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#16212B">Audio</text>
+  <text x="500" y="244" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="24" fill="#5A6874">Listen in the online version of this article</text>
+</svg>

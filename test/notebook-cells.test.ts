@@ -6,6 +6,8 @@ import {
   readTaggedCells,
   resolveCaption,
   selectOutputs,
+  audioLabelFromTag,
+  hasAudioOutput,
 } from '../src/steps/shared/notebook-cells.js';
 import { captionFromJdh } from '../src/steps/shared/notebook-cells.js';
 
@@ -130,5 +132,21 @@ describe('captionFromJdh', () => {
       'UNData (2016), https://data.un.org/x?a=1&b=2 (Copyright UNData.)',
     );
     expect(captionFromJdh({ object: { source: ['Line one\n', 'line two'] } })).toBe('Line one\nline two');
+  });
+});
+
+describe('audio helpers', () => {
+  test('audioLabelFromTag', () => {
+    expect(audioLabelFromTag('sound-franklin-*')).toBe('aud:franklin');
+    expect(audioLabelFromTag('sound-conversation-length-*')).toBe('aud:conversation-length');
+    expect(audioLabelFromTag('audio_2')).toBe('aud:2');
+  });
+
+  test('hasAudioOutput', () => {
+    const out = (mime: string, html?: string) => ({ mime, data: '', text: html ? { 'text/html': html } : {}, metadata: {} });
+    expect(hasAudioOutput({ outputs: [out('text/html', '<audio controls></audio>')] })).toBe(true);
+    expect(hasAudioOutput({ outputs: [out('audio/mpeg')] })).toBe(true);
+    expect(hasAudioOutput({ outputs: [out('image/png'), out('text/html', '<div></div>')] })).toBe(false);
+    expect(hasAudioOutput(undefined)).toBe(false);
   });
 });

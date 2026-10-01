@@ -59,7 +59,7 @@ _improved/
 | --- | --- | --- |
 | `#region` with `table-*` tags | `improveJupytextTables` | `:::{jdh-table}` |
 | Code cell tagged `table-*` | `improveNotebookTables` | `:::{jdh-table}` from its notebook output |
-| Cell tagged `figure-*` (numbered or descriptive) | `improveNotebookFigures` | `` ```{figure} `` |
+| Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*` | `improveNotebookFigures` | `` ```{figure} `` (placeholder and online link for video and audio) |
 | Region/cell tagged `hermeneutics` | `improveHermeneuticsBlocks` | `:::{hermeneutics}` |
 | Untagged fenced code | — (hand-authored) | Plain `` ```lang `` → narrative-code transform |
 
@@ -73,6 +73,7 @@ The Jupytext markdown has cell code and tags but no outputs, so the figure step 
 - **Captions,** in order: the `metadata={"jdh": …}` literal in the code; cell metadata `jdh.object.source` (also on the Jupytext fence line); output metadata in the notebook. Output metadata is written at execution time and can be older than edits to the code, so a warning is printed when the sources disagree.
 - **Images:** a cell becomes a `{figure}` when its code displays an image file (`Image("…")` or `Image(filename="…")`); files outside the copied folders (e.g. saved next to the notebook) are copied into the workdir. Otherwise, or when that file is missing, the cell's notebook image output (`image/png`, `image/jpeg`, `image/gif`, `image/svg+xml`) is decoded to `notebook-outputs/fig-<label>.<ext>` and used instead. With several image outputs, the first is used.
 - **Interactive figures and video:** when a figure's only output is HTML or JavaScript (Plotly, Bokeh, maps, widgets), or the cell is tagged `video-*`, it becomes a numbered figure with a placeholder image (`notebook-outputs/placeholder-interactive.svg` / `placeholder-video.svg`). The caption links to the cell in the online article (`<article URL>?idx=<cell index>`). Nothing is rendered: an image output in the notebook is used when present, otherwise the placeholder.
+- **Audio:** cells tagged `sound-*` (or `audio-*`) become a numbered figure labelled `aud:…` with an audio placeholder (`notebook-outputs/placeholder-audio.svg`). The caption ends "Listen to it in the online article." and links to the cell with `?idx=`. With no caption anywhere, the caption is "Audio recording.". A figure that has both an image and an audio player (e.g. a waveform) keeps its image and gets the same link.
 - **Left as code:** figure cells whose HTML output is a table and cells with no output at all. Size hints such as `w-904px` are not applied.
 - **Logs:** `stream` and `error` outputs are never used.
 

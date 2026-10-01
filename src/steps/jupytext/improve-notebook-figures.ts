@@ -13,6 +13,8 @@ import {
   kindFromTags,
   loadNotebook,
   videoLabelFromTag,
+  audioLabelFromTag,
+  hasAudioOutput,
   parseFenceMetadata,
   readTaggedCells,
   resolveCaption,
@@ -74,15 +76,19 @@ function parseTagsFromFenceLine(line: string): string[] {
   return tags;
 }
 
-/** First figure or video tag as a MyST label (fig:…, vid:…), or null for other cells. */
+/** First figure, video or audio tag as a MyST label (fig:…, vid:…, aud:…), or null for other cells. */
 function firstFigureTag(tags: string[]): string | null {
-  const normalized = tags.find((t) => /^(fig|vid):/i.test(t));
+  const normalized = tags.find((t) => /^(fig|vid|aud):/i.test(t));
   if (normalized) return normalized;
   const found = kindFromTags(tags);
   if (found?.kind === 'figure') return figureLabelFromTag(found.tag);
   if (found?.kind === 'video') return videoLabelFromTag(found.tag);
+  if (found?.kind === 'sound') return audioLabelFromTag(found.tag);
   return null;
 }
+
+/** Caption for an audio cell that has none in code or metadata. */
+const AUDIO_FALLBACK_CAPTION = 'Audio recording.';
 
 /** Extract figure number from tag (e.g. fig:1 -> 1, figure-1-* -> 1, figure_2 -> 2) */
 function figureNumberFromTag(tag: string): number | null {
@@ -136,7 +142,7 @@ function normalizeFigureTags(content: string): string {
 
 export interface ImageRequest {
   label: string;
-  kind: 'figure' | 'video';
+  kind: 'figure' | 'video' | 'audio';
   /** Image file the cell's code displays, if any. */
   imagePath: string | null;
   cell?: TaggedCell;
@@ -148,6 +154,8 @@ export interface ResolvedImage {
   from: 'file' | 'output' | 'placeholder';
   /** Link to the online version, added to the caption of placeholders. */
   link?: string;
+  /** Text of that link; defaults to "View it in the online article." */
+  linkText?: string;
 }
 
 export interface FigureReport {
@@ -181,6 +189,7 @@ export function processArticle(
   const captionFor = new Map<number, string>();
   const imageFor = new Map<number, string>();
   const linkFor = new Map<number, string>();
+  const linkTextFor = new Map<number, string>();
 
   content = normalizeFigureTags(content);
 
@@ -222,7 +231,10 @@ export function processArticle(
           cell: captionFromJdh(parseFenceMetadata(tagLine, 'jdh')) ?? nbCell?.captions.cell ?? null,
           output: nbCell?.captions.output ?? null,
         };
+        const kind = figureTag.startsWith('vid:') ? 'video' : figureTag.startsWith('aud:') ? 'audio' : 'figure';
         const resolved = resolveCaption(captions);
+        // Audio cells often have no caption; they still get a numbered entry and a link.
+        if (resolved.text == null && kind === 'audio') resolved.text = AUDIO_FALLBACK_CAPTION;
         if (resolved.conflict) {
           report.captionConflicts.push({
             label: figureTag,
@@ -238,7 +250,7 @@ export function processArticle(
             ? null
             : resolveImage({
                 label: figureTag,
-                kind: figureTag.startsWith('vid:') ? 'video' : 'figure',
+                kind,
                 imagePath,
                 cell: nbCell,
               });
@@ -256,6 +268,7 @@ export function processArticle(
           captionFor.set(openStart, resolved.text!);
           imageFor.set(openStart, image.path);
           if (image.link) linkFor.set(openStart, image.link);
+          if (image.linkText) linkTextFor.set(openStart, image.linkText);
           if (image.from === 'output') report.fromOutput.push(figureTag);
           if (image.from === 'placeholder') report.placeholders.push(figureTag);
           blocks.push({
@@ -279,10 +292,11 @@ export function processArticle(
     if (num != null) figureNumToLabel.set(num, figureTag);
     const imagePath = imageFor.get(b.start)!;
     const link = linkFor.get(b.start);
+    const linkText = linkTextFor.get(b.start) ?? 'View it in the online article.';
     const text = stripFigureNumberPrefix(captionFor.get(b.start)!);
-    const caption = link
-      ? `${text}${/[.!?:]$/.test(text) ? '' : '.'} [View it in the online article.](${link})`
-      : text;
+    // No full stop after one that's already there (possibly inside closing quotes or emphasis), or after a bare URL.
+    const ended = /[.!?:]["”’)*_]*$/.test(text) || /https?:\/\/\S+$/.test(text);
+    const caption = link ? `${text}${ended ? '' : '.'} [${linkText}](${link})` : text;
     report.converted.unshift(figureTag);
     const replacement = [
       '```{figure} ' + imagePath,
@@ -399,19 +413,33 @@ async function improveNotebookFigures(
     return true;
   };
 
-  const placeholder = (variant: 'interactive' | 'video' | 'figure', cell?: TaggedCell): ResolvedImage => {
+  // The JDH site opens a notebook cell with ?idx=<cell index>.
+  const cellLink = (cell?: TaggedCell): string | undefined =>
+    options.articleUrl && cell ? `${options.articleUrl}?idx=${cell.index}` : undefined;
+  const LISTEN = 'Listen to it in the online article.';
+
+  const placeholder = (variant: 'interactive' | 'video' | 'audio' | 'figure', cell?: TaggedCell): ResolvedImage => {
     const rel = `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
     if (!options.dryRun) {
       const dest = path.resolve(options.cwd, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(resolveBundledPlaceholder(variant), dest);
     }
-    // The JDH site opens a notebook cell with ?idx=<cell index>.
-    const link = options.articleUrl && cell ? `${options.articleUrl}?idx=${cell.index}` : undefined;
-    return { path: rel, from: 'placeholder', link };
+    const link = cellLink(cell);
+    return { path: rel, from: 'placeholder', link, ...(variant === 'audio' ? { linkText: LISTEN } : {}) };
   };
 
-  const resolveImage = ({ label, kind, imagePath, cell }: ImageRequest): ResolvedImage | null => {
+  const resolveImage = (req: ImageRequest): ResolvedImage | null => {
+    const image = resolveFigureImage(req);
+    // A figure that also has an audio player (e.g. a waveform) links to the player online.
+    if (image && image.from !== 'placeholder' && hasAudioOutput(req.cell)) {
+      return { ...image, link: cellLink(req.cell), linkText: LISTEN };
+    }
+    return image;
+  };
+
+  function resolveFigureImage({ label, kind, imagePath, cell }: ImageRequest): ResolvedImage | null {
+    if (kind === 'audio') return placeholder('audio', cell);
     if (imagePath && ensureFile(imagePath)) return { path: imagePath, from: 'file' };
     const images = cell?.outputs.filter((o) => o.mime in IMAGE_EXTENSIONS) ?? [];
     if (!images.length) {
@@ -444,7 +472,7 @@ async function improveNotebookFigures(
       return { path: rel, from: 'output' };
     }
     return placeholder('figure', cell);
-  };
+  }
 
   const content = readUtf8(articlePath);
   const { content: newContent, report } = processArticle(content, notebookCells, resolveImage);

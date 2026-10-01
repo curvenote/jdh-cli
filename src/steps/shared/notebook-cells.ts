@@ -117,6 +117,23 @@ export function tableLabelFromTag(tag: string): string {
   return `table:${slug}`;
 }
 
+/** MyST label for a sound/audio tag: `sound-franklin-*` → `aud:franklin`. */
+export function audioLabelFromTag(tag: string): string {
+  if (/^aud:/i.test(tag)) return tag;
+  const slug = tag
+    .replace(/^(sound|audio)[-_]?/i, '')
+    .replace(/[-_]?\*$/, '')
+    .replace(/^[-_]+|[-_]+$/g, '');
+  return `aud:${slug}`;
+}
+
+/** True when an output is an audio player (`<audio>` HTML or an `audio/*` MIME type). */
+export function hasAudioOutput(cell: Pick<TaggedCell, 'outputs'> | undefined): boolean {
+  return (cell?.outputs ?? []).some(
+    (o) => o.mime.startsWith('audio/') || Object.keys(o.text).some((m) => m.startsWith('audio/')) || /<audio\b/i.test(o.text['text/html'] ?? ''),
+  );
+}
+
 /** MyST label for a video tag: `video-software-*` → `vid:software`. */
 export function videoLabelFromTag(tag: string): string {
   if (/^vid:/i.test(tag)) return tag;
@@ -265,12 +282,17 @@ export function loadNotebook(notebookPath: string): RawNotebook | null {
   }
 }
 
-/** Index figure and video cells by MyST label, so markdown cells can be matched by their tag. */
+/** Index figure, video and audio cells by MyST label, so markdown cells can be matched by their tag. */
 export function indexFiguresByLabel(cells: readonly TaggedCell[]): Map<string, TaggedCell> {
   const index = new Map<string, TaggedCell>();
   for (const cell of cells) {
-    if (cell.kind !== 'figure' && cell.kind !== 'video') continue;
-    const label = cell.kind === 'video' ? videoLabelFromTag(cell.tag) : figureLabelFromTag(cell.tag);
+    if (cell.kind === 'table') continue;
+    const label =
+      cell.kind === 'video'
+        ? videoLabelFromTag(cell.tag)
+        : cell.kind === 'sound'
+          ? audioLabelFromTag(cell.tag)
+          : figureLabelFromTag(cell.tag);
     if (!index.has(label)) index.set(label, cell);
   }
   return index;
