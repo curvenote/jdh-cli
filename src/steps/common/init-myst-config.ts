@@ -5,6 +5,7 @@ import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { META_JDH_FILE } from '../../init/bundled-assets.js';
 import { listBundledPluginRelPaths } from '../../init/bundled-plugins.js';
+import { readYamlDocument, toYaml } from '../shared/yaml-doc.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 const LEGACY_CONFIG = 'curvenote.yml';
@@ -20,14 +21,12 @@ function fileExists(p: string): boolean {
 
 function readProjectIdFromFile(configPath: string): string | null {
   if (!fileExists(configPath)) return null;
-  let content: string;
   try {
-    content = fs.readFileSync(configPath, 'utf8');
+    const id = readYamlDocument(configPath).getIn(['project', 'id']);
+    return typeof id === 'string' && id ? id : null;
   } catch {
     return null;
   }
-  const m = content.match(/^\s*id:\s*([^\s#]+)\s*$/m);
-  return m ? m[1] : null;
 }
 
 function readExistingProjectId(configPath: string): string | null {
@@ -42,31 +41,20 @@ function readExistingProjectId(configPath: string): string | null {
 }
 
 function buildScaffold(projectId: string, extendMetadata: boolean): string {
-  const extendsBlock = extendMetadata
-    ? ['extends:', `  - ${META_JDH_FILE}`, '']
-    : [];
-
-  const pluginLines = listBundledPluginRelPaths().map((relPath) => `    - ${relPath}`);
-
-  return [
-    '# See docs at: https://mystmd.org/guide/frontmatter',
-    'version: 1',
-    ...extendsBlock,
-    'project:',
-    `  id: ${projectId}`,
-    '  open_access: true',
-    '  plugins:',
-    ...pluginLines,
-    '  # To autogenerate a Table of Contents, run "myst init --write-toc"',
-    '  toc:',
-    '    - file: article.md',
-    'site:',
-    '  template: book-theme',
-    '  # options:',
-    '  #   favicon: favicon.ico',
-    '  #   logo: site_logo.png',
-    '',
-  ].join('\n');
+  return toYaml(
+    {
+      version: 1,
+      ...(extendMetadata ? { extends: [META_JDH_FILE] } : {}),
+      project: {
+        id: projectId,
+        open_access: true,
+        plugins: listBundledPluginRelPaths(),
+        toc: [{ file: 'article.md' }],
+      },
+      site: { template: 'book-theme' },
+    },
+    'See docs at: https://mystmd.org/guide/frontmatter',
+  );
 }
 
 async function initMystConfig(options: {

@@ -1,9 +1,9 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveGithubFromGit } from '../shared/git.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { updateYamlFile } from '../shared/yaml-doc.js';
 
 const JDH_API = 'https://journalofdigitalhistory.org/api/articles';
 const JDH_ARTICLE_URL = 'https://journalofdigitalhistory.org/en/article';
@@ -85,24 +85,13 @@ function resolveArticleId(projectRoot: string): string | null {
  * into myst.yml, replacing any existing values.
  */
 function writeProjectMetadata(configPath: string, doi: string | null, url: string | null): void {
-  let content = fs.readFileSync(configPath, 'utf8');
-  if (!content.includes('project:\n')) {
-    throw new Error(`No project: block in ${configPath}`);
-  }
-  if (doi) {
-    content = content.replace(/^ {2}doi:.*\n/m, '');
-    content = content.replace('project:\n', `project:\n  doi: ${JSON.stringify(doi)}\n`);
-  }
-  if (url) {
-    const urlLine = `    url: ${JSON.stringify(url)}\n`;
-    if (/^ {2}social:\n/m.test(content)) {
-      content = content.replace(/^( {2}social:\n(?: {4}.*\n)*?) {4}(?:url|website):.*\n/m, '$1');
-      content = content.replace(/^ {2}social:\n/m, `  social:\n${urlLine}`);
-    } else {
-      content = content.replace('project:\n', `project:\n  social:\n${urlLine}`);
+  updateYamlFile(configPath, (doc) => {
+    if (doi) doc.setIn(['project', 'doi'], doi);
+    if (url) {
+      if (doc.hasIn(['project', 'social', 'website'])) doc.deleteIn(['project', 'social', 'website']);
+      doc.setIn(['project', 'social', 'url'], url);
     }
-  }
-  fs.writeFileSync(configPath, content);
+  });
 }
 
 export async function setJdhArticleMetadata(options: {

@@ -9,6 +9,7 @@ import {
   normalizeDoi,
   setJdhArticleMetadata,
 } from '../src/steps/common/set-jdh-article-metadata.js';
+import { readYaml } from '../src/steps/shared/yaml-doc.js';
 
 describe('articleIdFromName', () => {
   test('reads the id from a GitHub URL', () => {
@@ -85,12 +86,30 @@ describe('setJdhArticleMetadata', () => {
       url: 'https://example.org/article',
     });
     expect(result).toEqual({ doi: '10.1515/jdh-2025-0002', url: 'https://example.org/article' });
-    const content = fs.readFileSync(myst, 'utf8');
-    expect(content).toContain('  doi: "10.1515/jdh-2025-0002"\n');
-    expect(content).toContain('  social:\n    url: "https://example.org/article"\n    github: jdh\n');
-    expect(content).not.toContain('old.example');
-    expect(content).not.toContain('10.0/old');
-    expect(content.match(/^ {2}doi:/gm)).toHaveLength(1);
+    expect(readYaml(myst)).toEqual({
+      version: 1,
+      project: {
+        id: 'abc',
+        doi: '10.1515/jdh-2025-0002',
+        social: { github: 'jdh', url: 'https://example.org/article' },
+      },
+    });
+  });
+
+  test('adds doi and social.url when myst.yml has neither', async () => {
+    const { root, workdir, myst } = setup('BHmHNQKJaSWT');
+    fs.writeFileSync(myst, 'version: 1\nproject:\n  id: abc\n');
+    await setJdhArticleMetadata({
+      cwd: workdir,
+      projectRoot: root,
+      dryRun: false,
+      doi: '10.1515/jdh-2025-0002',
+      url: 'https://example.org/article',
+    });
+    expect(readYaml(myst)).toEqual({
+      version: 1,
+      project: { id: 'abc', doi: '10.1515/jdh-2025-0002', social: { url: 'https://example.org/article' } },
+    });
   });
 
   test('url falls back to the article URL from the folder name', async () => {
@@ -101,8 +120,8 @@ describe('setJdhArticleMetadata', () => {
       dryRun: false,
       doi: '10.1515/jdh-2025-0002',
     });
-    expect(fs.readFileSync(myst, 'utf8')).toContain(
-      `    url: "${articleUrl('BHmHNQKJaSWT')}"\n`,
+    expect(readYaml<{ project: { social: { url: string } } }>(myst).project.social.url).toBe(
+      articleUrl('BHmHNQKJaSWT'),
     );
   });
 

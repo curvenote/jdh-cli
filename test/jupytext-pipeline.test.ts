@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
 import { resolveWorkdirAbs } from '../src/engine/paths.js';
+import { readYaml } from '../src/steps/shared/yaml-doc.js';
 
 const ARTICLE_REPO = path.resolve(import.meta.dir, '../../art-unpub/BHmHNQKJaSWT');
 const CLI = path.resolve(import.meta.dir, '../dist/jdh-cli.cjs');
@@ -69,7 +70,9 @@ describe('jupytext pipeline', () => {
     expect(myst).toContain('plugins/narrative-code.mjs');
     expect(myst).toContain('plugins/hide-figure-code.mjs');
     expect(myst).not.toContain('[![orcid]');
-    expect(myst).toMatch(/name: "Maximilian C\. Teich"/);
+    expect(readYaml<{ project: { authors: { name: string }[] } }>(path.join(improved, 'myst.yml')).project.authors[0].name).toBe(
+      'Maximilian C. Teich',
+    );
     expect(fileExists(path.join(improved, 'plugins', 'hermeneutics.mjs'))).toBe(true);
     expect(myst).not.toContain('license:');
     expect(fileExists(path.join(improved, 'meta-jdh.yml'))).toBe(true);

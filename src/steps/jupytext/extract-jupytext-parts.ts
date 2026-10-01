@@ -2,13 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
-import {
-  applyPartsToFrontmatter,
-  assembleArticleWithParts,
-  partitionPartsByKind,
-  removeBodyLineIntervals,
-  splitArticleFrontmatter,
-} from '../shared/myst-parts.js';
+import { partitionPartsByKind, removeBodyLineIntervals } from '../shared/myst-parts.js';
+import { parseMarkdownFrontmatter, stringifyMarkdownFrontmatter } from '../shared/yaml-doc.js';
 
 /** Parts to extract from jupytext `#region` tags. */
 const EXPECTED_PART_TAGS: string[] = ['abstract', 'copyright'];
@@ -69,7 +64,8 @@ async function extractJupytextParts(options: RunExtractJupytextPartsOptions): Pr
   const articlePath = path.resolve(options.cwd, options.article ?? 'article.md');
 
   const md = readUtf8(articlePath);
-  const { hasFrontmatter, fmLines, bodyLines } = splitArticleFrontmatter(md);
+  const { doc, body } = parseMarkdownFrontmatter(md);
+  const bodyLines = body.split('\n');
 
   const rawParts: Record<string, string> = {};
   const intervalsToRemove: Array<{ start: number; end: number }> = [];
@@ -99,10 +95,13 @@ async function extractJupytextParts(options: RunExtractJupytextPartsOptions): Pr
   const { knownParts, customParts } = partitionPartsByKind(rawParts);
   const newBodyLines = removeBodyLineIntervals(bodyLines, intervalsToRemove);
 
-  const newFmLines: string[] = hasFrontmatter ? [...fmLines] : [];
-  applyPartsToFrontmatter(newFmLines, knownParts, customParts);
+  // Known parts may also sit at the root of the frontmatter; keep one copy, under `parts`.
+  for (const key of Object.keys(knownParts)) doc.delete(key);
+  for (const [key, content] of Object.entries({ ...knownParts, ...customParts })) {
+    doc.setIn(['parts', key], content);
+  }
 
-  const newMd = assembleArticleWithParts(hasFrontmatter, newFmLines, newBodyLines);
+  const newMd = stringifyMarkdownFrontmatter({ doc, body: newBodyLines.join('\n') });
   const changed = newMd !== md;
   if (changed) writeUtf8(articlePath, newMd, options.dryRun);
 

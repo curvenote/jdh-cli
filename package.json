@@ -30,7 +30,8 @@
     "build:standalone": "bun run copy:version && bun build --compile src/index.ts --outfile dist/jdh-cli"
   },
   "dependencies": {
-    "commander": "^14.0.0"
+    "commander": "^14.0.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

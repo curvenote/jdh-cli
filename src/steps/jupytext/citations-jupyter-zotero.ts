@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isSeq } from 'yaml';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { updateYamlFile } from '../shared/yaml-doc.js';
 import { whenNotebook } from '../shared/when.js';
 
 interface CitationManagerRef {
@@ -459,29 +461,18 @@ function rewriteMdCitationsToMyst(
   return out;
 }
 
-function ensureMystBibliography(mystYaml: string, bibPathRelativeToMyst: string): string {
-  const lines = mystYaml.split('\n');
-  const projectIdx = lines.findIndex((l) => /^\s*project:\s*$/.test(l));
-  if (projectIdx === -1) return mystYaml;
-
-  for (let i = projectIdx + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (/^\S/.test(line)) break;
-    if (/^\s{2}bibliography:\s*$/.test(line)) {
-      let j = i + 1;
-      const existing = new Set<string>();
-      while (j < lines.length && /^\s{4}-\s+/.test(lines[j])) {
-        existing.add(lines[j].replace(/^\s{4}-\s+/, '').trim());
-        j++;
-      }
-      if (existing.has(bibPathRelativeToMyst)) return mystYaml;
-      lines.splice(j, 0, `    - ${bibPathRelativeToMyst}`);
-      return lines.join('\n');
-    }
-  }
-
-  lines.splice(projectIdx + 1, 0, `  bibliography:`, `    - ${bibPathRelativeToMyst}`);
-  return lines.join('\n');
+/** Add `bibPath` to `project.bibliography` in myst.yml, keeping existing entries. */
+function ensureMystBibliography(mystPath: string, bibPath: string, dryRun: boolean): void {
+  updateYamlFile(
+    mystPath,
+    (doc) => {
+      if (!doc.has('project')) return;
+      const current = doc.getIn(['project', 'bibliography']);
+      const list: unknown[] = isSeq(current) ? current.toJSON() : [];
+      if (!list.includes(bibPath)) doc.setIn(['project', 'bibliography'], [...list, bibPath]);
+    },
+    dryRun,
+  );
 }
 
 /** Export Zotero metadata from a Jupyter notebook into BibTeX and rewrite markdown citations. */
@@ -531,10 +522,7 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   }
 
   if (options.updateMyst && fileExists(mystPath)) {
-    const myst = readUtf8(mystPath);
-    const bibRel = path.basename(bibPath);
-    const updated = ensureMystBibliography(myst, bibRel);
-    writeUtf8(mystPath, updated, options.dryRun);
+    ensureMystBibliography(mystPath, path.basename(bibPath), options.dryRun);
   }
 
   console.log(

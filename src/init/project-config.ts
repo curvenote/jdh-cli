@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileExists } from '../engine/context.js';
 import { resolveGithubFromGit } from '../steps/shared/git.js';
+import { toYaml } from '../steps/shared/yaml-doc.js';
 import { META_JDH_FILE, readBundledMetaJdhTemplate } from './bundled-assets.js';
 
 export const MYST_CONFIG = 'myst.yml';
@@ -26,25 +27,18 @@ export function buildInitMystYaml(options: {
   siteTemplate?: string;
   extendMetaJdh?: boolean;
 }): string {
-  const extendsBlock =
-    options.extendMetaJdh !== false
-      ? ['extends:', `  - ${META_JDH_FILE}`, '']
-      : [];
-
-  const lines = [
-    '# See docs at: https://mystmd.org/guide/frontmatter',
-    'version: 1',
-    ...extendsBlock,
-    'project:',
-    `  id: ${options.projectId}`,
-  ];
-  if (options.github) {
-    lines.push(`  github: ${options.github}`);
-  }
-  lines.push('site:');
-  lines.push(`  template: ${options.siteTemplate ?? SPA_PREVIEW_TEMPLATE}`);
-  lines.push('');
-  return lines.join('\n');
+  return toYaml(
+    {
+      version: 1,
+      ...(options.extendMetaJdh !== false ? { extends: [META_JDH_FILE] } : {}),
+      project: {
+        id: options.projectId,
+        ...(options.github ? { github: options.github } : {}),
+      },
+      site: { template: options.siteTemplate ?? SPA_PREVIEW_TEMPLATE },
+    },
+    'See docs at: https://mystmd.org/guide/frontmatter',
+  );
 }
 
 export type InitProjectResult =

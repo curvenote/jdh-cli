@@ -1,8 +1,8 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { readYamlDocument, updateYamlFile } from '../shared/yaml-doc.js';
 
 const DEFAULT_MYST = 'myst.yml';
 const DEFAULT_MIN_SCORE = 0.8;
@@ -19,27 +19,6 @@ interface RorMatch {
   id: string;
   name: string;
   score: number;
-}
-
-function readUtf8(p: string): string {
-  return fs.readFileSync(p, 'utf8');
-}
-
-function writeUtf8(p: string, content: string, dryRun: boolean): void {
-  if (dryRun) return;
-  fs.writeFileSync(p, content, 'utf8');
-}
-
-function yamlQuote(s: string): string {
-  return `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
-
-function unquoteYamlScalar(s: string): string {
-  const t = s.trim();
-  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
-    return t.slice(1, -1);
-  }
-  return t;
 }
 
 function normalizeOrgName(s: string): string {
@@ -209,110 +188,48 @@ function acceptRorMatch(original: string, match: RorMatch, minScore: number): bo
   return false;
 }
 
-async function enrichMystAuthorsAffiliations(
-  mystYaml: string,
+type Author = Record<string, unknown> & { affiliations?: unknown };
+
+/** Replace plain-string affiliations with ROR-backed `{ institution, ror, name? }` objects. */
+async function enrichAuthorsAffiliations(
+  authors: Author[],
   opts: { rorLookup: boolean; minScore: number },
-): Promise<{ updatedYaml: string; changes: number }> {
-  const lines = mystYaml.split('\n');
-
-  const projectIdx = lines.findIndex((l) => /^\s*project:\s*$/.test(l));
-  if (projectIdx === -1) throw new Error('Project config has no `project:` block');
-
-  let projectEnd = lines.length;
-  for (let i = projectIdx + 1; i < lines.length; i++) {
-    if (/^\S/.test(lines[i])) {
-      projectEnd = i;
-      break;
-    }
-  }
-
-  let authorsIdx = -1;
-  for (let i = projectIdx + 1; i < projectEnd; i++) {
-    if (/^\s{2}authors:\s*$/.test(lines[i])) {
-      authorsIdx = i;
-      break;
-    }
-  }
-  if (authorsIdx === -1) {
-    return { updatedYaml: mystYaml, changes: 0 };
-  }
-
-  let authorsEnd = projectEnd;
-  for (let i = authorsIdx + 1; i < projectEnd; i++) {
-    if (/^\s{2}[A-Za-z0-9_-]+:\s*/.test(lines[i])) {
-      authorsEnd = i;
-      break;
-    }
-  }
-
+): Promise<{ authors: Author[]; changes: number }> {
   let changes = 0;
   const cache = new Map<string, RorMatch | null>();
+  const enriched: Author[] = [];
 
-  const out: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (i < authorsIdx || i >= authorsEnd) {
-      out.push(lines[i]);
+  for (const author of authors) {
+    if (!author || typeof author !== 'object' || !Array.isArray(author.affiliations)) {
+      enriched.push(author);
       continue;
     }
-
-    const line = lines[i];
-    out.push(line);
-
-    if (!/^\s{6}affiliations:\s*$/.test(line)) continue;
-
-    let j = i + 1;
-    while (j < authorsEnd) {
-      const l = lines[j];
-
-      if (!/^\s{8}-\s+/.test(l)) break;
-
-      const valueText = l.replace(/^\s{8}-\s+/, '');
-      const isLikelyObject = /^[A-Za-z0-9_-]+:\s*/.test(valueText);
-      if (isLikelyObject) {
-        out.push(l);
-        j++;
-        while (j < authorsEnd && /^\s{10,}\S/.test(lines[j])) {
-          out.push(lines[j]);
-          j++;
-        }
+    const affiliations: unknown[] = [];
+    for (const affiliation of author.affiliations) {
+      if (typeof affiliation !== 'string') {
+        affiliations.push(affiliation);
         continue;
       }
-
-      const affiliation = unquoteYamlScalar(valueText);
-
       let resolved = cache.get(affiliation);
       if (resolved === undefined) {
-        if (!opts.rorLookup) {
-          resolved = null;
-        } else {
-          resolved = await resolveAffiliationRor(affiliation, opts.minScore);
-        }
+        resolved = opts.rorLookup ? await resolveAffiliationRor(affiliation, opts.minScore) : null;
         cache.set(affiliation, resolved);
       }
-
       if (!resolved) {
-        out.push(`        - ${yamlQuote(affiliation)}`);
-        j++;
+        affiliations.push(affiliation);
         continue;
       }
-
-      const canon = resolved.name;
-      const rorId = resolved.id;
-
       changes++;
-      out.push(`        - institution: ${yamlQuote(canon)}`);
-      out.push(`          ror: ${yamlQuote(rorId)}`);
-      if (normalizeOrgName(canon) !== normalizeOrgName(affiliation)) {
-        out.push(`          name: ${yamlQuote(affiliation)}`);
-      }
-
-      j++;
+      affiliations.push({
+        institution: resolved.name,
+        ror: resolved.id,
+        ...(normalizeOrgName(resolved.name) !== normalizeOrgName(affiliation) ? { name: affiliation } : {}),
+      });
     }
-
-    i = j - 1;
+    enriched.push({ ...author, affiliations });
   }
 
-  return { updatedYaml: out.join('\n'), changes };
+  return { authors: enriched, changes };
 }
 
 /**
@@ -331,15 +248,26 @@ async function enrichAffiliationsRor(
 
   const mystPath = resolveProjectConfigPath(cwd, options.myst ?? DEFAULT_MYST);
 
-  const mystYaml = readUtf8(mystPath);
-  const { updatedYaml, changes } = await enrichMystAuthorsAffiliations(mystYaml, {
-    rorLookup: options.rorLookup,
-    minScore,
-  });
+  const doc = readYamlDocument(mystPath);
+  if (!doc.has('project')) throw new Error('Project config has no `project:` block');
+  const authors = (doc.toJS() as { project?: { authors?: unknown } }).project?.authors;
 
-  const changed = updatedYaml !== mystYaml;
-
-  if (changed) writeUtf8(mystPath, updatedYaml, options.dryRun);
+  let changes = 0;
+  let changed = false;
+  if (Array.isArray(authors)) {
+    const result = await enrichAuthorsAffiliations(authors as Author[], {
+      rorLookup: options.rorLookup,
+      minScore,
+    });
+    changes = result.changes;
+    if (changes) {
+      changed = updateYamlFile(
+        mystPath,
+        (d) => d.setIn(['project', 'authors'], result.authors),
+        options.dryRun,
+      );
+    }
+  }
 
   process.stdout.write(
     [

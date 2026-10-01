@@ -2,11 +2,13 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Command } from 'commander';
+import { isSeq } from 'yaml';
 import { CliError } from '../cli/errors.js';
 import { fileExists } from '../engine/context.js';
 import { DEFAULT_WORKDIR, resolveProjectRoot, resolveWorkdirAbs } from '../engine/paths.js';
 import { META_JDH_FILE, resolveJdhCliRoot } from '../init/bundled-assets.js';
 import { resolveProjectConfigPath } from '../steps/shared/myst-config.js';
+import { updateYamlFile } from '../steps/shared/yaml-doc.js';
 
 /** Default template: `jdh-typst-template` checked out next to jdh-cli. */
 function defaultTemplatePath(): string {
@@ -19,29 +21,15 @@ function defaultTemplatePath(): string {
  */
 export function pointExportsAtTemplate(configPath: string, templateAbs: string): boolean {
   if (!fileExists(configPath)) return false;
-  const lines = fs.readFileSync(configPath, 'utf8').split('\n');
-  let exportsIndent: number | null = null;
-  let changed = false;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const indent = line.length - line.trimStart().length;
-    if (/^\s*exports:\s*$/.test(line)) {
-      exportsIndent = indent;
-      continue;
-    }
-    if (exportsIndent == null || line.trim() === '') continue;
-    if (indent <= exportsIndent && !line.trimStart().startsWith('-')) {
-      exportsIndent = null;
-      continue;
-    }
-    const m = line.match(/^(\s*(?:-\s+)?template:\s*).*$/);
-    if (m) {
-      lines[i] = `${m[1]}${templateAbs}`;
-      changed = true;
-    }
-  }
-  if (changed) fs.writeFileSync(configPath, lines.join('\n'));
-  return changed;
+  return updateYamlFile(configPath, (doc) => {
+    const exports = doc.getIn(['project', 'exports']);
+    if (!isSeq(exports)) return;
+    exports.items.forEach((_item, i) => {
+      if (doc.hasIn(['project', 'exports', i, 'template'])) {
+        doc.setIn(['project', 'exports', i, 'template'], templateAbs);
+      }
+    });
+  });
 }
 
 export function addBuildCommand(program: Command): void {

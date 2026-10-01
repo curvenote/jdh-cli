@@ -4,6 +4,7 @@ import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { findGitRoot, resolveGithubFromGit } from '../shared/git.js';
 import { whenGithubRemote } from '../shared/when.js';
+import { readYamlDocument, updateYamlFile } from '../shared/yaml-doc.js';
 
 const DEFAULT_CONFIG = 'myst.yml';
 
@@ -17,18 +18,13 @@ function fileExists(p: string): boolean {
 }
 
 function readExistingProjectGithub(configPath: string): string | null {
-  const content = fs.readFileSync(configPath, 'utf8');
-  const m = content.match(/^\s{2}github:\s*(.+?)\s*$/m);
-  return m ? m[1] : null;
+  const github = readYamlDocument(configPath).getIn(['project', 'github']);
+  return typeof github === 'string' && github ? github : null;
 }
 
 function insertProjectGithub(configPath: string, url: string, dryRun: boolean): boolean {
-  const content = fs.readFileSync(configPath, 'utf8');
-  if (!content.includes('project:')) return false;
-  const newContent = content.replace('project:\n', `project:\n  github: ${url}\n`);
-  if (!dryRun) {
-    fs.writeFileSync(configPath, newContent);
-  }
+  if (!readYamlDocument(configPath).has('project')) return false;
+  updateYamlFile(configPath, (doc) => doc.setIn(['project', 'github'], url), dryRun);
   return true;
 }
 

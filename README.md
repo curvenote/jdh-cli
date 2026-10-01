@@ -101,7 +101,7 @@ jdh-cli/
     steps/               self-contained pipeline steps
       common/            shared steps (one file each)
       jupytext/          notebook / region steps
-      shared/            notebook reader, guards, myst-config helpers
+      shared/            notebook reader, YAML read/write helpers, guards
   templates/             shipped assets (meta-jdh.yml, plugins/*.mjs, placeholder generated/*.png)
 ```
 

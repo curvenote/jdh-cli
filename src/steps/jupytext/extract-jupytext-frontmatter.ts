@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Document } from 'yaml';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { updateYamlFile } from '../shared/yaml-doc.js';
 
 const DEFAULT_ARTICLE = 'article.md';
 const DEFAULT_MYST = 'myst.yml';
@@ -142,80 +144,26 @@ async function fetchOrcidPerson(orcid: string): Promise<{ displayName?: string }
   }
 }
 
-function yamlQuote(s: string): string {
-  return `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
+/** Set title, keywords and the author in `project` of a myst.yml document. */
+function setMystProjectFrontmatter(doc: Document, extracted: ExtractedFrontmatter): void {
+  if (!doc.has('project')) throw new Error('Project config has no `project:` block');
 
-function updateMystProjectFrontmatter(mystYaml: string, extracted: ExtractedFrontmatter): string {
-  const lines = mystYaml.split('\n');
-  const projectIdx = lines.findIndex((l) => /^\s*project:\s*$/.test(l));
-  if (projectIdx === -1) throw new Error('Project config has no `project:` block');
+  if (extracted.title) doc.setIn(['project', 'title'], extracted.title);
+  if (extracted.keywords.length) doc.setIn(['project', 'keywords'], extracted.keywords);
 
-  let projectEnd = lines.length;
-  for (let i = projectIdx + 1; i < lines.length; i++) {
-    if (/^\S/.test(lines[i])) {
-      projectEnd = i;
-      break;
-    }
+  const { name, orcid, affiliationLines } = extracted.contributor;
+  if (name) {
+    doc.setIn(
+      ['project', 'authors'],
+      [
+        {
+          name,
+          ...(orcid ? { orcid: `https://orcid.org/${orcid}` } : {}),
+          ...(affiliationLines.length ? { affiliations: affiliationLines } : {}),
+        },
+      ],
+    );
   }
-
-  const projectLines = lines.slice(projectIdx + 1, projectEnd);
-
-  function removeKeyBlock(key: string): void {
-    const keyRe = new RegExp(`^\\s{2}${key}:\\s*(.*)$`);
-    for (let i = 0; i < projectLines.length; i++) {
-      if (keyRe.test(projectLines[i])) {
-        const isBlock = /^\s{2}\w+:\s*$/.test(projectLines[i]);
-        if (!isBlock) {
-          projectLines.splice(i, 1);
-          return;
-        }
-        let j = i + 1;
-        while (j < projectLines.length && /^\s{4,}\S/.test(projectLines[j])) j++;
-        projectLines.splice(i, j - i);
-        return;
-      }
-    }
-  }
-
-  function insertAfterProjectStart(blockLines: string[]): void {
-    projectLines.unshift(...blockLines);
-  }
-
-  if (extracted.title) {
-    removeKeyBlock('title');
-    insertAfterProjectStart([`  title: ${yamlQuote(extracted.title)}`]);
-  }
-
-  if (extracted.keywords.length) {
-    removeKeyBlock('keywords');
-    const kwLines = ['  keywords:', ...extracted.keywords.map((k) => `    - ${yamlQuote(k)}`)];
-    insertAfterProjectStart(kwLines);
-  }
-
-  if (extracted.contributor.name) {
-    removeKeyBlock('authors');
-    const authorLines = ['  authors:', `    - name: ${yamlQuote(extracted.contributor.name)}`];
-    if (extracted.contributor.orcid) {
-      authorLines.push(
-        `      orcid: ${yamlQuote(`https://orcid.org/${extracted.contributor.orcid}`)}`,
-      );
-    }
-    if (extracted.contributor.affiliationLines.length) {
-      authorLines.push('      affiliations:');
-      for (const aff of extracted.contributor.affiliationLines) {
-        authorLines.push(`        - ${yamlQuote(aff)}`);
-      }
-    }
-    insertAfterProjectStart(authorLines);
-  }
-
-  const newLines = [
-    ...lines.slice(0, projectIdx + 1),
-    ...projectLines,
-    ...lines.slice(projectEnd),
-  ];
-  return newLines.join('\n');
 }
 
 function rewriteArticleMarkdown(md: string, extracted: ExtractedFrontmatter): string {
@@ -301,14 +249,14 @@ async function extractJupytextFrontmatter(
   }
 
   const newArticleMd = rewriteArticleMarkdown(articleMd, extracted);
-  const mystYaml = readUtf8(mystPath);
-  const newMystYaml = updateMystProjectFrontmatter(mystYaml, extracted);
-
   const articleChanged = newArticleMd !== articleMd;
-  const mystChanged = newMystYaml !== mystYaml;
-
   if (articleChanged) writeUtf8(articlePath, newArticleMd, options.dryRun);
-  if (mystChanged) writeUtf8(mystPath, newMystYaml, options.dryRun);
+
+  const mystChanged = updateYamlFile(
+    mystPath,
+    (doc) => setMystProjectFrontmatter(doc, extracted),
+    options.dryRun,
+  );
 
   process.stdout.write(
     [
