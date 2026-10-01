@@ -1,0 +1,122 @@
+import { describe, expect, test } from 'bun:test';
+import {
+  figureLabelFromTag,
+  kindFromTags,
+  parseFenceMetadata,
+  readTaggedCells,
+  resolveCaption,
+  selectOutputs,
+} from '../src/steps/shared/notebook-cells.js';
+
+describe('kindFromTags', () => {
+  test('recognises numbered and descriptive tags of each kind', () => {
+    expect(kindFromTags(['hermeneutics', 'figure-1-*'])).toEqual({ kind: 'figure', tag: 'figure-1-*' });
+    expect(kindFromTags(['figure-pie-chart-citizen-scientists-country-*'])?.kind).toBe('figure');
+    expect(kindFromTags(['fig:2'])?.kind).toBe('figure');
+    expect(kindFromTags(['table-2', 'data-table'])).toEqual({ kind: 'table', tag: 'table-2' });
+    expect(kindFromTags(['sound-franklin-*'])?.kind).toBe('sound');
+    expect(kindFromTags(['audio-1'])?.kind).toBe('sound');
+    expect(kindFromTags(['video-interview-*'])?.kind).toBe('video');
+  });
+
+  test('ignores tags that only start with a kind word', () => {
+    expect(kindFromTags(['hermeneutics', 'narrative', 'w-904px'])).toBeNull();
+    expect(kindFromTags(['figures-appendix'])).toBeNull();
+  });
+});
+
+describe('figureLabelFromTag', () => {
+  test('maps every figure tag form to a fig: label', () => {
+    expect(figureLabelFromTag('figure-1-*')).toBe('fig:1');
+    expect(figureLabelFromTag('figure_1')).toBe('fig:1');
+    expect(figureLabelFromTag('fig:3')).toBe('fig:3');
+    expect(figureLabelFromTag('figure-cartoon-*')).toBe('fig:cartoon');
+    expect(figureLabelFromTag('figure-average-no-comments-per-post-*')).toBe(
+      'fig:average-no-comments-per-post',
+    );
+  });
+});
+
+describe('parseFenceMetadata', () => {
+  test('reads Jupytext cell metadata from a fence line', () => {
+    const line =
+      'python jdh={"module": "object", "object": {"source": ["A {braced} caption"]}} tags=["figure-cartoon-*"]';
+    expect(parseFenceMetadata(line, 'jdh')).toEqual({
+      module: 'object',
+      object: { source: ['A {braced} caption'] },
+    });
+    expect(parseFenceMetadata('python tags=["x"]', 'jdh')).toBeNull();
+  });
+});
+
+describe('resolveCaption', () => {
+  test('prefers the code literal and flags stale output captions', () => {
+    // BHmHNQKJaSWT figure 3: copy-edited code vs. output metadata from an older run.
+    const r = resolveCaption({
+      code: 'Figure 3. Average cosine similarity of the one hundred nearest neighbours.',
+      cell: null,
+      output: 'Figure 3. Average cosine similarity of the one hundred nearest neighbors.',
+    });
+    expect(r.from).toBe('code');
+    expect(r.text).toContain('neighbours');
+    expect(r.conflict).toBe(true);
+  });
+
+  test('falls back to cell metadata, then output metadata', () => {
+    expect(resolveCaption({ code: null, cell: 'Cell caption', output: 'Out' }).from).toBe('cell');
+    expect(resolveCaption({ code: null, cell: null, output: 'Out' }).from).toBe('output');
+    expect(resolveCaption({ code: null, cell: null, output: null }).text).toBeNull();
+  });
+
+  test('ignores differences in the "Figure N." prefix and whitespace', () => {
+    const r = resolveCaption({ code: 'Figure 1. A  chart.', cell: null, output: 'A chart.' });
+    expect(r.conflict).toBe(false);
+  });
+});
+
+describe('selectOutputs', () => {
+  test('drops stream and error outputs and picks the preferred MIME type', () => {
+    const { outputs, dropped } = selectOutputs([
+      { output_type: 'stream', data: undefined },
+      { output_type: 'display_data', data: { 'text/plain': ['<Image>'], 'image/png': 'iVBOR' } },
+      { output_type: 'execute_result', data: { 'text/plain': 'df', 'text/html': ['<table>', '</table>'] } },
+      { output_type: 'error' },
+    ]);
+    expect(dropped).toBe(2);
+    expect(outputs.map((o) => o.mime)).toEqual(['image/png', 'text/html']);
+    expect(outputs[1].data).toBe('<table></table>');
+  });
+});
+
+describe('readTaggedCells', () => {
+  test('collects kind, captions from all three places, and outputs', () => {
+    const cells = readTaggedCells({
+      cells: [
+        { cell_type: 'markdown', metadata: { tags: ['figure-9-*'] }, source: 'not code' },
+        {
+          cell_type: 'code',
+          metadata: { tags: ['figure-pie-*'], jdh: { object: { source: ['Pie ', 'chart'] } } },
+          source: ['fig'],
+          outputs: [
+            {
+              output_type: 'display_data',
+              data: { 'text/html': '<div class="plotly-graph-div"></div>' },
+              metadata: { jdh: { object: { source: ['Pie chart (old)'] } } },
+            },
+            { output_type: 'stream' },
+          ],
+        },
+        { cell_type: 'code', metadata: { tags: ['hermeneutics'] }, source: 'print(1)', outputs: [] },
+      ],
+    });
+    expect(cells).toHaveLength(1);
+    expect(cells[0]).toMatchObject({
+      index: 1,
+      kind: 'figure',
+      tag: 'figure-pie-*',
+      captions: { code: null, cell: 'Pie chart', output: 'Pie chart (old)' },
+      dropped: 1,
+    });
+    expect(cells[0].outputs[0].mime).toBe('text/html');
+  });
+});

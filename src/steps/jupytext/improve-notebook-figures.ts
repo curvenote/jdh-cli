@@ -2,15 +2,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
-
+import {
+  captionFromCode,
+  captionFromJdh,
+  figureLabelFromTag,
+  indexFiguresByLabel,
+  kindFromTags,
+  loadNotebook,
+  parseFenceMetadata,
+  readTaggedCells,
+  resolveCaption,
+  type TaggedCell,
+} from '../shared/notebook-cells.js';
 
 const DEFAULT_ARTICLE = 'article.md';
+const DEFAULT_NOTEBOOK = 'article.ipynb';
 
-/** Tag is a figure tag if it matches fig:N or figure-<N>-* or figure_<N> (after normalization we use fig:N) */
-const FIGURE_TAG_PATTERN = /^(fig:\d+|figure[-_]?\d+[-_]?\*?)$/i;
+/** A figure tag in the forms JDH authors use: fig:…, figure-1-*, figure_1, figure-cartoon-* */
+const FIGURE_TAG_TOKEN = 'figure[-_][A-Za-z0-9][A-Za-z0-9_-]*(?:-\\*)?';
 
 interface RunImproveNotebookFiguresOptions {
   article: string;
+  notebook?: string;
+  /** Article repo root, to copy images that live outside the workdir's copied folders. */
+  projectRoot?: string;
   dryRun: boolean;
   cwd: string;
 }
@@ -36,14 +51,12 @@ function parseTagsFromFenceLine(line: string): string[] {
   return tags;
 }
 
-/** Return first tag that matches figure-n / figure_n / fig:n; prefer fig:N (normalized) if present */
+/** First figure tag as a MyST label (fig:…), or null when the cell is not a figure. */
 function firstFigureTag(tags: string[]): string | null {
-  const normalized = tags.find((t) => /^fig:\d+$/i.test(t));
+  const normalized = tags.find((t) => /^fig:/i.test(t));
   if (normalized) return normalized;
-  for (const t of tags) {
-    if (FIGURE_TAG_PATTERN.test(t)) return t;
-  }
-  return null;
+  const found = kindFromTags(tags);
+  return found?.kind === 'figure' ? figureLabelFromTag(found.tag) : null;
 }
 
 /** Extract figure number from tag (e.g. fig:1 -> 1, figure-1-* -> 1, figure_2 -> 2) */
@@ -52,16 +65,10 @@ function figureNumberFromTag(tag: string): number | null {
   return m ? parseInt(m[1] ?? m[2], 10) : null;
 }
 
-/** Extract image path from last line like display(Image("./media/figure1.png", width=1000), metadata=metadata) */
+/** Extract image path from a line like display(Image("./media/figure1.png", width=1000), metadata=metadata) */
 function extractImagePath(code: string): string | null {
-  const match = code.match(/display\s*\(\s*Image\s*\(\s*["']([^"']+)["']/);
+  const match = code.match(/\bImage\s*\(\s*(?:filename\s*=\s*)?["']([^"']+)["']/);
   return match ? match[1] : null;
-}
-
-/** Extract caption from metadata dict: jdh.object.source[0] (first string in source array) */
-function extractCaptionFromCode(code: string): string | null {
-  const match = code.match(/"source"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/);
-  return match ? match[1].replace(/\\"/g, '"') : null;
 }
 
 /** Escape backticks in caption for directive body */
@@ -75,24 +82,54 @@ function stripFigureNumberPrefix(caption: string): string {
 }
 
 /**
- * Normalize figure-n-* tags to fig:n (only in tags=[], :label:, and [](#...); not in code block bodies / metadata).
+ * Normalize figure tags (figure-1-*, figure-cartoon-*) to fig:… labels in tags=[],
+ * :label:, link targets and {ref} roles; not in code block bodies / metadata.
  */
 function normalizeFigureTags(content: string): string {
+  const token = new RegExp(`^${FIGURE_TAG_TOKEN}$`, 'i');
   let result = content;
-  result = result.replace(/\[\]\(#figure-(\d+)-\*\)/g, '[](#fig:$1)');
-  result = result.replace(/(:label:\s*)figure-(\d+)-\*/g, '$1fig:$2');
+  result = result.replace(
+    new RegExp(`\\]\\(#(${FIGURE_TAG_TOKEN})\\)`, 'gi'),
+    (_m: string, tag: string) => `](#${figureLabelFromTag(tag)})`,
+  );
+  result = result.replace(
+    new RegExp(`\\{ref\\}\`(${FIGURE_TAG_TOKEN})\``, 'gi'),
+    (_m: string, tag: string) => `[](#${figureLabelFromTag(tag)})`,
+  );
+  result = result.replace(
+    new RegExp(`(:label:\\s*)(${FIGURE_TAG_TOKEN})`, 'gi'),
+    (_m: string, prefix: string, tag: string) => prefix + figureLabelFromTag(tag),
+  );
   result = result.replace(/tags=\[([^\]]*?)\]/g, (match: string, inner: string) => {
-    const newInner = inner.replace(/"figure-(\d+)-\*"/g, '"fig:$1"');
+    const newInner = inner.replace(/"([^"]+)"/g, (q: string, tag: string) =>
+      token.test(tag) ? `"${figureLabelFromTag(tag)}"` : q,
+    );
     return newInner !== inner ? 'tags=[' + newInner + ']' : match;
   });
   return result;
 }
 
+export interface FigureReport {
+  converted: string[];
+  /** Figure cells left as code, with the reason (e.g. no image file: needs notebook output). */
+  skipped: { label: string; reason: string }[];
+  /** Figures whose caption differs between code, cell metadata and notebook output. */
+  captionConflicts: { label: string; used: string; others: string[] }[];
+}
+
 /**
  * Process article: normalize figure-n-* -> fig:n, then replace figure-tagged Python blocks and update refs.
  */
-export function processArticle(content: string): { content: string; figureNumToLabel: Map<number, string> } {
+export function processArticle(
+  content: string,
+  notebookCells: readonly TaggedCell[] = [],
+  /** Returns false when an image file can't be made available; the cell then stays as code. */
+  ensureImage: (imagePath: string) => boolean = () => true,
+): { content: string; figureNumToLabel: Map<number, string>; report: FigureReport } {
   const figureNumToLabel = new Map<number, string>();
+  const report: FigureReport = { converted: [], skipped: [], captionConflicts: [] };
+  const notebookFigures = indexFiguresByLabel(notebookCells);
+  const captionFor = new Map<number, string>();
 
   content = normalizeFigureTags(content);
 
@@ -118,8 +155,9 @@ export function processArticle(content: string): { content: string; figureNumToL
     if (closeIdx === -1) continue;
     const body = afterOpen.slice(0, closeIdx).replace(/^\n/, '');
     const closeStart = openEnd + closeIdx;
-    const closeLine = content.slice(closeStart, content.indexOf('\n', closeStart) + 1 || content.length);
-    const fullMatch = content.slice(openStart, closeStart + closeLine.length);
+    // closeStart is the newline before the closing fence; include the whole fence line.
+    const lineEnd = content.indexOf('\n', closeStart + 1);
+    const fullMatch = content.slice(openStart, lineEnd === -1 ? content.length : lineEnd);
 
     if (lang === 'python') {
       const tags = parseTagsFromFenceLine(tagLine);
@@ -127,9 +165,34 @@ export function processArticle(content: string): { content: string; figureNumToL
       if (figureTag) {
         const num = figureNumberFromTag(figureTag);
         if (num != null) figureNumToLabel.set(num, figureTag);
+        const nbCell = notebookFigures.get(figureTag);
+        const captions = {
+          code: captionFromCode(body),
+          cell: captionFromJdh(parseFenceMetadata(tagLine, 'jdh')) ?? nbCell?.captions.cell ?? null,
+          output: nbCell?.captions.output ?? null,
+        };
+        const resolved = resolveCaption(captions);
+        if (resolved.conflict) {
+          report.captionConflicts.push({
+            label: figureTag,
+            used: resolved.from!,
+            others: (['code', 'cell', 'output'] as const).filter((k) => k !== resolved.from && captions[k]),
+          });
+        }
         const imagePath = extractImagePath(body);
-        const caption = extractCaptionFromCode(body);
-        if (imagePath && caption != null) {
+        const mimes = nbCell?.outputs.map((o) => o.mime) ?? [];
+        const outputNote = mimes.length ? `; notebook output ${mimes.join(', ')}` : nbCell ? '; no notebook output' : '';
+        const reason = !imagePath
+          ? `no image file in code${outputNote}`
+          : resolved.text == null
+            ? 'no caption in code, cell metadata or notebook output'
+            : !ensureImage(imagePath)
+              ? `image file ${imagePath} not found${outputNote}`
+              : null;
+        if (reason) {
+          report.skipped.push({ label: figureTag, reason });
+        } else {
+          captionFor.set(openStart, resolved.text!);
           blocks.push({
             start: openStart,
             end: openStart + fullMatch.length,
@@ -150,8 +213,8 @@ export function processArticle(content: string): { content: string; figureNumToL
     const num = figureNumberFromTag(figureTag);
     if (num != null) figureNumToLabel.set(num, figureTag);
     const imagePath = extractImagePath(b.body)!;
-    const captionRaw = extractCaptionFromCode(b.body)!;
-    const caption = stripFigureNumberPrefix(captionRaw);
+    const caption = stripFigureNumberPrefix(captionFor.get(b.start)!);
+    report.converted.unshift(figureTag);
     const replacement = [
       '```{figure} ' + imagePath,
       `:label: ${figureTag}`,
@@ -232,7 +295,7 @@ export function processArticle(content: string): { content: string; figureNumToL
     '$1',
   );
 
-  return { content: result, figureNumToLabel };
+  return { content: result, figureNumToLabel, report };
 }
 
 /**
@@ -248,25 +311,47 @@ async function improveNotebookFigures(
     throw new Error(`Article not found: ${articlePath}`);
   }
 
+  const notebook = loadNotebook(path.resolve(options.cwd, options.notebook || DEFAULT_NOTEBOOK));
+  const notebookCells = notebook ? readTaggedCells(notebook) : [];
+  if (!notebook) process.stdout.write('No article.ipynb in workdir; using article.md only.\n');
+
+  const ensureImage = (imagePath: string): boolean => {
+    if (/^[a-z]+:\/\//i.test(imagePath)) return true;
+    const inWorkdir = path.resolve(options.cwd, imagePath);
+    if (fs.existsSync(inWorkdir)) return true;
+    // Images saved next to the notebook (not under media/) are not copied by prepareWorkdir.
+    const inProject = options.projectRoot ? path.resolve(options.projectRoot, imagePath) : null;
+    if (!inProject || !fs.existsSync(inProject)) return false;
+    if (!options.dryRun) {
+      fs.mkdirSync(path.dirname(inWorkdir), { recursive: true });
+      fs.copyFileSync(inProject, inWorkdir);
+    }
+    process.stdout.write(`  - copy     ${imagePath}\n`);
+    return true;
+  };
+
   const content = readUtf8(articlePath);
-  const { content: newContent, figureNumToLabel } = processArticle(content);
+  const { content: newContent, report } = processArticle(content, notebookCells, ensureImage);
+
+  for (const c of report.captionConflicts) {
+    process.stdout.write(
+      `Warning: ${c.label} caption differs between ${[c.used, ...c.others].join(', ')}; using ${c.used}.\n`,
+    );
+  }
+  for (const s of report.skipped) {
+    process.stdout.write(`Left as code: ${s.label} (${s.reason}).\n`);
+  }
 
   if (newContent === content) {
-    process.stdout.write('No figure-tagged Python blocks found; no changes.\n');
+    process.stdout.write('No figure-tagged Python blocks converted; no changes.\n');
     return;
   }
 
   writeUtf8(articlePath, newContent, options.dryRun);
   process.stdout.write(
-    options.dryRun
-      ? '[dry-run] Would update article: ' +
-          Array.from(figureNumToLabel.entries())
-            .map(([n, l]) => `Figure ${n} -> ${l}`)
-            .join(', ') +
-          '\n'
-      : 'Updated article: converted ' +
-          figureNumToLabel.size +
-          ' figure block(s) and updated refs.\n',
+    `${options.dryRun ? '[dry-run] Would convert' : 'Converted'} ${report.converted.length} figure block(s)` +
+      (report.converted.length ? `: ${report.converted.join(', ')}` : '') +
+      ' and updated refs.\n',
   );
 }
 
@@ -277,11 +362,13 @@ async function improveNotebookFigures(
 export const improveNotebookFiguresStep: PipelineStep = {
   id: 'improveNotebookFigures',
   label: 'Improve notebook figures (figure directives)',
-  inputs: ['markdown'],
+  inputs: ['markdown', 'ipynb'],
   run: async (ctx) => {
     const o = stepOpts(ctx);
     await improveNotebookFigures({
       article: 'article.md',
+      notebook: 'article.ipynb',
+      projectRoot: o.projectRoot,
       dryRun: o.dryRun,
       cwd: o.cwd,
     });
