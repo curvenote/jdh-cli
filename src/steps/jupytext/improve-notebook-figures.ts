@@ -473,6 +473,8 @@ async function improveNotebookFigures(
     const link = cellLink(cell);
     // Sound (JDH-034): a small speaker icon, numbered "Sound N", as in JDH's guideline.
     if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width: '9%' };
+    // Video (JDH-035): numbered "Video N"; the placeholder's look waits on JDH's design.
+    if (variant === 'video') return { path: rel, from: 'placeholder', link, figureKind: 'video' };
     return { path: rel, from: 'placeholder', link };
   };
 

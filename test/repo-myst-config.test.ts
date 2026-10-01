@@ -45,6 +45,7 @@ test('completeConfig keeps hand edits and fills in only what the pipeline needs 
   expect(out.project.plugins).toEqual(['plugins/my-plugin.mjs', ...listBundledPluginRelPaths()]);
   expect(out.project.toc).toEqual([{ file: 'article.md' }]);
   expect(out.project.numbering.sound).toEqual({ enabled: true, template: 'Sound %s' });
+  expect(out.project.numbering.video).toEqual({ enabled: true, template: 'Video %s' });
   expect(added).toContain('toc');
   expect(added.some((a) => a.startsWith('site.template'))).toBe(false);
 });

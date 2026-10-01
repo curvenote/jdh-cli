@@ -49,6 +49,7 @@ export const DEFAULT_SITE_TEMPLATE = 'book-theme';
  */
 export const CUSTOM_NUMBERING: Record<string, { enabled: boolean; template: string }> = {
   sound: { enabled: true, template: 'Sound %s' },
+  video: { enabled: true, template: 'Video %s' },
 };
 
 function buildScaffold(projectId: string, extendMetadata: boolean): string {

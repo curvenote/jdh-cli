@@ -110,7 +110,7 @@ test('video cells get a video placeholder linking to the online article', async 
   );
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
-  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n\nHow to analyse an interview. [View it in the online article.](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n:kind: video\n\nHow to analyse an interview. [View it in the online article.](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
 });
 
 test('image outputs are typed by their bytes, and unreadable formats get a placeholder', async () => {
