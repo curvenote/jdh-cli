@@ -132,7 +132,7 @@ test('image outputs are typed by their bytes, and unreadable formats get a place
 const AUDIO_HTML = '<audio controls="controls"><source src="data:audio/mpeg;base64,//uQRAAA" type="audio/mpeg" /></audio>';
 const URL = 'https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ';
 
-test('audio cells get an audio placeholder linking to the player online (JDH-007)', async () => {
+test('audio cells become "Sound" figures with a speaker icon, linking to the player online (JDH-007, JDH-034)', async () => {
   const caption = { jdh: { object: { type: 'image', source: ['**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html'] } } };
   const { workdir, ctx } = setupCells(
     [
@@ -144,20 +144,20 @@ test('audio cells get an audio placeholder linking to the player online (JDH-007
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain(
-    '```{figure} notebook-outputs/placeholder-audio.svg\n:label: aud:franklin\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html ' +
+    '```{figure} notebook-outputs/sound.svg\n:label: aud:franklin\n:kind: sound\n:width: 9%\n:align: left\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html ' +
       `[Listen to it in the online article.](${URL}?idx=1)\n\`\`\``,
   );
-  expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'placeholder-audio.svg'))).toBe(true);
+  expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'sound.svg'))).toBe(true);
 });
 
-test('audio cells with no caption still become a numbered, linked entry', async () => {
+test('audio cells with no caption still become a numbered, linked entry; hermeneutic ones stay in their block', async () => {
   const { workdir, ctx } = setupCells(
     [codeCell(['narrative', 'hermeneutics', 'sound-worldcup-*'], [{ output_type: 'execute_result', data: { 'text/html': AUDIO_HTML } }])],
     '```python tags=["narrative", "hermeneutics", "sound-worldcup-*"]\nipd.Audio("media/a.m4v")\n```\n',
   );
   await improveNotebookFiguresStep.run(ctx);
   expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
-    `:label: aud:worldcup\n\nAudio recording. [Listen to it in the online article.](${URL}?idx=0)`,
+    `:::{hermeneutics}\n\n\`\`\`{figure} notebook-outputs/sound.svg\n:label: aud:worldcup\n:kind: sound\n:width: 9%\n:align: left\n\nAudio recording. [Listen to it in the online article.](${URL}?idx=0)\n\`\`\`\n:::`,
   );
 });
 

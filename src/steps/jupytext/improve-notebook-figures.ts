@@ -184,6 +184,10 @@ export interface ResolvedImage {
   link?: string;
   /** Text of that link; defaults to "View it in the online article." */
   linkText?: string;
+  /** MyST figure kind (numbered separately, e.g. "Sound 1"); default figure. */
+  figureKind?: string;
+  /** Image width for the directive, e.g. a small icon. */
+  width?: string;
 }
 
 export interface FigureReport {
@@ -218,6 +222,8 @@ export function processArticle(
   const imageFor = new Map<number, string>();
   const linkFor = new Map<number, string>();
   const linkTextFor = new Map<number, string>();
+  const kindFor = new Map<number, string>();
+  const widthFor = new Map<number, string>();
 
   content = normalizeFigureTags(content);
 
@@ -297,6 +303,8 @@ export function processArticle(
           imageFor.set(openStart, image.path);
           if (image.link) linkFor.set(openStart, image.link);
           if (image.linkText) linkTextFor.set(openStart, image.linkText);
+          if (image.figureKind) kindFor.set(openStart, image.figureKind);
+          if (image.width) widthFor.set(openStart, image.width);
           if (image.from === 'output') report.fromOutput.push(figureTag);
           if (image.from === 'placeholder') report.placeholders.push(figureTag);
           blocks.push({
@@ -326,13 +334,22 @@ export function processArticle(
     const ended = /[.!?:]["”’)*_]*$/.test(text) || /https?:\/\/\S+$/.test(text);
     const caption = link ? `${text}${ended ? '' : '.'} [${linkText}](${link})` : text;
     report.converted.unshift(figureTag);
-    const replacement = [
+    const figureKind = kindFor.get(b.start);
+    const width = widthFor.get(b.start);
+    let replacement = [
       '```{figure} ' + imagePath,
       `:label: ${figureTag}`,
+      ...(figureKind ? [`:kind: ${figureKind}`] : []),
+      ...(width ? [`:width: ${width}`, ':align: left'] : []),
       '',
       escapeCaption(caption),
       '```',
     ].join('\n');
+    // A sound cell tagged hermeneutics stays inside its cyan block (the code
+    // fence carrying the tag is replaced, so the hermeneutics step can't see it).
+    if (figureKind === 'sound' && tags.includes('hermeneutics')) {
+      replacement = [':::{hermeneutics}', '', replacement, ':::'].join('\n');
+    }
 
     result = result.slice(0, b.start) + replacement + result.slice(b.end);
   }
@@ -446,15 +463,17 @@ async function improveNotebookFigures(
     options.articleUrl && cell ? `${options.articleUrl}?idx=${cell.index}` : undefined;
   const LISTEN = 'Listen to it in the online article.';
 
-  const placeholder = (variant: 'interactive' | 'video' | 'audio' | 'figure', cell?: TaggedCell): ResolvedImage => {
-    const rel = `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
+  const placeholder = (variant: 'interactive' | 'video' | 'sound' | 'figure', cell?: TaggedCell): ResolvedImage => {
+    const rel = variant === 'sound' ? `${OUTPUTS_DIR}/sound.svg` : `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
     if (!options.dryRun) {
       const dest = path.resolve(options.cwd, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(resolveBundledPlaceholder(variant), dest);
     }
     const link = cellLink(cell);
-    return { path: rel, from: 'placeholder', link, ...(variant === 'audio' ? { linkText: LISTEN } : {}) };
+    // Sound (JDH-034): a small speaker icon, numbered "Sound N", as in JDH's guideline.
+    if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width: '9%' };
+    return { path: rel, from: 'placeholder', link };
   };
 
   const resolveImage = (req: ImageRequest): ResolvedImage | null => {
@@ -467,7 +486,7 @@ async function improveNotebookFigures(
   };
 
   function resolveFigureImage({ label, kind, imagePath, cell }: ImageRequest): ResolvedImage | null {
-    if (kind === 'audio') return placeholder('audio', cell);
+    if (kind === 'audio') return placeholder('sound', cell);
     if (imagePath && ensureFile(imagePath)) return { path: imagePath, from: 'file' };
     const images = cell?.outputs.filter((o) => o.mime in IMAGE_EXTENSIONS) ?? [];
     if (!images.length) {

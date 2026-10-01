@@ -43,6 +43,14 @@ function readExistingProjectId(configPath: string): string | null {
 
 export const DEFAULT_SITE_TEMPLATE = 'book-theme';
 
+/**
+ * Figure kinds jdh-cli emits that MyST numbers separately from figures
+ * ("Sound 1"), per JDH's guideline. See mystmd "Numbering Custom Content".
+ */
+export const CUSTOM_NUMBERING: Record<string, { enabled: boolean; template: string }> = {
+  sound: { enabled: true, template: 'Sound %s' },
+};
+
 function buildScaffold(projectId: string, extendMetadata: boolean): string {
   return toYaml(
     {
@@ -53,6 +61,7 @@ function buildScaffold(projectId: string, extendMetadata: boolean): string {
         open_access: true,
         plugins: listBundledPluginRelPaths(),
         toc: [{ file: 'article.md' }],
+        numbering: CUSTOM_NUMBERING,
       },
       site: { template: DEFAULT_SITE_TEMPLATE },
     },
@@ -78,6 +87,12 @@ export function completeConfig(doc: Document, projectId: string, extendMetadata:
   if (missing.length) {
     doc.setIn(['project', 'plugins'], [...current, ...missing]);
     added.push(`${missing.length} bundled plugin(s)`);
+  }
+  for (const [kind, value] of Object.entries(CUSTOM_NUMBERING)) {
+    if (!doc.hasIn(['project', 'numbering', kind])) {
+      doc.setIn(['project', 'numbering', kind], value);
+      added.push(`numbering.${kind}`);
+    }
   }
   if (!doc.hasIn(['project', 'toc'])) {
     doc.setIn(['project', 'toc'], [{ file: 'article.md' }]);
