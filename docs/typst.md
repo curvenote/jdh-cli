@@ -51,7 +51,7 @@ Table truncation defaults in the plugin (`max-rows: 4`, `max-columns: 6`) align 
 
 - [MyST CLI](https://mystmd.org) installed globally or on `PATH`
 - `jdh-typst-template` next to jdh-cli (or pass `--template` to `jdh-cli build`)
-- `generated/qr.png` and `generated/fingerprint.png` in the article repo; otherwise clearly marked placeholders are used
+- the QR code and fingerprint: `--qr-code` / `--fingerprint` (path or URL), else `generated/qr.png` and `generated/fingerprint.png` in the article repo, else clearly marked placeholders (with a warning). See [CLI](cli.md#qr-code-and-fingerprint)
 
 ## HTML export
 
