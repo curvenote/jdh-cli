@@ -42,12 +42,13 @@ Caption is the directive argument (no "Table N:" prefix — numbering is automat
 | `max-rows` | number | no | `4` | Data rows shown before "K rows more"; `0` disables truncation |
 | `max-columns` | number | no | `6` | Data columns shown before ellipsis truncation; ellipsis is extra |
 | `header-rows` | number | no | auto | Rows treated as headers; pipeline sets when > 1 detected |
+| `total-rows` | number | no | — | Data rows in the full table when the body is already cut short (a pandas output with an `N rows × M columns` footer); "K rows more" counts from it |
 | `align` | string | no | `center` | Table alignment |
 | `class` | string | no | — | CSS class (HTML) |
 | `enumerated` | boolean | no | — | Table numbering; alias `numbered` |
 | `enumerator` | string | no | — | Custom enumerator; alias `number` |
 
-Pipeline output always includes `:label:`, `:align: center`, and `:header-rows:` when multiple header rows are detected. It does **not** emit `:max-rows:` or `:max-columns:` (plugin defaults apply).
+Pipeline output always includes `:label:`, `:align: center`, `:header-rows:` when multiple header rows are detected, and `:total-rows:` for truncated pandas outputs. It does **not** emit `:max-rows:` or `:max-columns:` (plugin defaults apply).
 
 ### Truncation defaults
 

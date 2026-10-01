@@ -22,6 +22,8 @@ export interface CellCaptions {
 export interface CellOutput {
   mime: string;
   data: string;
+  /** Every text representation of the output by MIME type (e.g. both text/html and text/markdown). */
+  text: Record<string, string>;
   metadata: Record<string, unknown>;
 }
 
@@ -100,6 +102,19 @@ export function figureLabelFromTag(tag: string): string {
     .replace(/[-_]?\*$/, '')
     .replace(/^[-_]+|[-_]+$/g, '');
   return `fig:${slug}`;
+}
+
+/**
+ * MyST label for a table tag: `table-1-*`, `table_1`, `table-1` → `table:1`;
+ * `table-six-degrees-*` → `table:six-degrees`; `table:…` unchanged.
+ */
+export function tableLabelFromTag(tag: string): string {
+  if (/^table:/i.test(tag)) return tag;
+  const slug = tag
+    .replace(/^table[-_]?/i, '')
+    .replace(/[-_]?\*$/, '')
+    .replace(/^[-_]+|[-_]+$/g, '');
+  return `table:${slug}`;
 }
 
 /** MyST label for a video tag: `video-software-*` → `vid:software`. */
@@ -197,9 +212,14 @@ export function selectOutputs(outputs: readonly RawOutput[]): {
     const mime = MIME_PRIORITY.find((m) => m in data) ?? Object.keys(data)[0];
     if (!mime) continue;
     const value = data[mime];
+    const text: Record<string, string> = {};
+    for (const [m, v] of Object.entries(data)) {
+      if (m.startsWith('text/') && (typeof v === 'string' || Array.isArray(v))) text[m] = joinText(v);
+    }
     chosen.push({
       mime,
       data: typeof value === 'string' || Array.isArray(value) ? joinText(value) : JSON.stringify(value),
+      text,
       metadata: out.metadata ?? {},
     });
   }

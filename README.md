@@ -75,7 +75,7 @@ Files the article repo provides take precedence. With `jdh-cli init`, edits to t
 
 ## Pipeline
 
-`jdh-cli article.md --list-steps` prints the 12 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures, tables, hermeneutics blocks, GitHub link, DOI and URL. Figures read `article.ipynb` for captions and report figures that exist only as notebook output.
+`jdh-cli article.md --list-steps` prints the 13 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures, notebook tables, table regions, hermeneutics blocks, GitHub link, DOI and URL. Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
 
 ## Documentation
 

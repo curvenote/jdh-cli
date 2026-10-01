@@ -40,3 +40,32 @@ describe('jdh-table directive', () => {
     expect(container.enumerator).toBe('2.');
   });
 });
+
+describe('jdh-table total-rows', () => {
+  const transform = plugin.transforms[0];
+  const cell = (value: string) => ({ type: 'tableCell', children: [{ type: 'text', value }] });
+  const row = (values: string[], header = false) => ({
+    type: 'tableRow',
+    ...(header ? { header: true } : {}),
+    children: values.map(cell),
+  });
+
+  function build(options: Record<string, unknown>) {
+    const [container] = jdhTable.run({
+      arg: [{ type: 'text', value: 'Caption.' }],
+      body: [{ type: 'table', children: [row(['h'], true), ...['1', '2', '3', '4', '5', '6'].map((v) => row([v]))] }],
+      options: { label: 'table:9', ...options },
+    });
+    const tree = { type: 'root', children: [container] };
+    transform.plugin({}, { selectAll: () => [container] })(tree);
+    return container.data.jdhTableMeta.hiddenRows;
+  }
+
+  test('without total-rows, hidden rows count the body only', () => {
+    expect(build({})).toBe(2);
+  });
+
+  test('total-rows counts rows already cut from a pandas output', () => {
+    expect(build({ 'total-rows': 260 })).toBe(256);
+  });
+});

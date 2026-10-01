@@ -58,6 +58,11 @@ const jdhTableDirective = {
     'max-rows': { type: Number, required: false },
     'max-columns': { type: Number, required: false },
     'header-rows': { type: Number, required: false },
+    'total-rows': {
+      type: Number,
+      required: false,
+      doc: 'Data rows in the full table when the body is already truncated (pandas output).',
+    },
     align: { type: String, required: false },
     class: { type: String, required: false },
     enumerated: { type: Boolean, alias: ['numbered'], required: false },
@@ -330,10 +335,15 @@ function processJdhTableContainer(node) {
   const parsed = resolveTableGfm(node.children, headerRowsOpt);
   if (!parsed) return;
 
-  const { table: truncated, hiddenRows, hiddenCols } = truncateTable(parsed, {
+  const { table: truncated, hiddenRows: cutRows, hiddenCols } = truncateTable(parsed, {
     maxRows,
     maxColumns,
   });
+  // A pandas output may already be cut short; count rows hidden from the full table.
+  const totalRows = Number(opts['total-rows'] ?? NaN);
+  const hiddenRows = Number.isFinite(totalRows)
+    ? Math.max(cutRows, totalRows - truncated.dataRows.length)
+    : cutRows;
 
   const newTable = gfmToTableNode(truncated, align);
   const wrap = buildTypstTableWrap(newTable, hiddenRows, hiddenCols);

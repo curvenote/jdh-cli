@@ -86,6 +86,7 @@ describe('selectOutputs', () => {
     expect(dropped).toBe(2);
     expect(outputs.map((o) => o.mime)).toEqual(['image/png', 'text/html']);
     expect(outputs[1].data).toBe('<table></table>');
+    expect(outputs[1].text).toEqual({ 'text/plain': 'df', 'text/html': '<table></table>' });
   });
 });
 

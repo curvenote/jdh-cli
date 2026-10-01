@@ -162,14 +162,20 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
     result = result.slice(0, r.openStart) + replacement + result.slice(r.endRegionEnd);
   }
 
-  if (tableNumToLabel.size === 0) {
-    const existingTableRe = /:::\s*\{jdh-table\}[^\n]+\n:label:\s*([^\s\n]+)/g;
+  // Tables already in the article as {jdh-table}: from earlier runs, or from
+  // notebook outputs (improveNotebookTables), which may have no caption.
+  {
+    const existingTableRe = /:::\s*\{jdh-table\}[^\n]*\n:label:\s*([^\s\n]+)/g;
     let em: RegExpExecArray | null;
     while ((em = existingTableRe.exec(result)) !== null) {
       const label = em[1];
       const numMatch = label.match(/(?:^table:(\d+)$|table[-_]?(\d+))/i);
-      if (numMatch) tableNumToLabel.set(parseInt(numMatch[1] ?? numMatch[2], 10), label);
+      const num = numMatch ? parseInt(numMatch[1] ?? numMatch[2], 10) : 0;
+      if (num && !tableNumToLabel.has(num)) tableNumToLabel.set(num, label);
     }
+  }
+  if (tableNumToLabel.size === 0) {
+    let em: RegExpExecArray | null;
     // Legacy `{table}` blocks from earlier pipeline runs.
     const legacyTableRe = /:::\s*\{table\}[^\n]+\n:label:\s*([^\s\n]+)/g;
     while ((em = legacyTableRe.exec(result)) !== null) {
