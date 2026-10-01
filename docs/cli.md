@@ -43,10 +43,20 @@ The last step sets the article's DOI and URL in `_improved/myst.yml`. The JDH ar
 
 | Field | Written to | Source, in order |
 | --- | --- | --- |
-| DOI | `project.doi` | `--doi`, then the JDH API (`/api/articles/<id>/` → `citation.URL`) |
+| DOI | `project.doi` | `--doi` (no lookup), else the JDH API (`/api/articles/<id>/?format=json`): `citation.URL`, else the `doi` field |
 | URL | `project.social.url` | `--url`, then `https://journalofdigitalhistory.org/en/article/<id>` |
 
-The API only lists published articles, so during production pass `--doi` (and `--url`) explicitly. If no DOI is found the step logs a warning and the PDF shows "DOI unknown".
+The API's `doi` field holds the manuscript id (`10.1515/JDH.2023.0020.R2`), not the registered DOI. jdh-cli prefers the doi.org link in `citation.URL`; failing that, it converts the manuscript id (`→ 10.1515/jdh-2023-0020`) and prints a note to check that the DOI resolves.
+
+When no DOI can be found, the step prints one warning saying why, and the build goes on without a DOI (the PDF shows "DOI unknown"):
+
+| Warning | Cause |
+| --- | --- |
+| `could not reach the JDH API (…)` | Network error or timeout (15 s) |
+| `article <id> is not in the JDH API (HTTP 404)` | Unknown article id |
+| `article <id> is not public in the JDH API yet (HTTP 403)` | Unpublished article: during production, pass `--doi` (and `--url`) |
+| `the JDH API returned HTTP <n> …` / `… is not JSON` | Other server errors |
+| `the JDH API record for <id> has no usable DOI (…)` | `doi` field missing or not a JDH DOI, and no `citation.URL` |
 
 ```bash
 jdh-cli article.md --doi 10.1515/jdh-2025-0002

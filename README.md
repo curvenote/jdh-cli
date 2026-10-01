@@ -23,7 +23,7 @@ jdh-cli build             # → _improved/article.pdf
 
 | Command | What it does | Common options |
 | --- | --- | --- |
-| `jdh-cli article.md` | Convert the article: runs the 12-step pipeline into `_improved/` | `--doi`, `--url`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli article.md` | Convert the article: runs the 13-step pipeline into `_improved/` | `--doi`, `--url`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
 | `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
 | `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place | |
@@ -44,7 +44,7 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | `--list-steps` | | Print the pipeline steps and exit |
 | `-d, --dry-run` | | Show what would happen without writing files |
 
-The DOI and URL come from the JDH API using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`). During production, before an article is published, pass `--doi` (and `--url`) explicitly:
+The DOI comes from the JDH API (`/api/articles/<id>/?format=json`) using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`); the URL is the article's JDH page. When the API can't supply a DOI (unreachable, article not found or not yet public, no usable `doi` field), jdh-cli prints a warning saying which and builds without one. `--doi` always wins, with no lookup. During production, before an article is published, pass `--doi` (and `--url`) explicitly:
 
 ```bash
 jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhistory.org/en/article/BHmHNQKJaSWT
@@ -71,7 +71,7 @@ Files the article repo provides take precedence. With `jdh-cli init`, edits to t
 
 - **The article repo is the input.** jdh-cli works from `article.md`, `article.ipynb` and other files in the article folder. Content a notebook can't provide as data (e.g. an interactive chart with no image output) becomes a placeholder linking to the online article; it isn't rendered or fetched.
 - **No Python dependencies** in the processing chain.
-- Current network lookups, under review against the first rule: DOI from the JDH API (`--doi` overrides), ROR affiliations (`--no-ror-lookup` disables), ORCID (`--orcid-lookup`, off by default).
+- Network lookups: DOI from the JDH API (`--doi` overrides; an approved exception to the first rule). Under review against the first rule: ROR affiliations (`--no-ror-lookup` disables), ORCID (`--orcid-lookup`, off by default).
 
 ## Pipeline
 
