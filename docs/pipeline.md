@@ -18,7 +18,7 @@ jdh-cli article.md --list-steps
 | 2 | Init myst.yml | Scaffold config; register all bundled plugins |
 | 3 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
 | 4 | Improve citation tags | Author–year citekeys |
-| 5 | Extract jupytext frontmatter | Author/affiliation metadata → `myst.yml`; article title |
+| 5 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords; the regions are removed from the article |
 | 6 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
 | 7 | Extract jupytext parts | Page-level frontmatter from document parts |
 | 8 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |

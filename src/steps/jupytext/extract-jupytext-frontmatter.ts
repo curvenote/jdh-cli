@@ -17,14 +17,18 @@ interface RunExtractJupytextFrontmatterOptions {
   cwd: string;
 }
 
-interface ExtractedFrontmatter {
+export interface Contributor {
+  name: string | null;
+  affiliationLines: string[];
+  orcid: string | null;
+  email: string | null;
+}
+
+export interface ExtractedFrontmatter {
   title: string | null;
   keywords: string[];
-  contributor: {
-    name: string | null;
-    affiliationLines: string[];
-    orcid: string | null;
-  };
+  /** One per `contributor` region (JDH notebooks have one cell per author), in order. */
+  contributors: Contributor[];
 }
 
 function readUtf8(p: string): string {
@@ -48,23 +52,23 @@ function parseTagsFromRegionLine(line: string): string[] {
   }
 }
 
-function findTaggedRegion(
-  lines: string[],
-  tag: string,
-): { content: string; start: number; end: number } | null {
+/** Every `#region` tagged `tag`, in document order. */
+function findTaggedRegions(lines: string[], tag: string): { content: string; start: number; end: number }[] {
+  const regions: { content: string; start: number; end: number }[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.includes('<!--') || !line.includes('#region')) continue;
-    const tags = parseTagsFromRegionLine(line);
-    if (!tags.includes(tag)) continue;
-    for (let j = i + 1; j < lines.length; j++) {
-      if (lines[j].includes('#endregion')) {
-        return { content: lines.slice(i + 1, j).join('\n').trim(), start: i, end: j };
-      }
-    }
-    return null;
+    if (!parseTagsFromRegionLine(line).includes(tag)) continue;
+    const j = lines.findIndex((l, k) => k > i && l.includes('#endregion'));
+    if (j === -1) break;
+    regions.push({ content: lines.slice(i + 1, j).join('\n').trim(), start: i, end: j });
+    i = j;
   }
-  return null;
+  return regions;
+}
+
+function findTaggedRegion(lines: string[], tag: string): { content: string; start: number; end: number } | null {
+  return findTaggedRegions(lines, tag)[0] ?? null;
 }
 
 function parseTitle(content: string): string | null {
@@ -89,12 +93,25 @@ export function stripOrcidMarkdownFromName(name: string): string {
     .trim();
 }
 
-function parseContributor(content: string): ExtractedFrontmatter['contributor'] {
+const SUPERSCRIPT: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
+/** Plain text for a contributor line: `C<sup>2</sup>DH` → `C²DH`, `<br/>` and other tags dropped. */
+function cleanContributorLine(line: string): string {
+  return line
+    .replace(/<sup>(\d+)<\/sup>/gi, (_m, d: string) => [...d].map((c) => SUPERSCRIPT[c]).join(''))
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Name (with ORCID badge) on the heading line; then email and affiliation lines. */
+export function parseContributor(content: string): Contributor {
   const lines = content
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  if (!lines.length) return { name: null, affiliationLines: [], orcid: null };
+  if (!lines.length) return { name: null, affiliationLines: [], orcid: null, email: null };
 
   const header = lines[0];
   const orcid = extractOrcidId(header);
@@ -102,9 +119,14 @@ function parseContributor(content: string): ExtractedFrontmatter['contributor'] 
   let name = header.replace(/^#+\s*/, '').trim();
   name = stripOrcidMarkdownFromName(name);
 
-  const affiliationLines = lines.slice(1).map((l) => l.trim()).filter(Boolean);
+  let email: string | null = null;
+  const affiliationLines: string[] = [];
+  for (const line of lines.slice(1).map(cleanContributorLine).filter(Boolean)) {
+    if (!email && EMAIL_RE.test(line)) email = line;
+    else affiliationLines.push(line);
+  }
 
-  return { name: name || null, affiliationLines, orcid };
+  return { name: name || null, affiliationLines, orcid, email };
 }
 
 function parseKeywords(content: string): string[] {
@@ -144,26 +166,22 @@ async function fetchOrcidPerson(orcid: string): Promise<{ displayName?: string }
   }
 }
 
-/** Set title, keywords and the author in `project` of a myst.yml document. */
+/** Set title, keywords and the authors in `project` of a myst.yml document. */
 function setMystProjectFrontmatter(doc: Document, extracted: ExtractedFrontmatter): void {
   if (!doc.has('project')) throw new Error('Project config has no `project:` block');
 
   if (extracted.title) doc.setIn(['project', 'title'], extracted.title);
   if (extracted.keywords.length) doc.setIn(['project', 'keywords'], extracted.keywords);
 
-  const { name, orcid, affiliationLines } = extracted.contributor;
-  if (name) {
-    doc.setIn(
-      ['project', 'authors'],
-      [
-        {
-          name,
-          ...(orcid ? { orcid: `https://orcid.org/${orcid}` } : {}),
-          ...(affiliationLines.length ? { affiliations: affiliationLines } : {}),
-        },
-      ],
-    );
-  }
+  const authors = extracted.contributors
+    .filter((c) => c.name)
+    .map(({ name, orcid, email, affiliationLines }) => ({
+      name,
+      ...(orcid ? { orcid: `https://orcid.org/${orcid}` } : {}),
+      ...(email ? { email } : {}),
+      ...(affiliationLines.length ? { affiliations: affiliationLines } : {}),
+    }));
+  if (authors.length) doc.setIn(['project', 'authors'], authors);
 }
 
 function rewriteArticleMarkdown(md: string, extracted: ExtractedFrontmatter): string {
@@ -219,7 +237,19 @@ function rewriteArticleMarkdown(md: string, extracted: ExtractedFrontmatter): st
   return outLines.join('\n');
 }
 
-async function extractJupytextFrontmatter(
+/** Title, keywords and every contributor from the article's tagged regions. */
+export function extractFrontmatter(articleMd: string): ExtractedFrontmatter {
+  const lines = articleMd.split('\n');
+  const titleRegion = findTaggedRegion(lines, 'title');
+  const keywordsRegion = findTaggedRegion(lines, 'keywords');
+  return {
+    title: titleRegion ? parseTitle(titleRegion.content) : null,
+    keywords: keywordsRegion ? parseKeywords(keywordsRegion.content) : [],
+    contributors: findTaggedRegions(lines, 'contributor').map((r) => parseContributor(r.content)),
+  };
+}
+
+export async function extractJupytextFrontmatter(
   options: RunExtractJupytextFrontmatterOptions,
 ): Promise<void> {
   const cwd = options.cwd;
@@ -227,24 +257,14 @@ async function extractJupytextFrontmatter(
   const mystPath = resolveProjectConfigPath(cwd, options.myst ?? DEFAULT_MYST);
 
   const articleMd = readUtf8(articlePath);
-  const lines = articleMd.split('\n');
 
-  const titleRegion = findTaggedRegion(lines, 'title');
-  const contributorRegion = findTaggedRegion(lines, 'contributor');
-  const keywordsRegion = findTaggedRegion(lines, 'keywords');
+  const extracted = extractFrontmatter(articleMd);
 
-  const extracted: ExtractedFrontmatter = {
-    title: titleRegion ? parseTitle(titleRegion.content) : null,
-    keywords: keywordsRegion ? parseKeywords(keywordsRegion.content) : [],
-    contributor: contributorRegion
-      ? parseContributor(contributorRegion.content)
-      : { name: null, affiliationLines: [], orcid: null },
-  };
-
-  if (options.orcidLookup && extracted.contributor.orcid) {
-    const info = await fetchOrcidPerson(extracted.contributor.orcid);
-    if (info?.displayName) {
-      extracted.contributor.name = info.displayName;
+  if (options.orcidLookup) {
+    for (const contributor of extracted.contributors) {
+      if (!contributor.orcid) continue;
+      const info = await fetchOrcidPerson(contributor.orcid);
+      if (info?.displayName) contributor.name = info.displayName;
     }
   }
 
@@ -263,7 +283,11 @@ async function extractJupytextFrontmatter(
       'Done.',
       `- Title: ${extracted.title ?? '(none found)'}`,
       `- Keywords: ${extracted.keywords.length}`,
-      `- Author: ${extracted.contributor.name ?? '(none found)'}${extracted.contributor.orcid ? ` (ORCID ${extracted.contributor.orcid})` : ''}`,
+      extracted.contributors.length
+        ? `- Authors: ${extracted.contributors
+            .map((c) => `${c.name ?? '(no name)'}${c.orcid ? ` (ORCID ${c.orcid})` : ''}`)
+            .join('; ')}`
+        : '- Authors: (none found)',
       articleChanged
         ? `- Updated: ${path.relative(cwd, articlePath)}`
         : `- No change: ${path.relative(cwd, articlePath)}`,
