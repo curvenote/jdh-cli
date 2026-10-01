@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
 import { META_JDH_FILE } from '../src/init/bundled-assets.js';
 import {
-  SPA_PREVIEW_TEMPLATE,
+  DEFAULT_SITE_TEMPLATE,
   buildInitMystYaml,
   findExistingProjectConfig,
   initProjectConfig,
@@ -21,7 +21,7 @@ describe('init project config', () => {
     }
   });
 
-  test('buildInitMystYaml includes extends, id, github, and spa-preview site template', () => {
+  test('buildInitMystYaml includes extends, id, github, and the book-theme site template', () => {
     const yaml = buildInitMystYaml({
       projectId: 'test-uuid',
       github: 'https://github.com/jdh-observer/BHmHNQKJaSWT',
@@ -30,7 +30,7 @@ describe('init project config', () => {
     expect(yaml).toContain(META_JDH_FILE);
     expect(yaml).toContain('id: test-uuid');
     expect(yaml).toContain('github: https://github.com/jdh-observer/BHmHNQKJaSWT');
-    expect(yaml).toContain(`template: ${SPA_PREVIEW_TEMPLATE}`);
+    expect(yaml).toContain(`template: ${DEFAULT_SITE_TEMPLATE}`);
   });
 
   test('initProjectConfig creates myst.yml and bundled meta-jdh.yml', () => {
@@ -46,7 +46,7 @@ describe('init project config', () => {
     const myst = fs.readFileSync(result.mystPath, 'utf8');
     expect(myst).toMatch(/id: [0-9a-f-]{36}/);
     expect(myst).toContain(`extends:\n  - ${META_JDH_FILE}`);
-    expect(myst).toContain(SPA_PREVIEW_TEMPLATE);
+    expect(myst).toContain(DEFAULT_SITE_TEMPLATE);
 
     const meta = fs.readFileSync(result.metaJdhPath, 'utf8');
     expect(meta).toContain('license: CC-BY-NC-ND-4.0');

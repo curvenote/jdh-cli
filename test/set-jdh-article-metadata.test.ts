@@ -119,6 +119,7 @@ describe('setJdhArticleMetadata', () => {
 
   test('url falls back to the article URL from the folder name', async () => {
     const { root, workdir, myst } = setup('BHmHNQKJaSWT');
+    fs.writeFileSync(myst, 'version: 1\nproject:\n  id: abc\n');
     await setJdhArticleMetadata({
       cwd: workdir,
       projectRoot: root,
@@ -132,10 +133,28 @@ describe('setJdhArticleMetadata', () => {
 
   test('leaves myst.yml untouched when nothing can be resolved', async () => {
     const { root, workdir, myst } = setup('not-an-article');
+    fs.writeFileSync(myst, 'version: 1\nproject:\n  id: abc\n');
     const before = fs.readFileSync(myst, 'utf8');
     const result = await setJdhArticleMetadata({ cwd: workdir, projectRoot: root, dryRun: false });
     expect(result).toEqual({ doi: null, url: null });
     expect(fs.readFileSync(myst, 'utf8')).toBe(before);
+  });
+
+  test('a DOI and URL already in myst.yml (from the repo) are kept, with no lookup (JDH-012)', async () => {
+    const { root, workdir, myst } = setup('BHmHNQKJaSWT');
+    let calls = 0;
+    const result = await setJdhArticleMetadata({
+      cwd: workdir,
+      projectRoot: root,
+      dryRun: false,
+      fetch: async () => {
+        calls++;
+        return new Response('{}');
+      },
+    });
+    expect(calls).toBe(0);
+    expect(result).toEqual({ doi: '10.0/old', url: 'https://old.example' });
+    expect(readYaml<{ project: { doi: string } }>(myst).project.doi).toBe('10.0/old');
   });
 });
 

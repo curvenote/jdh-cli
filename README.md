@@ -26,7 +26,7 @@ jdh-cli build             # → _improved/article.pdf
 | `jdh-cli article.md` | Convert the article: runs the 14-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
 | `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
-| `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place | |
+| `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place; hand edits there win over derived values ([details](docs/cli.md#iterate-in-place)) | |
 | `jdh-cli --help` | Help for any command (`jdh-cli build --help`) | `--version` |
 
 Convert, `build` and `clean` also accept `--project-root <path>` (default: the input file's folder for convert, the current folder for `build` and `clean`) and `--workdir <path>` (default `_improved`).

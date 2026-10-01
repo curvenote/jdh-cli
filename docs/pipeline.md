@@ -15,7 +15,7 @@ jdh-cli article.md --list-steps
 | # | Step | Emits directives / side effects |
 | --- | --- | --- |
 | 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
-| 2 | Init myst.yml | Scaffold config; register all bundled plugins |
+| 2 | Init myst.yml | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins |
 | 3 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
 | 4 | Improve citation tags | Author–year citekeys |
 | 5 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords; the regions are removed from the article |

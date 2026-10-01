@@ -166,12 +166,22 @@ async function fetchOrcidPerson(orcid: string): Promise<{ displayName?: string }
   }
 }
 
-/** Set title, keywords and the authors in `project` of a myst.yml document. */
-function setMystProjectFrontmatter(doc: Document, extracted: ExtractedFrontmatter): void {
+/**
+ * Set title, keywords and the authors in `project` of a myst.yml document.
+ * A key that is already set came from the article repo's own myst.yml (the
+ * workdir is rebuilt on every run), so it is a hand edit and is kept.
+ * Returns the keys kept.
+ */
+function setMystProjectFrontmatter(doc: Document, extracted: ExtractedFrontmatter): string[] {
   if (!doc.has('project')) throw new Error('Project config has no `project:` block');
+  const kept: string[] = [];
+  const set = (key: string, value: unknown) => {
+    if (doc.hasIn(['project', key])) kept.push(`project.${key}`);
+    else doc.setIn(['project', key], value);
+  };
 
-  if (extracted.title) doc.setIn(['project', 'title'], extracted.title);
-  if (extracted.keywords.length) doc.setIn(['project', 'keywords'], extracted.keywords);
+  if (extracted.title) set('title', extracted.title);
+  if (extracted.keywords.length) set('keywords', extracted.keywords);
 
   const authors = extracted.contributors
     .filter((c) => c.name)
@@ -181,7 +191,8 @@ function setMystProjectFrontmatter(doc: Document, extracted: ExtractedFrontmatte
       ...(email ? { email } : {}),
       ...(affiliationLines.length ? { affiliations: affiliationLines } : {}),
     }));
-  if (authors.length) doc.setIn(['project', 'authors'], authors);
+  if (authors.length) set('authors', authors);
+  return kept;
 }
 
 function rewriteArticleMarkdown(md: string, extracted: ExtractedFrontmatter): string {
@@ -272,9 +283,12 @@ export async function extractJupytextFrontmatter(
   const articleChanged = newArticleMd !== articleMd;
   if (articleChanged) writeUtf8(articlePath, newArticleMd, options.dryRun);
 
+  let kept: string[] = [];
   const mystChanged = updateYamlFile(
     mystPath,
-    (doc) => setMystProjectFrontmatter(doc, extracted),
+    (doc) => {
+      kept = setMystProjectFrontmatter(doc, extracted);
+    },
     options.dryRun,
   );
 
@@ -294,6 +308,7 @@ export async function extractJupytextFrontmatter(
       mystChanged
         ? `- Updated: ${path.relative(cwd, mystPath)}`
         : `- No change: ${path.relative(cwd, mystPath)}`,
+      kept.length ? `- Kept from the repo's myst.yml: ${kept.join(', ')}` : null,
       options.dryRun ? '(dry-run: no files written)' : null,
     ]
       .filter(Boolean)

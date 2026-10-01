@@ -3,7 +3,7 @@ import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { resolveGithubFromGit } from '../shared/git.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
-import { updateYamlFile } from '../shared/yaml-doc.js';
+import { readYamlDocument, updateYamlFile } from '../shared/yaml-doc.js';
 
 const JDH_API = 'https://journalofdigitalhistory.org/api/articles';
 const JDH_ARTICLE_URL = 'https://journalofdigitalhistory.org/en/article';
@@ -131,6 +131,18 @@ export function resolveArticleId(projectRoot: string): string | null {
   return (github ? articleIdFromName(github) : null) ?? articleIdFromName(path.basename(projectRoot));
 }
 
+/** DOI and article URL already in a myst.yml, if any. */
+function existingProjectMetadata(configPath: string): { doi: string | null; url: string | null } {
+  try {
+    const doc = readYamlDocument(configPath);
+    const doi = doc.getIn(['project', 'doi']);
+    const url = doc.getIn(['project', 'social', 'url']);
+    return { doi: typeof doi === 'string' && doi ? doi : null, url: typeof url === 'string' && url ? url : null };
+  } catch {
+    return { doi: null, url: null };
+  }
+}
+
 /**
  * Write `project.doi` and `project.social.url` (MyST's key for a website link)
  * into myst.yml, replacing any existing values.
@@ -155,9 +167,14 @@ export async function setJdhArticleMetadata(options: {
   fetch?: Fetch;
 }): Promise<{ doi: string | null; url: string | null }> {
   const articleId = resolveArticleId(options.projectRoot);
-  // --doi is a pure override: nothing is fetched.
-  let doi = options.doi ? normalizeDoi(options.doi) : null;
-  let url = options.url ?? null;
+  // --doi is a pure override: nothing is fetched. Next, a value already in
+  // myst.yml (from the article repo's own file) is kept as a hand edit.
+  const configPath = resolveProjectConfigPath(options.cwd);
+  const existing = existingProjectMetadata(configPath);
+  let doi = options.doi ? normalizeDoi(options.doi) : existing.doi;
+  let url = options.url ?? existing.url;
+  if (!options.doi && existing.doi) process.stdout.write(`Kept project.doi from the repo's myst.yml: ${existing.doi}\n`);
+  if (!options.url && existing.url) process.stdout.write(`Kept project.social.url from the repo's myst.yml: ${existing.url}\n`);
 
   if (!doi && articleId) doi = await lookupDoi(articleId, options.fetch);
   if (!url && articleId) url = articleUrl(articleId);
@@ -177,7 +194,7 @@ export async function setJdhArticleMetadata(options: {
   if (options.dryRun) {
     process.stdout.write(`[dry-run] would set ${summary}\n`);
   } else {
-    writeProjectMetadata(resolveProjectConfigPath(options.cwd), doi, url);
+    writeProjectMetadata(configPath, doi, url);
     process.stdout.write(`Set ${summary}\n`);
   }
   return { doi, url };

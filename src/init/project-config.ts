@@ -9,8 +9,8 @@ import { META_JDH_FILE, readBundledMetaJdhTemplate } from './bundled-assets.js';
 export const MYST_CONFIG = 'myst.yml';
 export const LEGACY_CONFIG = 'curvenote.yml';
 
-export const SPA_PREVIEW_TEMPLATE =
-  'https://github.com/curvenote-themes/spa-preview/archive/refs/heads/main.zip';
+/** Same site template the pipeline uses (the PDF doesn't depend on it). */
+export const DEFAULT_SITE_TEMPLATE = 'book-theme';
 
 export type ExistingConfig = typeof MYST_CONFIG | typeof LEGACY_CONFIG;
 
@@ -35,7 +35,7 @@ export function buildInitMystYaml(options: {
         id: options.projectId,
         ...(options.github ? { github: options.github } : {}),
       },
-      site: { template: options.siteTemplate ?? SPA_PREVIEW_TEMPLATE },
+      site: { template: options.siteTemplate ?? DEFAULT_SITE_TEMPLATE },
     },
     'See docs at: https://mystmd.org/guide/frontmatter',
   );

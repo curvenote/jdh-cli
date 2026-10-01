@@ -88,7 +88,23 @@ jdh-cli init            # current directory
 jdh-cli init ../my-article
 ```
 
-Creates `myst.yml` (with `extends: meta-jdh.yml`) and copies the bundled `meta-jdh.yml`. Reports "already initialized" if `myst.yml` or legacy `curvenote.yml` is present.
+Creates `myst.yml` (with `extends: meta-jdh.yml`, `project.id`, `project.github` and `site.template: book-theme`) and copies the bundled `meta-jdh.yml`. Reports "already initialized" if `myst.yml` or legacy `curvenote.yml` is present.
+
+### Iterate in place
+
+Hand edits to the repo's `myst.yml` and `meta-jdh.yml` carry through every convert:
+
+```bash
+jdh-cli init                  # once: myst.yml + meta-jdh.yml in the repo
+# edit myst.yml / meta-jdh.yml
+jdh-cli article.md            # convert (the workdir is rebuilt)
+jdh-cli build                 # PDF
+```
+
+- **The repo's `myst.yml` is the base** of the workdir config. jdh-cli adds only what it needs: `project.id`, its bundled plugins (alongside any you list), `extends: meta-jdh.yml`, and `toc` and `site.template` when missing. Everything else is kept: exports, extra frontmatter, comments.
+- **Your values win** over what jdh-cli derives. If the repo's `myst.yml` sets `project.title`, `keywords`, `authors`, `doi`, `social.url` or `github`, the notebook and API values are not written, and the convert log says "Kept from the repo's myst.yml". Use this to correct metadata by hand, e.g. keywords the notebook formats oddly.
+- **Flags win over both:** `--doi` and `--url`.
+- **Edits made directly in `_improved/myst.yml`** survive `jdh-cli build`, but are lost on the next convert. Make lasting edits in the repo's files.
 
 ## Clean (`jdh-cli clean`)
 
