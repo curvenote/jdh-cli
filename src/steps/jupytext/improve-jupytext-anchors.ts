@@ -14,10 +14,6 @@ export function anchorLabel(tag: string): string {
   return tag.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/-+$/, '');
 }
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /**
  * Make `[text](#anchor-…)` links resolve. A figure, video or sound cell is linked
  * through its own label; any other cell gets a `(anchor-…)=` target (inside a
@@ -49,9 +45,12 @@ export function processArticle(content: string): { content: string; anchors: str
     out.push(line);
   });
   let result = out.join('\n');
-  for (const [anchor, label] of targets) {
-    result = result.replace(new RegExp(`\\]\\(#${escapeRegExp(anchor)}\\)`, 'g'), `](#${label})`);
-  }
+  // Match links by their clean label: `#anchor-section-3-*` reaches a cell tagged `anchor-section-3`.
+  const byLabel = new Map([...targets].map(([anchor, label]) => [anchorLabel(anchor), label]));
+  result = result.replace(/\]\(#(anchor-[^)\s]*)\)/gi, (link: string, anchor: string) => {
+    const label = byLabel.get(anchorLabel(anchor));
+    return label ? `](#${label})` : link;
+  });
   return { content: result, anchors: [...targets.keys()] };
 }
 

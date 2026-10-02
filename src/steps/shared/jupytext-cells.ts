@@ -27,7 +27,8 @@ export function parseCellTags(line: string): string[] {
 export function findJupytextCells(lines: readonly string[]): JupytextCell[] {
   const cells: JupytextCell[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const region = lines[i].match(/^<!--\s*#(region|raw)\b/);
+    // No word boundary: some notebooks have `<!-- #regioneditable=true … -->` (DQnMN3c5JU95).
+    const region = lines[i].match(/^<!--\s*#(region|raw)/);
     const fence = lines[i].match(/^(`{3,})/);
     if (!region && !fence) continue;
     const close = region ? new RegExp(`^<!--\\s*#end${region[1]}\\s*-->`) : new RegExp(`^\`{${fence![1].length},}\\s*$`);

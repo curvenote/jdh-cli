@@ -40,6 +40,11 @@ describe('dropHiddenCells', () => {
     expect(content).toBe(['Last paragraph.', '', '<!-- #region tags=["hermeneutics"] -->', 'Kept.', '<!-- #endregion -->'].join('\n'));
   });
 
+  test('a region marker with no space before its metadata (DQnMN3c5JU95)', () => {
+    const md = ['<!-- #regioneditable=true tags=["hidden"] -->', 'Not for the PDF.', '<!-- #endregion -->', '', 'Kept.'].join('\n');
+    expect(dropHidden(md).content).toBe('Kept.');
+  });
+
   test('no hidden cells: unchanged', () => {
     const md = '<!-- #region tags=["hermeneutics"] -->\nText with the word hidden.\n<!-- #endregion -->';
     expect(dropHidden(md)).toEqual({ content: md, dropped: 0 });
@@ -78,6 +83,11 @@ describe('improveJupytextAnchors', () => {
     const { content } = linkAnchors(md);
     expect(content).toContain('(anchor-section-2)=\n## Two');
     expect(content).toContain('See [section 2](#anchor-section-2).');
+  });
+
+  test('a link with a trailing wildcard reaches a tag without one (boXXEPfnFTRe)', () => {
+    const md = ['<!-- #region tags=["anchor-section-3"] -->', '## Three', '<!-- #endregion -->', '', 'See [section 3](#anchor-section-3-*).'].join('\n');
+    expect(linkAnchors(md).content).toContain('See [section 3](#anchor-section-3).');
   });
 
   test('code cells get a target in front of the fence', () => {
