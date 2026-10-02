@@ -24,6 +24,21 @@ describe('improve notebook figures', () => {
     expect(content).toContain('[](#fig:1)');
   });
 
+  test('link text naming a figure is kept (52s3BFHa5Miy "Figure 4: Left")', () => {
+    const input = [
+      'Explorer ([Figure 1: Left](#fig:1)), as Figure 1 shows.',
+      '',
+      '```python tags=["figure-1-*"]',
+      'metadata={"jdh":{"object":{"source":["Figure 1. A chart."]}}}',
+      'display(Image("./media/figure1.png"), metadata=metadata)',
+      '```',
+    ].join('\n');
+
+    const { content } = processArticle(input);
+
+    expect(content).toContain('Explorer ([Figure 1: Left](#fig:1)), as [](#fig:1) shows.');
+  });
+
   test('rewrites legacy code:fig cross-references to fig:N', () => {
     const input = [
       'See the source at [](#code:fig:1) and {ref}`code:fig:1`.',

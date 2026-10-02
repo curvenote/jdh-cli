@@ -77,7 +77,7 @@ function parseTagsFromFenceLine(line: string): string[] {
 }
 
 /** First figure, video or audio tag as a MyST label (fig:…, vid:…, aud:…), or null for other cells. */
-function firstFigureTag(tags: string[]): string | null {
+export function firstFigureTag(tags: string[]): string | null {
   const normalized = tags.find((t) => /^(fig|vid|aud):/i.test(t));
   if (normalized) return normalized;
   const found = kindFromTags(tags);
@@ -411,7 +411,8 @@ export function processArticle(
   }
 
   for (const [num, label] of figureNumToLabel) {
-    const re = new RegExp('(^|[^\\w{(#`])Figure\\s+' + num + '\\b([^\\w}]|$)', 'gi');
+    // Not inside link text: `[Figure 4: Left](#fig:4)` keeps its words.
+    const re = new RegExp('(^|[^\\w{(#`[])Figure\\s+' + num + '\\b([^\\w}]|$)', 'gi');
     result = result.replace(re, (match: string, before: string, after: string, offset: number) => {
       if (inSkip(offset)) return match;
       return before + '[](#' + label + ')' + after;
