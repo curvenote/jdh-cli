@@ -8,6 +8,6 @@ export function imageFormat(bytes: Buffer): 'png' | 'jpg' | 'gif' | null {
 
 /** True for SVG text (optionally after a BOM, XML declaration, comments or doctype). */
 export function isSvg(bytes: Buffer): boolean {
-  const head = bytes.subarray(0, 4096).toString('utf8').replace(/^﻿/, '');
+  const head = bytes.subarray(0, 4096).toString('utf8').replace(/^\uFEFF/, '');
   return /^\s*(<\?xml[\s\S]*?\?>\s*)?(<!--[\s\S]*?-->\s*|<!DOCTYPE[^>]*>\s*)*<svg[\s>]/i.test(head);
 }
