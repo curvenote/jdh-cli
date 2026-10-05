@@ -15,17 +15,19 @@ import { stringToTypstText } from './lib/typst-text.mjs';
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
-/** Plain text of a dialogue cell: entities decoded, tags dropped, whitespace collapsed. */
+/** Plain text of a dialogue cell: entities decoded, tags dropped, `<br>` kept as a newline. */
 function cellText(raw) {
   return String(raw ?? '')
-    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '')
     .replace(/&(#\d+|[a-z]+);/gi, (m, e) =>
       e[0] === '#' ? String.fromCodePoint(Number(e.slice(1))) : (ENTITIES[e.toLowerCase()] ?? m),
     )
     .replace(/\\([\\`*_[\]{}()#+\-.!|])/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**
@@ -46,7 +48,8 @@ export function parseDialogue(markdown) {
 
 /** Typst call for the template's `jdh-dialogue` function. */
 export function dialogueToTypst({ speakers, rows }) {
-  const content = (t) => `[${stringToTypstText(t)}]`;
+  // Each transcribed `<br>` segment goes on its own line (Typst's `\` line break).
+  const content = (t) => `[${t.split('\n').map(stringToTypstText).join(' \\ ')}]`;
   const tuple = (items) => `(${items.join(', ')},)`;
   return `#jdh-dialogue(speakers: ${tuple(speakers.map(content))}, rows: ${
     rows.length ? tuple(rows.map((r) => tuple(r.map((c) => (c ? content(c) : 'none'))))) : '()'

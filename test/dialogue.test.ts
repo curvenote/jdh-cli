@@ -33,9 +33,20 @@ describe('parseDialogue', () => {
     ]);
   });
 
+  test('<br> segments are kept as lines (Chronoferencing transcripts)', () => {
+    const md = '| Termine |\n|---|\n| from Italy to Slovenia<br> like on the regular basis daily<br> so to me |';
+    expect(parseDialogue(md).rows).toEqual([['from Italy to Slovenia\nlike on the regular basis daily\nso to me']]);
+  });
+
   test('a single speaker', () => {
     expect(parseDialogue('| Termime |\n|---|\n| A monologue. |')).toEqual({ speakers: ['Termime'], rows: [['A monologue.']] });
   });
+});
+
+test('dialogueToTypst breaks lines between <br> segments', () => {
+  expect(dialogueToTypst({ speakers: ['A'], rows: [['one\ntwo #2']] })).toBe(
+    '#jdh-dialogue(speakers: ([A],), rows: (([one \\ two \\#2],),))\n',
+  );
 });
 
 test('dialogueToTypst writes Typst arrays and escapes text', () => {
