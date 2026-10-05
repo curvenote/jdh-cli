@@ -23,15 +23,15 @@ function runCli(args: string[], cwd: string): { status: number; stdout: string; 
   };
 }
 
-describe('jupytext pipeline', () => {
+// Needs the BHmHNQKJaSWT article repo next to jdh-cli (the ~/dev/jdh workspace); CI doesn't have it.
+const hasArticle = fileExists(path.join(ARTICLE_REPO, 'article.md'));
+
+describe.skipIf(!hasArticle)('jupytext pipeline', () => {
   let tmpDir: string;
 
   beforeEach(() => {
     if (!fileExists(CLI)) {
       throw new Error(`Build jdh-cli first: bun run build (missing ${CLI})`);
-    }
-    if (!fileExists(path.join(ARTICLE_REPO, 'article.md'))) {
-      throw new Error(`Article fixture not found: ${ARTICLE_REPO}`);
     }
   });
 

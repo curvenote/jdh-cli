@@ -24,5 +24,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # The pipeline tests run the built CLI (dist/jdh-cli.cjs).
+      - name: Build
+        run: bun run build
+
       - name: Test
         run: bun test
