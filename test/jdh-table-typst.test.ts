@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   buildTypstTableWrap,
+  columnWidths,
   replaceTableWithTypstWrap,
   stringToTypstText,
   tableNodeToTypst,
@@ -91,5 +92,30 @@ describe('jdh-table Typst serialization', () => {
     expect(children[1].type).toBe('paragraph');
     expect(children[2]).toBe(wrap);
     expect(children[2].children[0].type).toBe('raw');
+  });
+});
+
+describe('columnWidths', () => {
+  test('even content keeps equal columns', () => {
+    expect(columnWidths([['Year', 'Results'], ['1996', '3'], ['1997', '216']], 1)).toEqual(['1fr', '1fr']);
+  });
+
+  test('a data table with short and long values stays equal', () => {
+    expect(columnWidths([['id', 'name', 'value'], ['1', 'Christian Democratic Union', '0.31'], ['2', 'Social Democratic Party', '0.27']], 1)).toEqual(['1fr', '1fr', '1fr']);
+  });
+
+  test('paragraph columns next to ids get the width (Chronoferencing Table 4)', () => {
+    const long = 'When speaking about geopolitical and economic borders this is true '.repeat(20);
+    const rows = [
+      ['PostID', 'PostText', 'User who uploaded Post', 'CommentID', 'CommentText', 'User who made Comment', 'Role'],
+      ['21', long.slice(0, 500), 'Binghost', '30', long, 'Deadsaint', 'Citizen scientist'],
+      ['33', long.slice(0, 300), 'Gich', '41', long.slice(0, 900), 'GamingScorpion', 'CS'],
+    ];
+    const widths = columnWidths(rows, 1).map((w) => parseInt(w, 10));
+    expect(widths[1]).toBe(60);
+    expect(widths[4]).toBe(60);
+    expect(widths[0]).toBeLessThan(10);
+    // No column narrower than its longest word (capped at 15).
+    expect(widths[2]).toBeGreaterThanOrEqual('uploaded'.length);
   });
 });

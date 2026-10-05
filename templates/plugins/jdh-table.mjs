@@ -232,13 +232,47 @@ function typstCell(text) {
   return `[${stringToTypstText(text)}]`;
 }
 
+/** Longest run of non-space characters in a cell. */
+function longestWord(text) {
+  return Math.max(0, ...String(text ?? '').split(/\s+/).map((w) => w.length));
+}
+
+/**
+ * Typst column widths for a table, from its cell text (header rows first).
+ *
+ * Equal `1fr` columns, unless a column holds running text (cells averaging
+ * 30+ characters) next to much narrower ones, e.g. paragraphs beside ids
+ * (Chronoferencing Table 4, JDH-040). Then
+ * each column gets a share by its average data-cell length, never less than
+ * its longest word (capped), so text columns are wide enough to keep rows
+ * shorter than a page.
+ * @param {string[][]} rows
+ * @param {number} headerRows
+ */
+function columnWidths(rows, headerRows) {
+  const columns = Math.max(0, ...rows.map((r) => r.length));
+  const data = rows.slice(headerRows);
+  const weights = Array.from({ length: columns }, (_, i) => {
+    const lengths = data.map((r) => String(r[i] ?? '').length);
+    const average = lengths.length ? lengths.reduce((a, b) => a + b, 0) / lengths.length : 0;
+    const word = Math.min(15, Math.max(...rows.map((r) => longestWord(r[i]))));
+    return Math.round(Math.min(60, Math.max(3, average, word)));
+  });
+  const widest = Math.max(0, ...weights);
+  // Only tables with a column of running text (paragraphs, not numbers or names) change.
+  if (widest < 30 || widest <= 3 * Math.min(...weights)) return weights.map(() => '1fr');
+  return weights.map((w) => `${w}fr`);
+}
+
 /** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */
 function tableNodeToTypst(tableNode, hiddenRows = 0) {
   const columns = countColumns(tableNode);
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
   const dataRowCount = rows.filter((row) => !isHeaderRow(row)).length;
-  const colSpec = Array.from({ length: columns }, () => '1fr').join(', ');
+  const cellTexts = rows.map((row) => (row.children ?? []).filter((child) => child.type === 'tableCell').map(childText));
+  const widths = columnWidths(cellTexts, headerRows);
+  const colSpec = (widths.length === columns ? widths : Array.from({ length: columns }, () => '1fr')).join(', ');
   let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows}, hidden-rows: ${hiddenRows}, data-rows: ${dataRowCount})\n#tablex(columns: (${colSpec}), header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
   for (const row of rows) {
     for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
@@ -345,6 +379,7 @@ export default plugin;
 
 /** @internal Exported for unit tests only. */
 export {
+  columnWidths,
   buildTypstTableWrap,
   replaceTableWithTypstWrap,
   stringToTypstText,
