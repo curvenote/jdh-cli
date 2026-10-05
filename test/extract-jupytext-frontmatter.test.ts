@@ -5,6 +5,7 @@ import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import {
   extractFrontmatter,
   extractJupytextFrontmatter,
+  parseKeywords,
   stripOrcidMarkdownFromName,
 } from '../src/steps/jupytext/extract-jupytext-frontmatter.js';
 import { readYaml } from '../src/steps/shared/yaml-doc.js';
@@ -108,5 +109,32 @@ describe('extractJupytextFrontmatter', () => {
     expect(md).not.toContain('contributor');
     expect(md).not.toContain('Jaschik');
     expect(md).toContain('# Chronoferencing the Borderlands');
+  });
+});
+
+describe('parseKeywords', () => {
+  test('a comma list', () => {
+    expect(parseKeywords('Radio Studies, Public Service Broadcasting, Audio Analysis')).toEqual([
+      'Radio Studies',
+      'Public Service Broadcasting',
+      'Audio Analysis',
+    ]);
+  });
+
+  test('a bold label, semicolons and a full stop (MiDeVUZqdmue)', () => {
+    expect(parseKeywords('**Keywords:** history of education; reflexivity; teacher training; cross-curricular skills.')).toEqual([
+      'history of education',
+      'reflexivity',
+      'teacher training',
+      'cross-curricular skills',
+    ]);
+  });
+
+  test('a plain label', () => {
+    expect(parseKeywords('Keywords: digital epigraphy; FAIR science; Latin inscriptions')).toEqual([
+      'digital epigraphy',
+      'FAIR science',
+      'Latin inscriptions',
+    ]);
   });
 });

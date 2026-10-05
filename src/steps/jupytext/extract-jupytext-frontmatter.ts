@@ -129,16 +129,22 @@ export function parseContributor(content: string): Contributor {
   return { name: name || null, affiliationLines, orcid, email };
 }
 
-function parseKeywords(content: string): string[] {
+/**
+ * Keywords from the tagged cell. Usually a comma list; some authors write
+ * `**Keywords:** a; b; c.` (MiDeVUZqdmue), so a leading label is dropped,
+ * `;` also separates, and emphasis and a closing full stop are trimmed (JDH-036).
+ */
+export function parseKeywords(content: string): string[] {
   const line = content
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
-    .join(' ');
+    .join(' ')
+    .replace(/^[*_\s]*key\s*words?\s*[*_]*\s*:\s*[*_]*/i, '');
   if (!line) return [];
   return line
-    .split(',')
-    .map((k) => k.trim())
+    .split(/[,;]/)
+    .map((k) => k.replace(/^[*_\s]+|[*_\s]+$/g, '').replace(/\.$/, '').trim())
     .filter(Boolean);
 }
 
