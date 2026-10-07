@@ -20,6 +20,7 @@ export { improveHermeneuticsBlocksStep } from './improve-hermeneutics-blocks.js'
 export { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 export { dropHiddenCellsStep } from './drop-hidden-cells.js';
 export { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
+export { numberCellsStep } from './number-cells.js';
 
 /** Region / notebook transforms (run after extract-jupytext-parts in the full jupytext chain). */
 export const jupytextTransformSteps: PipelineStep[] = [

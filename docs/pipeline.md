@@ -4,7 +4,7 @@ title: Improve pipeline
 
 # Improve pipeline
 
-The **jupytext** ruleset runs 14 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
+The **jupytext** ruleset runs 17 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
 
 ```bash
 jdh-cli article.md --list-steps
@@ -16,20 +16,40 @@ jdh-cli article.md --list-steps
 | --- | --- | --- |
 | 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
 | 2 | Init myst.yml | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins |
-| 3 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
-| 4 | Improve citation tags | Author–year citekeys |
-| 5 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords; the regions are removed from the article |
-| 6 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
-| 7 | Extract jupytext parts | Page-level frontmatter from document parts |
-| 8 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |
-| 9 | Improve notebook tables | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped |
-| 10 | Improve Jupytext tables | `` ```{jdh-table} `` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links |
-| 11 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
-| 12 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
-| 13 | Set project.github | `project.github` from git remote |
-| 14 | Set DOI and website | `project.doi` from the JDH API, `project.social.url` = JDH article page (see [CLI](cli.md#doi-and-url)) |
+| 3 | Number cells | A `#jdh-cell(n)` marker before each markdown cell: paragraph numbers as on the JDH website (see [Paragraph numbers](#paragraph-numbers)) |
+| 4 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
+| 5 | Improve citation tags | Author–year citekeys |
+| 6 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords (a `Keywords:` label, `;` and `,` all handled); the regions are removed from the article |
+| 7 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
+| 8 | Extract jupytext parts | Page-level frontmatter from document parts (abstract, copyright) |
+| 9 | Drop hidden cells | Cells tagged `hidden` are removed |
+| 10 | Improve anchors | `anchor-*` tags → MyST targets, so `[text](#anchor-…)` links resolve |
+| 11 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |
+| 12 | Improve notebook tables | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped |
+| 13 | Improve Jupytext tables | `` ```{jdh-table} `` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links |
+| 14 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
+| 15 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
+| 16 | Set project.github | `project.github` from git remote |
+| 17 | Set article metadata | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url)) |
 
-Steps 8–12 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
+Steps 11–15 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
+
+## Paragraph numbers
+
+The PDF numbers paragraphs as the JDH website does (JDH-042), so "¶40" refers to the same text in print and online.
+
+- **One number per notebook cell, in notebook order.** Code cells, figures, tables and hidden cells take a number too. Only metadata cells are skipped: those tagged `title`, `abstract`, `contributor`, `collaborators`, `keywords` or `disclaimer`. The rule is ported from the website's `src/logic/ipynb.jsx` (C2DH/journal-of-digital-history).
+- **Only markdown cells show their number**, on the cell's first block (paragraph, heading, quote or list). A cell with several paragraphs shows one number. Code, figure and hidden cells show none, so the numbers have **gaps**, as online. The copyright cell takes a number online but moves to the front matter, so the first number in the body can be 2 or 3.
+- **How:** step 3 reads `article.ipynb`, numbers the cells, and puts a raw Typst marker before each shown markdown cell in `article.md` (before its `<!-- #region … -->` line, if it has one):
+
+  ````markdown
+  ```{raw:typst}
+  #jdh-cell(7)
+  ```
+  ````
+
+  Cells are found by the first 40 characters of their first line, searching forward, so later rewrites of the rest of the line (e.g. citations) don't matter. Cells it can't find are reported and get no number. The template's `jdh-cell(n)` shows `n` on the next block. Without any markers (no `article.ipynb`), the template numbers paragraphs in order, as before.
+- Dialogue cells get no marker: they become "Dialogue N" figures.
 
 ## Workdir layout
 

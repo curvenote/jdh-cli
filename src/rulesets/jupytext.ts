@@ -12,6 +12,7 @@ import {
   extractJupytextFrontmatterStep,
   extractJupytextPartsStep,
   jupytextTransformSteps,
+  numberCellsStep,
 } from '../steps/jupytext/index.js';
 
 export const jupytextRuleset: Ruleset = {
@@ -20,6 +21,7 @@ export const jupytextRuleset: Ruleset = {
   steps: [
     prepareWorkdirStep,
     initMystConfigStep,
+    numberCellsStep,
     citationsJupyterZoteroStep,
     improveCitationTagsStep,
     extractJupytextFrontmatterStep,
