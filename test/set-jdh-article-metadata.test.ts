@@ -6,6 +6,9 @@ import {
   articleIdFromName,
   articleUrl,
   doiFromArticleRecord,
+  dateFromPublicationDate,
+  licenseFromCopyrightText,
+  licenseFromCopyrightType,
   lookupDoi,
   normalizeDoi,
   setJdhArticleMetadata,
@@ -89,8 +92,9 @@ describe('setJdhArticleMetadata', () => {
       dryRun: false,
       doi: 'https://doi.org/10.1515/jdh-2025-0002',
       url: 'https://example.org/article',
+      fetch: async () => new Response('{}', { status: 404 }),
     });
-    expect(result).toEqual({ doi: '10.1515/jdh-2025-0002', url: 'https://example.org/article' });
+    expect(result).toMatchObject({ doi: '10.1515/jdh-2025-0002', url: 'https://example.org/article' });
     expect(readYaml(myst)).toEqual({
       version: 1,
       project: {
@@ -110,6 +114,7 @@ describe('setJdhArticleMetadata', () => {
       dryRun: false,
       doi: '10.1515/jdh-2025-0002',
       url: 'https://example.org/article',
+      fetch: async () => new Response('{}', { status: 404 }),
     });
     expect(readYaml(myst)).toEqual({
       version: 1,
@@ -125,6 +130,7 @@ describe('setJdhArticleMetadata', () => {
       projectRoot: root,
       dryRun: false,
       doi: '10.1515/jdh-2025-0002',
+      fetch: async () => new Response('{}', { status: 404 }),
     });
     expect(readYaml<{ project: { social: { url: string } } }>(myst).project.social.url).toBe(
       articleUrl('BHmHNQKJaSWT'),
@@ -136,24 +142,20 @@ describe('setJdhArticleMetadata', () => {
     fs.writeFileSync(myst, 'version: 1\nproject:\n  id: abc\n');
     const before = fs.readFileSync(myst, 'utf8');
     const result = await setJdhArticleMetadata({ cwd: workdir, projectRoot: root, dryRun: false });
-    expect(result).toEqual({ doi: null, url: null });
+    expect(result).toEqual({ doi: null, url: null, date: null, license: null, issue: null });
     expect(fs.readFileSync(myst, 'utf8')).toBe(before);
   });
 
-  test('a DOI and URL already in myst.yml (from the repo) are kept, with no lookup (JDH-012)', async () => {
+  test('a DOI and URL already in myst.yml (from the repo) are kept; the API fills only the rest (JDH-012)', async () => {
     const { root, workdir, myst } = setup('BHmHNQKJaSWT');
-    let calls = 0;
     const result = await setJdhArticleMetadata({
       cwd: workdir,
       projectRoot: root,
       dryRun: false,
-      fetch: async () => {
-        calls++;
-        return new Response('{}');
-      },
+      fetch: async () =>
+        new Response(JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2099-0001' }, publication_date: '2025-07-24T10:07:42+02:00' })),
     });
-    expect(calls).toBe(0);
-    expect(result).toEqual({ doi: '10.0/old', url: 'https://old.example' });
+    expect(result).toMatchObject({ doi: '10.0/old', url: 'https://old.example', date: '2025-07-24' });
     expect(readYaml<{ project: { doi: string } }>(myst).project.doi).toBe('10.0/old');
   });
 });
@@ -244,21 +246,71 @@ describe('setJdhArticleMetadata with the API', () => {
     return { root, workdir, myst };
   }
 
-  test('--doi wins without a network call', async () => {
+  test('--doi wins over the API record', async () => {
     const { root, workdir } = setup();
-    let calls = 0;
     const result = await setJdhArticleMetadata({
       cwd: workdir,
       projectRoot: root,
       dryRun: false,
       doi: '10.1515/jdh-2099-0001',
+      fetch: async () => new Response(JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' } })),
+    });
+    expect(result.doi).toBe('10.1515/jdh-2099-0001');
+  });
+
+  test('date, licence, issue and the article URL export option come from the record (JDH-041)', async () => {
+    const { root, workdir, myst } = setup();
+    fs.writeFileSync(
+      path.join(workdir, 'meta-jdh.yml'),
+      'version: 1\nproject:\n  license: CC-BY-NC-ND-4.0\n  exports:\n    - format: pdf\n      template: ../jdh-typst-template\n',
+    );
+    let calls = 0;
+    const result = await setJdhArticleMetadata({
+      cwd: workdir,
+      projectRoot: root,
+      dryRun: false,
       fetch: async () => {
         calls++;
-        return new Response('{}');
+        return new Response(
+          JSON.stringify({
+            citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' },
+            publication_date: '2025-03-20T08:43:43+01:00',
+            copyright_type: 'CC_BY',
+            issue: { name: 'Varia', pid: 'jdh004' },
+          }),
+        );
       },
     });
-    expect(calls).toBe(0);
-    expect(result.doi).toBe('10.1515/jdh-2099-0001');
+    expect(calls).toBe(1);
+    expect(result).toEqual({
+      doi: '10.1515/jdh-2023-0020',
+      url: articleUrl('6ig87tC5GKjQ'),
+      date: '2025-03-20',
+      license: 'CC-BY-4.0',
+      issue: 'Varia',
+    });
+    const project = readYaml<{ project: Record<string, unknown> }>(myst).project;
+    expect(project.date).toBe('2025-03-20');
+    expect(project.license).toBe('CC-BY-4.0');
+    expect(project.venue).toEqual({ title: 'Varia' });
+    const meta = readYaml<{ project: { exports: { article_url?: string; forthcoming?: boolean }[] } }>(path.join(workdir, 'meta-jdh.yml'));
+    expect(meta.project.exports[0].article_url).toBe(articleUrl('6ig87tC5GKjQ'));
+    expect(meta.project.exports[0].forthcoming).toBe(false);
+  });
+
+  test('not yet public: no date, licence from the copyright cell', async () => {
+    const { root, workdir } = setup();
+    fs.writeFileSync(
+      path.join(workdir, 'article.md'),
+      '---\nparts:\n  copyright: "© HEP-VD. … the [Creative Commons Attribution License CC-BY-NC-ND](https://creativecommons.org/licenses/by-nc-nd/4.0/)"\n---\n\nText\n',
+    );
+    const result = await setJdhArticleMetadata({
+      cwd: workdir,
+      projectRoot: root,
+      dryRun: false,
+      fetch: async () => new Response('{"detail":"Authentication credentials were not provided."}', { status: 403 }),
+    });
+    expect(result).toMatchObject({ date: null, license: 'CC-BY-NC-ND-4.0', issue: null });
   });
 
   test('sets the DOI from the API record', async () => {
@@ -280,7 +332,27 @@ describe('setJdhArticleMetadata with the API', () => {
       dryRun: false,
       fetch: async () => new Response('{}', { status: 404 }),
     });
-    expect(result).toEqual({ doi: null, url: articleUrl('6ig87tC5GKjQ') });
+    expect(result).toEqual({ doi: null, url: articleUrl('6ig87tC5GKjQ'), date: null, license: null, issue: null });
     expect(readYaml<{ project: Record<string, unknown> }>(myst).project.doi).toBeUndefined();
+  });
+});
+
+describe('API field helpers (JDH-041)', () => {
+  test('licenseFromCopyrightType', () => {
+    expect(licenseFromCopyrightType('CC_BY')).toBe('CC-BY-4.0');
+    expect(licenseFromCopyrightType('CC_BY_NC_ND')).toBe('CC-BY-NC-ND-4.0');
+    expect(licenseFromCopyrightType('ALL_RIGHTS_RESERVED')).toBeNull();
+    expect(licenseFromCopyrightType(undefined)).toBeNull();
+  });
+
+  test('licenseFromCopyrightText', () => {
+    expect(licenseFromCopyrightText('[License CC-BY](https://creativecommons.org/licenses/by/4.0/)')).toBe('CC-BY-4.0');
+    expect(licenseFromCopyrightText('under the terms of the Creative Commons Attribution License CC-BY-NC-ND')).toBe('CC-BY-NC-ND-4.0');
+    expect(licenseFromCopyrightText('All rights reserved')).toBeNull();
+  });
+
+  test('dateFromPublicationDate keeps the day as published', () => {
+    expect(dateFromPublicationDate('2025-07-24T10:07:42+02:00')).toBe('2025-07-24');
+    expect(dateFromPublicationDate(null)).toBeNull();
   });
 });

@@ -81,8 +81,8 @@ export async function installSuppliedSidebarImages(
   return supplied;
 }
 
-/** Set `qr_code` / `fingerprint` on every templated export in a MyST config file. */
-export function pointExportsAtSidebarImages(configPath: string, paths: ReadonlyMap<string, string>): boolean {
+/** Set template options (`qr_code`, `fingerprint`, `article_url`, …) on every templated export in a MyST config file. */
+export function pointExportsAtSidebarImages(configPath: string, paths: ReadonlyMap<string, string | boolean>): boolean {
   if (!paths.size || !fileExists(configPath)) return false;
   return updateYamlFile(configPath, (doc) => {
     const exports = doc.getIn(['project', 'exports']);

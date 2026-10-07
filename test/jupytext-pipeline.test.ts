@@ -74,7 +74,8 @@ describe.skipIf(!hasArticle)('jupytext pipeline', () => {
       'Maximilian C. Teich',
     );
     expect(fileExists(path.join(improved, 'plugins', 'hermeneutics.mjs'))).toBe(true);
-    expect(myst).not.toContain('license:');
+    // The article's own licence, from the JDH API or its copyright cell (JDH-041).
+    expect(readYaml<{ project: { license: string } }>(path.join(improved, 'myst.yml')).project.license).toBe('CC-BY-NC-ND-4.0');
     expect(fileExists(path.join(improved, 'meta-jdh.yml'))).toBe(true);
     const meta = fs.readFileSync(path.join(improved, 'meta-jdh.yml'), 'utf8');
     expect(meta).toContain('license: CC-BY-NC-ND-4.0');

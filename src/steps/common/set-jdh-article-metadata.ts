@@ -1,9 +1,12 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
+import { pointExportsAtSidebarImages } from '../../engine/sidebar-images.js';
+import { META_JDH_FILE } from '../../init/bundled-assets.js';
 import { resolveGithubFromGit } from '../shared/git.js';
 import { resolveProjectConfigPath } from '../shared/myst-config.js';
-import { readYamlDocument, updateYamlFile } from '../shared/yaml-doc.js';
+import { parseMarkdownFrontmatter, readYamlDocument, updateYamlFile } from '../shared/yaml-doc.js';
 
 const JDH_API = 'https://journalofdigitalhistory.org/api/articles';
 const JDH_ARTICLE_URL = 'https://journalofdigitalhistory.org/en/article';
@@ -16,6 +19,33 @@ interface JdhArticleRecord {
   doi?: unknown;
   citation?: { URL?: unknown };
   abstract?: { pid?: unknown };
+  publication_date?: unknown;
+  copyright_type?: unknown;
+  issue?: { name?: unknown };
+}
+
+/** MyST licence id for the API's `copyright_type`: `CC_BY_NC_ND` → `CC-BY-NC-ND-4.0`. */
+export function licenseFromCopyrightType(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^CC_BY(_(NC|ND|SA))*$/i.test(value.trim())) return null;
+  return `${value.trim().toUpperCase().replace(/_/g, '-')}-4.0`;
+}
+
+/**
+ * MyST licence id from the article's copyright text, for articles not yet in
+ * the API: the Creative Commons link (`licenses/by-nc-nd/4.0`) or the name
+ * (`CC-BY-NC-ND`).
+ */
+export function licenseFromCopyrightText(text: string): string | null {
+  const m =
+    text.match(/creativecommons\.org\/licenses\/(by(?:-nc)?(?:-nd|-sa)?)\//i) ??
+    text.match(/\bCC[- ](BY(?:-NC)?(?:-ND|-SA)?)\b/i);
+  return m ? `CC-${m[1].toUpperCase()}-4.0` : null;
+}
+
+/** Publication day (`YYYY-MM-DD`) from the API's timestamp, in the timezone it was given in. */
+export function dateFromPublicationDate(value: unknown): string | null {
+  const m = typeof value === 'string' ? value.match(/^(\d{4}-\d{2}-\d{2})/) : null;
+  return m ? m[1] : null;
 }
 
 /** Extract a JDH article id from a repo name or GitHub URL, or null. */
@@ -100,7 +130,13 @@ async function fetchArticleRecord(
  * and a record with no usable `doi`.
  */
 export async function lookupDoi(articleId: string, fetchImpl: Fetch = fetch): Promise<string | null> {
-  const result = await fetchArticleRecord(articleId, fetchImpl);
+  return doiFromLookup(articleId, await fetchArticleRecord(articleId, fetchImpl));
+}
+
+function doiFromLookup(
+  articleId: string,
+  result: { record: JdhArticleRecord } | { warning: string },
+): string | null {
   const warn = (why: string) =>
     process.stdout.write(`Warning: ${why}; building without a DOI. Pass --doi to set one.\n`);
   if ('warning' in result) {
@@ -131,30 +167,66 @@ export function resolveArticleId(projectRoot: string): string | null {
   return (github ? articleIdFromName(github) : null) ?? articleIdFromName(path.basename(projectRoot));
 }
 
-/** DOI and article URL already in a myst.yml, if any. */
-function existingProjectMetadata(configPath: string): { doi: string | null; url: string | null } {
+interface ProjectMetadata {
+  doi: string | null;
+  url: string | null;
+  /** Publication day, `YYYY-MM-DD`. */
+  date: string | null;
+  /** MyST licence id, e.g. `CC-BY-4.0`. */
+  license: string | null;
+  /** JDH issue name, written as `project.venue.title`. */
+  issue: string | null;
+}
+
+/** Values already in a myst.yml (the article repo's own file wins, JDH-012). */
+function existingProjectMetadata(configPath: string): ProjectMetadata {
+  const none: ProjectMetadata = { doi: null, url: null, date: null, license: null, issue: null };
   try {
     const doc = readYamlDocument(configPath);
-    const doi = doc.getIn(['project', 'doi']);
-    const url = doc.getIn(['project', 'social', 'url']);
-    return { doi: typeof doi === 'string' && doi ? doi : null, url: typeof url === 'string' && url ? url : null };
+    const str = (keys: string[]) => {
+      const v = doc.getIn(keys);
+      return typeof v === 'string' && v ? v : null;
+    };
+    const date = doc.getIn(['project', 'date']);
+    return {
+      doi: str(['project', 'doi']),
+      url: str(['project', 'social', 'url']),
+      date: date instanceof Date ? date.toISOString().slice(0, 10) : str(['project', 'date']),
+      license: str(['project', 'license']) ?? str(['project', 'license', 'content']),
+      issue: str(['project', 'venue', 'title']) ?? str(['project', 'venue']),
+    };
   } catch {
-    return { doi: null, url: null };
+    return none;
   }
 }
 
 /**
- * Write `project.doi` and `project.social.url` (MyST's key for a website link)
- * into myst.yml, replacing any existing values.
+ * Write the article metadata into myst.yml: `project.doi`, `project.social.url`
+ * (MyST's key for a website link), `project.date`, `project.license` and
+ * `project.venue.title` (the JDH issue). Values that are null are left alone.
  */
-function writeProjectMetadata(configPath: string, doi: string | null, url: string | null): void {
+function writeProjectMetadata(configPath: string, meta: ProjectMetadata): void {
   updateYamlFile(configPath, (doc) => {
-    if (doi) doc.setIn(['project', 'doi'], doi);
-    if (url) {
+    if (meta.doi) doc.setIn(['project', 'doi'], meta.doi);
+    if (meta.url) {
       if (doc.hasIn(['project', 'social', 'website'])) doc.deleteIn(['project', 'social', 'website']);
-      doc.setIn(['project', 'social', 'url'], url);
+      doc.setIn(['project', 'social', 'url'], meta.url);
     }
+    if (meta.date) doc.setIn(['project', 'date'], meta.date);
+    if (meta.license) doc.setIn(['project', 'license'], meta.license);
+    if (meta.issue && !doc.hasIn(['project', 'venue'])) doc.setIn(['project', 'venue', 'title'], meta.issue);
   });
+}
+
+/** Licence named in the article's copyright cell (moved to `parts.copyright` by extractJupytextParts). */
+function licenseFromArticle(cwd: string): string | null {
+  try {
+    const { doc } = parseMarkdownFrontmatter(fs.readFileSync(path.join(cwd, 'article.md'), 'utf8'));
+    const text = doc.getIn(['parts', 'copyright']);
+    return typeof text === 'string' ? licenseFromCopyrightText(text) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function setJdhArticleMetadata(options: {
@@ -165,51 +237,79 @@ export async function setJdhArticleMetadata(options: {
   url?: string;
   /** For tests; defaults to the global fetch. */
   fetch?: Fetch;
-}): Promise<{ doi: string | null; url: string | null }> {
+}): Promise<ProjectMetadata> {
   const articleId = resolveArticleId(options.projectRoot);
-  // --doi is a pure override: nothing is fetched. Next, a value already in
-  // myst.yml (from the article repo's own file) is kept as a hand edit.
+  // --doi / --url are pure overrides. Next, a value already in myst.yml (from
+  // the article repo's own file) is kept as a hand edit (JDH-012). Anything
+  // still missing comes from the article's JDH API record, fetched once.
   const configPath = resolveProjectConfigPath(options.cwd);
   const existing = existingProjectMetadata(configPath);
-  let doi = options.doi ? normalizeDoi(options.doi) : existing.doi;
-  let url = options.url ?? existing.url;
+  const meta: ProjectMetadata = {
+    ...existing,
+    doi: options.doi ? normalizeDoi(options.doi) : existing.doi,
+    url: options.url ?? existing.url,
+  };
   if (!options.doi && existing.doi) process.stdout.write(`Kept project.doi from the repo's myst.yml: ${existing.doi}\n`);
   if (!options.url && existing.url) process.stdout.write(`Kept project.social.url from the repo's myst.yml: ${existing.url}\n`);
 
-  if (!doi && articleId) doi = await lookupDoi(articleId, options.fetch);
-  if (!url && articleId) url = articleUrl(articleId);
+  if (articleId && (!meta.doi || !meta.date || !meta.license || !meta.issue)) {
+    const lookup = await fetchArticleRecord(articleId, options.fetch ?? fetch);
+    if (!meta.doi) meta.doi = doiFromLookup(articleId, lookup);
+    if ('record' in lookup) {
+      const { record } = lookup;
+      meta.date ??= dateFromPublicationDate(record.publication_date);
+      meta.license ??= licenseFromCopyrightType(record.copyright_type);
+      meta.issue ??= typeof record.issue?.name === 'string' && record.issue.name ? record.issue.name : null;
+    }
+    if (!meta.date) process.stdout.write('Note: no publication date in the JDH API; the PDF says "Forthcoming".\n');
+  }
+  meta.license ??= licenseFromArticle(options.cwd);
+  if (!meta.url && articleId) meta.url = articleUrl(articleId);
 
-  if (!articleId && (!doi || !url)) {
+  if (!articleId && (!meta.doi || !meta.url)) {
     process.stdout.write(
       'Warning: could not determine the JDH article id from the git remote or folder name' +
-        `${doi ? '' : '; building without a DOI (pass --doi)'}${url ? '' : '; no article URL (pass --url)'}.\n`,
+        `${meta.doi ? '' : '; building without a DOI (pass --doi)'}${meta.url ? '' : '; no article URL (pass --url)'}.\n`,
     );
   }
 
-  if (!doi && !url) return { doi, url };
+  const summary = [
+    meta.doi && `project.doi = ${meta.doi}`,
+    meta.url && `project.social.url = ${meta.url}`,
+    meta.date && `project.date = ${meta.date}`,
+    meta.license && `project.license = ${meta.license}`,
+    meta.issue && `project.venue.title = ${meta.issue}`,
+  ].filter(Boolean);
+  if (!summary.length) return meta;
 
-  const summary = [doi && `project.doi = ${doi}`, url && `project.social.url = ${url}`]
-    .filter(Boolean)
-    .join(', ');
   if (options.dryRun) {
-    process.stdout.write(`[dry-run] would set ${summary}\n`);
+    process.stdout.write(`[dry-run] would set ${summary.join(', ')}\n`);
   } else {
-    writeProjectMetadata(configPath, doi, url);
-    process.stdout.write(`Set ${summary}\n`);
+    writeProjectMetadata(configPath, meta);
+    // Template options for the PDF sidebar: the article URL, and "Forthcoming"
+    // when there is no publication date (MyST would otherwise print today's date).
+    const exportOptions = new Map<string, string | boolean>([['forthcoming', !meta.date]]);
+    if (meta.url) exportOptions.set('article_url', meta.url);
+    for (const config of [META_JDH_FILE, 'myst.yml']) {
+      pointExportsAtSidebarImages(path.join(options.cwd, config), exportOptions);
+    }
+    process.stdout.write(`Set ${summary.join(', ')}\n`);
   }
-  return { doi, url };
+  return meta;
 }
 
 /**
- * Set `project.doi` and the article URL (`project.social.url`) in myst.yml.
+ * Set the article's DOI, URL, publication date, licence and issue in myst.yml
+ * (JDH-020, JDH-041).
  *
- * `--doi` / `--url` win (no lookup); otherwise the DOI comes from the JDH API
- * (`/api/articles/<id>/?format=json`, article id = repo name), with a warning
- * when it can't, and the URL from the JDH article page pattern.
+ * `--doi` / `--url` win, then values already in the repo's myst.yml; the rest
+ * come from the JDH API record (`/api/articles/<id>/?format=json`, article id =
+ * repo name). An article not yet public in the API gets no date ("Forthcoming")
+ * and the licence named in its copyright cell.
  */
 export const setJdhArticleMetadataStep: PipelineStep = {
   id: 'setJdhArticleMetadata',
-  label: 'Set project.doi and article URL (JDH article lookup)',
+  label: 'Set DOI, URL, date, licence and issue (JDH article lookup)',
   inputs: ['myst', 'git'],
   run: async (ctx) => {
     const o = stepOpts(ctx);
