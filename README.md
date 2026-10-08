@@ -4,7 +4,14 @@ Turns a Journal of Digital History article repo (Jupytext `article.md` + `articl
 
 ## Getting started
 
-**Prerequisites:** [Bun](https://bun.sh), the [MyST CLI](https://mystmd.org) (`myst`) for PDF builds, and [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) checked out next to `jdh-cli`.
+**Prerequisites:**
+- [Bun](https://bun.sh).
+- [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template), checked out next to `jdh-cli`.
+- For PDF builds, two tools on the PATH, which jdh-cli doesn't bundle:
+  - the [MyST CLI](https://mystmd.org) (`myst`, mystmd 1.10 or later; `npm install -g mystmd`);
+  - [Typst](https://typst.app) 0.14.x (`brew install typst`), which MyST runs.
+
+  `jdh-cli build` checks both first. It stops with install instructions if either is missing, warns about an untested version, and prints the versions in the build log.
 
 ```bash
 # once: build jdh-cli and put it on your PATH

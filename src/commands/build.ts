@@ -7,6 +7,7 @@ import { CliError } from '../cli/errors.js';
 import { fileExists } from '../engine/context.js';
 import { DEFAULT_WORKDIR, resolveProjectRoot, resolveWorkdirAbs } from '../engine/paths.js';
 import { pointExportsAtSidebarImages } from '../engine/sidebar-images.js';
+import { checkToolchain } from '../engine/toolchain.js';
 import { META_JDH_FILE, resolveJdhCliRoot } from '../init/bundled-assets.js';
 import { resolveProjectConfigPath } from '../steps/shared/myst-config.js';
 import { updateYamlFile } from '../steps/shared/yaml-doc.js';
@@ -91,6 +92,11 @@ Examples:
         throw new CliError(`Typst template not found: ${templateAbs}`);
       }
 
+      // MyST and Typst are not bundled: check them first, with install guidance (JDH-051).
+      const toolchain = checkToolchain();
+      if (toolchain.errors.length) throw new CliError(toolchain.errors.join('\n\n'));
+      for (const warning of toolchain.warnings) console.warn(`Warning: ${warning}\n`);
+
       const placement = String(opts.figurePlacement);
       if (!['none', 'auto'].includes(placement)) {
         throw new CliError(`--figure-placement must be "none" or "auto" (got "${placement}")`);
@@ -107,6 +113,7 @@ Examples:
       };
 
       const cmd = `myst build --pdf`;
+      console.log(`Toolchain: ${toolchain.summary}`);
       console.log(`Workdir:  ${workdirAbs}`);
       console.log(`Template: ${templateAbs}`);
       console.log(`Fonts:    ${fontPath}`);
@@ -121,13 +128,7 @@ Examples:
         env,
       });
 
-      if (res.error) {
-        throw new CliError(
-          res.error.message.includes('ENOENT')
-            ? 'myst CLI not found. Install MyST: https://mystmd.org'
-            : res.error.message,
-        );
-      }
+      if (res.error) throw new CliError(res.error.message);
 
       const code = typeof res.status === 'number' ? res.status : 1;
       if (code !== 0) {
