@@ -40,8 +40,8 @@ interface CslItem {
   event?: string;
   'number-of-pages'?: number | string;
   issued?: { 'date-parts'?: Array<Array<number | string>> };
-  author?: Array<{ family?: string; given?: string }>;
-  editor?: Array<{ family?: string; given?: string }>;
+  author?: Array<{ family?: string; given?: string; literal?: string }>;
+  editor?: Array<{ family?: string; given?: string; literal?: string }>;
 }
 
 export interface JupyterZoteroOptions {
@@ -156,21 +156,39 @@ function escapeBibtexValue(v: unknown): string {
     .replace(/#/g, '\\#');
 }
 
-function formatNameList(
-  list: Array<{ family?: string; given?: string }> | null | undefined,
+/**
+ * BibTeX name list, already escaped. A name with only a family part, or a CSL
+ * `literal`, is an organisation ("International Association of Sound
+ * Archives", "OpenAI"): it is braced so BibTeX keeps it whole instead of
+ * reading it as a person (JDH-048).
+ */
+export function formatNameList(
+  list: Array<{ family?: string; given?: string; literal?: string }> | null | undefined,
 ): string | null {
   if (!Array.isArray(list) || list.length === 0) return null;
   const names = list
     .map((n) => {
       const family = n?.family ? String(n.family).trim() : '';
       const given = n?.given ? String(n.given).trim() : '';
-      if (family && given) return `${family}, ${given}`;
-      if (family) return family;
-      if (given) return given;
+      const literal = n?.literal ? String(n.literal).trim() : '';
+      if (family && given) return `${escapeBibtexValue(family)}, ${escapeBibtexValue(given)}`;
+      if (family || literal) return `{${escapeBibtexValue(family || literal)}}`;
+      if (given) return `{${escapeBibtexValue(given)}}`;
       return null;
     })
     .filter(Boolean);
   return names.length ? names.join(' and ') : null;
+}
+
+/** Fields whose values are already escaped BibTeX (name lists). */
+const PRE_ESCAPED_FIELDS = new Set(['author', 'editor']);
+/** Fields read literally: escaping would print "8944\\_2012" in the reference list. */
+const VERBATIM_FIELDS = new Set(['doi', 'url']);
+
+function bibtexFieldValue(key: string, value: string): string {
+  if (PRE_ESCAPED_FIELDS.has(key)) return value;
+  if (VERBATIM_FIELDS.has(key)) return value.replace(/[{}]/g, '');
+  return escapeBibtexValue(value);
 }
 
 type BibtexType = 'article' | 'inproceedings' | 'incollection' | 'book' | 'misc';
@@ -279,7 +297,7 @@ function renderBibtexEntry(
   const restKeys = Object.keys(fields).filter((k) => !orderedKeys.includes(k)).sort();
   const keys = [...orderedKeys.filter((k) => fields[k]), ...restKeys];
 
-  const lines = keys.map((k) => `  ${k} = {${escapeBibtexValue(fields[k])}},`);
+  const lines = keys.map((k) => `  ${k} = {${bibtexFieldValue(k, fields[k])}},`);
   if (lines.length) {
     lines[lines.length - 1] = lines[lines.length - 1].replace(/},$/, '}');
   }
