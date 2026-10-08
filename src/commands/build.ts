@@ -6,6 +6,7 @@ import { isSeq } from 'yaml';
 import { CliError } from '../cli/errors.js';
 import { fileExists } from '../engine/context.js';
 import { DEFAULT_WORKDIR, resolveProjectRoot, resolveWorkdirAbs } from '../engine/paths.js';
+import { pointExportsAtSidebarImages } from '../engine/sidebar-images.js';
 import { META_JDH_FILE, resolveJdhCliRoot } from '../init/bundled-assets.js';
 import { resolveProjectConfigPath } from '../steps/shared/myst-config.js';
 import { updateYamlFile } from '../steps/shared/yaml-doc.js';
@@ -42,6 +43,11 @@ export function addBuildCommand(program: Command): void {
       '--template <path>',
       'JDH Typst template path, relative to the workdir unless absolute (default: jdh-typst-template next to jdh-cli)',
     )
+    .option(
+      '--figure-placement <mode>',
+      'Figures: "none" keeps each where it is in the text; "auto" floats them to the top or bottom of a page (JDH-049)',
+      'none',
+    )
     .addHelpText(
       'after',
       `
@@ -49,6 +55,7 @@ Examples:
   $ jdh-cli build
   $ jdh-cli build --project-root ./article --workdir _improved
   $ jdh-cli build --template /path/to/jdh-typst-template
+  $ jdh-cli build --figure-placement auto
 `,
     )
     .action((opts) => {
@@ -84,8 +91,13 @@ Examples:
         throw new CliError(`Typst template not found: ${templateAbs}`);
       }
 
+      const placement = String(opts.figurePlacement);
+      if (!['none', 'auto'].includes(placement)) {
+        throw new CliError(`--figure-placement must be "none" or "auto" (got "${placement}")`);
+      }
       for (const config of [META_JDH_FILE, path.basename(mystYml)]) {
         pointExportsAtTemplate(path.join(workdirAbs, config), templateAbs);
+        pointExportsAtSidebarImages(path.join(workdirAbs, config), new Map([['figure_placement', placement]]));
       }
 
       const fontPath = path.join(templateAbs, 'fonts', 'fira_code');
@@ -98,6 +110,7 @@ Examples:
       console.log(`Workdir:  ${workdirAbs}`);
       console.log(`Template: ${templateAbs}`);
       console.log(`Fonts:    ${fontPath}`);
+      console.log(`Figures:  ${placement === 'auto' ? 'float to the top or bottom of a page' : 'stay where they are in the text'}`);
       console.log(`$ cd ${workdirAbs} && TYPST_FONT_PATHS=${fontPath} ${cmd}\n`);
 
       const pdfPath = path.join(workdirAbs, 'article.pdf');

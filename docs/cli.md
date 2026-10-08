@@ -121,9 +121,16 @@ Runs `myst build --pdf` in the workdir with `TYPST_FONT_PATHS` set for Fira Code
 jdh-cli build
 jdh-cli build --project-root . --workdir _improved
 jdh-cli build --template /path/to/jdh-typst-template
+jdh-cli build --figure-placement auto
 ```
 
-Requires a prior `improve` run and the [MyST CLI](https://mystmd.org). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+
+`--figure-placement` sets where figures go:
+- `none` (default) keeps each figure where it is in the text, so the PDF reads in the same order as the online article (JDH-043). A figure that doesn't fit at the bottom of a page moves to the next one and leaves a gap.
+- `auto` floats figures to the top or bottom of a page instead. That packs pages more tightly, but figures can move away from the paragraphs around them.
+
+Tables and dialogue always stay in the text flow.
 
 ## Article repo integration
 
