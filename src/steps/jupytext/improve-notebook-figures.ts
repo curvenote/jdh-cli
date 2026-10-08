@@ -42,7 +42,8 @@ const IMAGE_EXTENSIONS: Record<string, string> = {
 };
 
 /** A figure tag in the forms JDH authors use: fig:…, figure-1-*, figure_1, figure-cartoon-* */
-const FIGURE_TAG_TOKEN = 'figure[-_][A-Za-z0-9][A-Za-z0-9_-]*(?:-\\*)?';
+// Figure tags as the website reads them: they start with `figure-` (JDH-047).
+const FIGURE_TAG_TOKEN = 'figure-[A-Za-z0-9][A-Za-z0-9_-]*(?:-\\*)?';
 
 interface RunImproveNotebookFiguresOptions {
   article: string;

@@ -5,6 +5,7 @@ import type { PipelineStep } from '../../engine/types.js';
 import { dropHiddenCellsStep } from './drop-hidden-cells.js';
 import { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 import { improveHermeneuticsBlocksStep } from './improve-hermeneutics-blocks.js';
+import { improveUntaggedImageOutputsStep } from './improve-untagged-image-outputs.js';
 import { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
 import { improveJupytextTablesStep } from './improve-jupytext-tables.js';
 import { improveNotebookFiguresStep } from './improve-notebook-figures.js';
@@ -21,6 +22,7 @@ export { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 export { dropHiddenCellsStep } from './drop-hidden-cells.js';
 export { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
 export { numberCellsStep } from './number-cells.js';
+export { improveUntaggedImageOutputsStep } from './improve-untagged-image-outputs.js';
 
 /** Region / notebook transforms (run after extract-jupytext-parts in the full jupytext chain). */
 export const jupytextTransformSteps: PipelineStep[] = [
@@ -31,4 +33,5 @@ export const jupytextTransformSteps: PipelineStep[] = [
   improveJupytextTablesStep,
   improveDialogueRegionsStep,
   improveHermeneuticsBlocksStep,
+  improveUntaggedImageOutputsStep,
 ];
