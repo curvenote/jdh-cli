@@ -64,6 +64,11 @@ const jdhTableDirective = {
       required: false,
       doc: 'Data rows in the full table when the body is already truncated (pandas output).',
     },
+    'total-columns': {
+      type: Number,
+      required: false,
+      doc: 'Columns in the full table when the body is already truncated (pandas output).',
+    },
     align: { type: String, required: false },
     class: { type: String, required: false },
     enumerated: { type: Boolean, alias: ['numbered'], required: false },
@@ -265,7 +270,7 @@ function columnWidths(rows, headerRows) {
 }
 
 /** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */
-function tableNodeToTypst(tableNode, hiddenRows = 0) {
+function tableNodeToTypst(tableNode, hiddenRows = 0, size = null) {
   const columns = countColumns(tableNode);
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
@@ -279,15 +284,19 @@ function tableNodeToTypst(tableNode, hiddenRows = 0) {
       out += `${typstCell(childText(cell))},\n`;
     }
   }
-  if (hiddenRows > 0) {
+  if (size) {
+    // A shortened table says how big the full one is, as the website does:
+    // "11105 rows × 42 columns" (JDH-045).
+    out += `jdh-table-more-cell(${columns}, ${hiddenRows}, total-rows: ${size.rows}, total-cols: ${size.columns}),\n`;
+  } else if (hiddenRows > 0) {
     out += `jdh-table-more-cell(${columns}, ${hiddenRows}),\n`;
   }
   out += ')\n';
   return out;
 }
 
-function buildTypstTableWrap(tableNode, hiddenRows, hiddenCols) {
-  const tableTypst = tableNodeToTypst(tableNode, hiddenRows).trim();
+function buildTypstTableWrap(tableNode, hiddenRows, hiddenCols, size = null) {
+  const tableTypst = tableNodeToTypst(tableNode, hiddenRows, size).trim();
   const typst = [
     `#jdh-table-enter(hidden-rows: ${hiddenRows}, hidden-cols: ${hiddenCols})`,
     '#jdh-table-shell[',
@@ -343,8 +352,21 @@ function processJdhTableContainer(node) {
     ? Math.max(cutRows, totalRows - truncated.dataRows.length)
     : cutRows;
 
+  // Size of the full table: from pandas' footer when the output was already cut
+  // short, else the table as written.
+  const totalColumns = Number(opts['total-columns'] ?? NaN);
+  const size =
+    hiddenRows > 0 || hiddenCols > 0
+      ? {
+          rows: Number.isFinite(totalRows) ? totalRows : parsed.dataRows.length,
+          columns: Number.isFinite(totalColumns)
+            ? totalColumns
+            : Math.max(0, ...[...parsed.headerRows, ...parsed.dataRows].map((r) => r.length)),
+        }
+      : null;
+
   const newTable = gfmToTableNode(truncated, align);
-  const wrap = buildTypstTableWrap(newTable, hiddenRows, hiddenCols);
+  const wrap = buildTypstTableWrap(newTable, hiddenRows, hiddenCols, size);
 
   if (!replaceTableWithTypstWrap(node.children, wrap)) {
     const captions = (node.children ?? []).filter((child) => child.type === 'caption');

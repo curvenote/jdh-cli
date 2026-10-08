@@ -13,6 +13,8 @@ export interface OutputTable {
   dataRows: string[][];
   /** Rows in the full table when the output is truncated (pandas `N rows × M columns` footer). */
   totalRows: number | null;
+  /** Columns in the full table, from the same footer (JDH-045). */
+  totalColumns: number | null;
   /** `<caption>` text, if any (pandas Styler `set_caption`). R's "A data.frame: …" is dropped. */
   caption: string | null;
 }
@@ -103,11 +105,12 @@ export function tableFromHtml(html: string): OutputTable | null {
   tidyHeaders(table);
   dropEllipses(table);
   dropRangeIndex(table);
-  const footer = html.slice((match.index ?? 0) + tableHtml.length).match(/(\d[\d,]*)\s+rows\s+×\s+\d[\d,]*\s+columns/);
+  const footer = html.slice((match.index ?? 0) + tableHtml.length).match(/(\d[\d,]*)\s+rows\s+×\s+(\d[\d,]*)\s+columns/);
   const captionText = htmlText(tableHtml.match(/<caption\b[^>]*>([\s\S]*?)<\/caption>/i)?.[1] ?? '');
   return {
     ...table,
     totalRows: footer ? parseInt(footer[1].replace(/,/g, ''), 10) : null,
+    totalColumns: footer ? parseInt(footer[2].replace(/,/g, ''), 10) : null,
     caption: captionText && !/^A data\.frame:/i.test(captionText) ? captionText : null,
   };
 }
@@ -124,7 +127,7 @@ export function tableFromMarkdown(markdown: string): OutputTable | null {
     if (!l.includes('|')) break;
     body.push(split(l));
   }
-  return { headerRows: [split(lines[sep - 1])], dataRows: body, totalRows: null, caption: null };
+  return { headerRows: [split(lines[sep - 1])], dataRows: body, totalRows: null, totalColumns: null, caption: null };
 }
 
 /** Table from a cell's outputs: the first HTML `<table>`, else a markdown table. */

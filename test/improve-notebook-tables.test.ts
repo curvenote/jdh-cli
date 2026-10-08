@@ -63,6 +63,7 @@ describe('improve notebook tables', () => {
         ':label: table:1',
         ':align: center',
         ':total-rows: 90',
+        ':total-columns: 2',
         '',
         '| year | count |',
         '| --- | --- |',

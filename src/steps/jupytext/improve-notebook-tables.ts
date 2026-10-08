@@ -100,6 +100,7 @@ export function processArticle(
         ':align: center',
         ...(headerRows > 1 ? [`:header-rows: ${headerRows}`] : []),
         ...(table.totalRows ? [`:total-rows: ${table.totalRows}`] : []),
+        ...(table.totalColumns ? [`:total-columns: ${table.totalColumns}`] : []),
         '',
         markdown,
         ':::',

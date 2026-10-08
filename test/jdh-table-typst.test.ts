@@ -119,3 +119,13 @@ describe('columnWidths', () => {
     expect(widths[2]).toBeGreaterThanOrEqual('uploaded'.length);
   });
 });
+
+describe('table size footer (JDH-045)', () => {
+  test('a shortened table states the full size; an uncut one has no footer', () => {
+    const node = makeTableNode();
+    expect(tableNodeToTypst(node, 11101, { rows: 11105, columns: 42 })).toContain(
+      'jdh-table-more-cell(2, 11101, total-rows: 11105, total-cols: 42),',
+    );
+    expect(tableNodeToTypst(node, 0, null)).not.toContain('jdh-table-more-cell');
+  });
+});
