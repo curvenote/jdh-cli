@@ -58,7 +58,13 @@ export interface RawNotebook {
   cells?: RawCell[];
 }
 
-const KIND_TAG = /^(fig(?:ure)?|table|video|sound|audio)(?=$|[-_:\d])/i;
+/**
+ * The JDH website's rule (`getFigureFromCell`, C2DH/journal-of-digital-history):
+ * a tag that *starts with* `figure-`, `table-`, `data-table-`, `video-` or
+ * `sound-` (JDH-047). `fig:`, `table:`, `vid:` and `aud:` are jdh-cli's own
+ * labels, written into article.md by earlier steps.
+ */
+const KIND_TAG = /^(?:(figure|table|data-table|video|sound)-|(fig|table|vid|aud):)/i;
 
 /** Preferred representation for the PDF, most preferred first. */
 export const MIME_PRIORITY: readonly string[] = [
@@ -83,9 +89,9 @@ export function kindFromTags(tags: readonly string[]): { kind: CellKind; tag: st
   for (const tag of tags) {
     const m = tag.match(KIND_TAG);
     if (!m) continue;
-    const word = m[1].toLowerCase();
+    const word = (m[1] ?? m[2]).toLowerCase();
     const kind: CellKind =
-      word.startsWith('fig') ? 'figure' : word === 'audio' ? 'sound' : (word as CellKind);
+      word.startsWith('fig') ? 'figure' : word.endsWith('table') ? 'table' : word.startsWith('vid') ? 'video' : 'sound';
     return { kind, tag };
   }
   return null;

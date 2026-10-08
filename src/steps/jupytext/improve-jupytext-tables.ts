@@ -9,7 +9,8 @@ import { captionFromJdh, kindFromTags, parseFenceMetadata, tableLabelFromTag } f
 const DEFAULT_ARTICLE = 'article.md';
 
 /** Tag is a table tag if it matches table:N or table-<N>-* or table_<N> (after normalization we use table:N) */
-const TABLE_TAG_PATTERN = /^(table:\d+|table[-_]?\d+[-_]?\*?)$/i;
+// Numbered table tags as the website reads them (`table-` first, JDH-047), or our own `table:N`.
+const TABLE_TAG_PATTERN = /^(table:\d+|table-\d+[-_]?\*?)$/i;
 
 interface RunImproveJupytextTablesOptions {
   article: string;

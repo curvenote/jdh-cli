@@ -18,13 +18,20 @@ describe('kindFromTags', () => {
     expect(kindFromTags(['fig:2'])?.kind).toBe('figure');
     expect(kindFromTags(['table-2', 'data-table'])).toEqual({ kind: 'table', tag: 'table-2' });
     expect(kindFromTags(['sound-franklin-*'])?.kind).toBe('sound');
-    expect(kindFromTags(['audio-1'])?.kind).toBe('sound');
     expect(kindFromTags(['video-interview-*'])?.kind).toBe('video');
   });
 
   test('ignores tags that only start with a kind word', () => {
     expect(kindFromTags(['hermeneutics', 'narrative', 'w-904px'])).toBeNull();
     expect(kindFromTags(['figures-appendix'])).toBeNull();
+  });
+
+  test("follows the website's rule: the tag must start with figure-, table-, sound-, video- (JDH-047)", () => {
+    // 6EWgjJtoiW6R cell 59: Figure 11 in the PDF, not a figure online.
+    expect(kindFromTags(['figure_sound_types*'])).toBeNull();
+    expect(kindFromTags(['anchor-figure-1-*'])).toBeNull();
+    expect(kindFromTags(['audio-1'])).toBeNull();
+    expect(kindFromTags(['data-table-1'])?.kind).toBe('table');
   });
 });
 

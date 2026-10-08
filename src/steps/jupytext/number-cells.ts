@@ -9,8 +9,8 @@ import type { RawNotebook } from '../shared/notebook-cells.js';
  * number (`SectionChoices` in C2DH/journal-of-digital-history).
  */
 const METADATA_SECTIONS = ['title', 'abstract', 'contributor', 'collaborators', 'keywords', 'disclaimer'];
-/** Tag prefixes the website reads as figures (`AvailableFigureRefPrefixes`). */
-const FIGURE_PREFIXES = ['figure-', 'table-', 'quote-', 'cover', 'data-table-'];
+/** Tag prefixes the website reads as figures (`AvailableFigureRefPrefixes`); a tag must start with one. */
+const FIGURE_PREFIXES = ['figure-', 'table-', 'quote-', 'dialog-', 'sound-', 'video-', 'gallery-', 'cover', 'data-table-'];
 /** Cells moved out of the body by earlier steps (front matter, parts) or kept whole by later ones. */
 const NO_MARKER_TAGS = /^(copyright|dialog(?:ue)?(?:$|[-_:]))/i;
 
@@ -37,7 +37,7 @@ export function websiteCellNumbers(nb: RawNotebook): NumberedCell[] {
   return (nb.cells ?? []).map((cell, index) => {
     const tags = ((cell.metadata?.tags as string[] | undefined) ?? []).map(String);
     const source = sourceOf(cell);
-    const isFigure = tags.some((t) => FIGURE_PREFIXES.some((p) => t.includes(p)));
+    const isFigure = tags.some((t) => FIGURE_PREFIXES.some((p) => t.startsWith(p)));
     const jdh = cell.metadata?.jdh as { hidden?: boolean } | undefined;
     const isHidden = source.length === 0 || tags.includes('hidden') || Boolean(jdh?.hidden);
     const isMetadata = !isFigure && !isHidden && tags.some((t) => METADATA_SECTIONS.includes(t));
