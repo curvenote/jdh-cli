@@ -22,12 +22,12 @@ export const MYST: ToolSpec = {
   install: ['npm install -g mystmd', 'https://mystmd.org/guide/installing'],
 };
 
-/** Typst versions the template is tested on (JDH-050 moves this to 0.15). */
+/** Typst versions the template is tested on (JDH-050). */
 export const TYPST: ToolSpec = {
   name: 'Typst',
   command: 'typst',
-  min: '0.14.0',
-  below: '0.15.0',
+  min: '0.15.0',
+  below: '0.16.0',
   install: [
     'brew install typst   (macOS)',
     'cargo install --locked typst-cli',

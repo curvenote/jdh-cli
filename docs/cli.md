@@ -124,7 +124,7 @@ jdh-cli build --template /path/to/jdh-typst-template
 jdh-cli build --figure-placement auto
 ```
 
-Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). `build` checks both first (`src/engine/toolchain.ts`). A missing tool stops the build with install instructions; a version outside the tested range gets a warning. Supported: mystmd >= 1.10, Typst 0.14.x. The versions used are printed as `Toolchain: …`. By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). `build` checks both first (`src/engine/toolchain.ts`). A missing tool stops the build with install instructions; a version outside the tested range gets a warning. Supported: mystmd >= 1.10, Typst 0.15.x. The versions used are printed as `Toolchain: …`. By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
 
 `--figure-placement` sets where figures go:
 - `none` (default) keeps each figure where it is in the text, so the PDF reads in the same order as the online article (JDH-043). A figure that doesn't fit at the bottom of a page moves to the next one and leaves a gap.
