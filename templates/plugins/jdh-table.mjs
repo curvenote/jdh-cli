@@ -237,6 +237,10 @@ function typstCell(text) {
   return `[${stringToTypstText(text)}]`;
 }
 
+/** About how many characters fit across a full-width table at the 8pt table font, and a cell's padding in characters. */
+const TABLE_LINE_CHARS = 96;
+const CELL_PADDING_CHARS = 3;
+
 /** Longest run of non-space characters in a cell. */
 function longestWord(text) {
   return Math.max(0, ...String(text ?? '').split(/\s+/).map((w) => w.length));
@@ -266,7 +270,25 @@ function columnWidths(rows, headerRows) {
   const widest = Math.max(0, ...weights);
   // Only tables with a column of running text (paragraphs, not numbers or names) change.
   if (widest < 30 || widest <= 3 * Math.min(...weights)) return weights.map(() => '1fr');
-  return weights.map((w) => `${w}fr`);
+  // Shares by weight alone can squeeze a short column below its longest word,
+  // which then spills out of the table (In Search of Truth Tables 1–2, #1189).
+  // Give such columns their word's width and share the rest by weight.
+  const minimum = Array.from({ length: columns }, (_, i) => {
+    const word = Math.min(20, Math.max(...rows.map((r) => longestWord(r[i]))));
+    return (word + CELL_PADDING_CHARS) / TABLE_LINE_CHARS;
+  });
+  // Too many columns for every word to fit: keep the weights.
+  if (minimum.reduce((a, b) => a + b, 0) >= 1) return weights.map((w) => `${w}fr`);
+  const fixed = new Set();
+  for (;;) {
+    const free = weights.map((_, i) => i).filter((i) => !fixed.has(i));
+    const rest = 1 - [...fixed].reduce((a, i) => a + minimum[i], 0);
+    const freeWeight = free.reduce((a, i) => a + weights[i], 0);
+    const share = (i) => (fixed.has(i) ? minimum[i] : (rest * weights[i]) / freeWeight);
+    const tooNarrow = free.filter((i) => share(i) < minimum[i]);
+    if (!tooNarrow.length) return weights.map((_, i) => `${Math.round(share(i) * 100)}fr`);
+    tooNarrow.forEach((i) => fixed.add(i));
+  }
 }
 
 /** Serialize a table AST node to Typst `#tablex(...)` (for raw export inside figures). */

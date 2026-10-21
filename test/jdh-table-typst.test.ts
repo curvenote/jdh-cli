@@ -112,11 +112,27 @@ describe('columnWidths', () => {
       ['33', long.slice(0, 300), 'Gich', '41', long.slice(0, 900), 'GamingScorpion', 'CS'],
     ];
     const widths = columnWidths(rows, 1).map((w) => parseInt(w, 10));
-    expect(widths[1]).toBe(60);
-    expect(widths[4]).toBe(60);
+    // The two text columns are the widest; ids and names are narrower.
+    expect(widths[1]).toBe(widths[4]);
+    expect(widths[1]).toBe(Math.max(...widths));
     expect(widths[0]).toBeLessThan(10);
-    // No column narrower than its longest word (capped at 15).
-    expect(widths[2]).toBeGreaterThanOrEqual('uploaded'.length);
+    // No column narrower than its longest word: "uploaded" needs (8 + 3) / 96 of the width.
+    expect(widths[2]).toBeGreaterThanOrEqual(11);
+  });
+
+  test('short columns beside text columns stay as wide as their longest word (In Search of Truth Table 2, #1189)', () => {
+    const rows = [
+      ['Activities', 'Objectives', 'Approach', 'Comments'],
+      ['1', 'Understanding the principles of an educational approach based on active learning methods', 'Developing a passport form using AI and secondary literature', 'Collecting work for analysis'],
+      ['2', 'Group discussion led by the trainer', 'Mobilisation of sources Supported argumentation Social interaction and co-construction Comparative analysis Critical questioning Detection of errors/inaccuracies', ''],
+      ['3', 'Objectivity regarding the uses of GenAI', 'Reflexivity Transfer of learning Critical distance', ''],
+    ];
+    const widths = columnWidths(rows, 1).map((w) => parseInt(w, 10));
+    // Shares of 100: "Activities" and "Collecting" need (10 + 3) / 96 of the width.
+    expect(widths[0]).toBeGreaterThanOrEqual(14);
+    expect(widths[3]).toBeGreaterThanOrEqual(14);
+    expect(widths[1]).toBeGreaterThan(widths[0]);
+    expect(widths[2]).toBeGreaterThan(widths[3]);
   });
 });
 
