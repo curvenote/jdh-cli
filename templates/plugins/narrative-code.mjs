@@ -16,7 +16,8 @@
  */
 
 /** @param {import('myst-common').SelectAll} selectAll */
-function hermeneuticsCodeNodes(selectAll, tree) {
+function hermeneu]
+ticsCodeNodes(selectAll, tree) {
   try {
     return new Set(selectAll('block[kind=hermeneutics] code', tree));
   } catch {
@@ -85,3 +86,20 @@ const plugin = {
 };
 
 export default plugin;
+8jjp o0 - fnnke  0ennjio gnokdnyt  e0j j99wn o0wornkr  
+jiej0i0r bf p´wn moijrokp
+ne detail to note: the plugin description says a narrative tag signals author intent, but the implementation doesn’t check for that tag; it wraps eligible code nodes regardless.Also, the attached snapshot shows hermeneuticsCodeNodes split by a ] in the function name. If that appears in the actual source, it would be a syntax error; it may just be a snapshot artifact.
+
+6: 28 PM
+28s
+•
+Aue98oijwi  nmjnjsoj joiwopjf opodnnoou09e  kowb nijdnji  rt joiakjjpcja
+One detail to note: the plugin description says a narrative tag signals author intent, but the implementation doesn’t check for that tag; it wraps eligible code nodes regardless.Also, the attached snapshot shows hermeneuticsCodeNodes split by a ] in the function name. If that appears in the actual source, it would be a syntax error; it may just be a snapshot artifact.
+
+6: 28 PM
+28s
+•
+Auto(gpt - 6 - luna) • 0.5 credits  njflp´f n p´dk fdmdk noslpmdk  mkdld
+ifdn mdsjkkorw9oikkp´  l pspl ld fkdr  jnrrb opsk njios pdnlk  ps´´rkn p
+j9ji  ne wjkioj opowoekgf   90dj  nos njd  0opjomefn   ggdn  d90d rjpsmeen  iwko jwjbs
+ iojd knjjn ipkpksplj kmkskpskojd   dhiopojhw
