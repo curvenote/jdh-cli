@@ -80,7 +80,7 @@ test('interactive output with no image becomes a linked placeholder (JDH-004)', 
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain(
-    '```{figure} notebook-outputs/placeholder-interactive.svg\n:label: fig:pie\n\nDistribution by country. [View it in the online article.](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=1)\n```',
+    '```{figure} notebook-outputs/placeholder-interactive.svg\n:label: fig:pie\n\nDistribution by country. \\\n[Look at the interactive figure online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=1)\n```',
   );
   expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'placeholder-interactive.svg'))).toBe(true);
 });
@@ -110,7 +110,7 @@ test('video cells get a video placeholder linking to the online article', async 
   );
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
-  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n:kind: video\n\nHow to analyse an interview. [View it in the online article.](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n:kind: video\n\nHow to analyse an interview. \\\n[Watch the video online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
 });
 
 test('image outputs are typed by their bytes, and unreadable formats get a placeholder', async () => {
@@ -126,7 +126,7 @@ test('image outputs are typed by their bytes, and unreadable formats get a place
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain('```{figure} notebook-outputs/fig-a.jpg');
-  expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n\nB. [View it in the online article.]');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n\nB. \\\n[Look at the figure online]');
 });
 
 const AUDIO_HTML = '<audio controls="controls"><source src="data:audio/mpeg;base64,//uQRAAA" type="audio/mpeg" /></audio>';
@@ -144,8 +144,8 @@ test('audio cells become "Sound" figures with a speaker icon, linking to the pla
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain(
-    '```{figure} notebook-outputs/sound.svg\n:label: aud:franklin\n:kind: sound\n:width: 9%\n:align: left\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html ' +
-      `[Listen to it in the online article.](${URL}?idx=1)\n\`\`\``,
+    '```{figure} notebook-outputs/sound.svg\n:label: aud:franklin\n:kind: sound\n:width: 9%\n:align: left\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html \\\n' +
+      `[Listen to the audio online](${URL}?idx=1)\n\`\`\``,
   );
   expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'sound.svg'))).toBe(true);
 });
@@ -157,7 +157,7 @@ test('audio cells with no caption still become a numbered, linked entry; hermene
   );
   await improveNotebookFiguresStep.run(ctx);
   expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
-    `:::{hermeneutics}\n\n\`\`\`{figure} notebook-outputs/sound.svg\n:label: aud:worldcup\n:kind: sound\n:width: 9%\n:align: left\n\nAudio recording. [Listen to it in the online article.](${URL}?idx=0)\n\`\`\`\n:::`,
+    `:::{hermeneutics}\n\n\`\`\`{figure} notebook-outputs/sound.svg\n:label: aud:worldcup\n:kind: sound\n:width: 9%\n:align: left\n\nAudio recording. \\\n[Listen to the audio online](${URL}?idx=0)\n\`\`\`\n:::`,
   );
 });
 
@@ -174,7 +174,7 @@ test('a figure with an image and an audio player keeps the image and links to th
   await improveNotebookFiguresStep.run(ctx);
   expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
     '```{figure} notebook-outputs/fig-waveform.png\n:label: fig:waveform\n\n' +
-      `Waveform of a sample. [Listen to it in the online article.](${URL}?idx=0)`,
+      `Waveform of a sample. \\\n[Listen to the audio online](${URL}?idx=0)`,
   );
 });
 
@@ -185,5 +185,5 @@ test('no extra full stop after a caption that ends in quotes and emphasis', asyn
     '```python tags=["sound-baoninh-*"]\ndisplay(Audio(u), metadata=metadata)\n```\n',
   );
   await improveNotebookFiguresStep.run(ctx);
-  expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain('*“Interview with Bao Ninh.”* [Listen to it');
+  expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain('*“Interview with Bao Ninh.”* \\\n[Listen to the audio');
 });

@@ -183,7 +183,7 @@ export interface ResolvedImage {
   from: 'file' | 'output' | 'placeholder';
   /** Link to the online version, added to the caption of placeholders. */
   link?: string;
-  /** Text of that link; defaults to "View it in the online article." */
+  /** Text of that link; defaults to "Look at the figure online". */
   linkText?: string;
   /** MyST figure kind (numbered separately, e.g. "Sound 1"); default figure. */
   figureKind?: string;
@@ -329,11 +329,12 @@ export function processArticle(
     if (num != null) figureNumToLabel.set(num, figureTag);
     const imagePath = imageFor.get(b.start)!;
     const link = linkFor.get(b.start);
-    const linkText = linkTextFor.get(b.start) ?? 'View it in the online article.';
+    const linkText = linkTextFor.get(b.start) ?? 'Look at the figure online';
     const text = stripFigureNumberPrefix(captionFor.get(b.start)!);
     // No full stop after one that's already there (possibly inside closing quotes or emphasis), or after a bare URL.
     const ended = /[.!?:]["”’)*_]*$/.test(text) || /https?:\/\/\S+$/.test(text);
-    const caption = link ? `${text}${ended ? '' : '.'} [${linkText}](${link})` : text;
+    // The link goes on its own line under the caption, in JDH's wording (JDH-059).
+    const caption = link ? `${text}${ended ? '' : '.'} \\\n[${linkText}](${link})` : text;
     report.converted.unshift(figureTag);
     const figureKind = kindFor.get(b.start);
     const width = widthFor.get(b.start);
@@ -463,7 +464,8 @@ async function improveNotebookFigures(
   // The JDH site opens a notebook cell with ?idx=<cell index>.
   const cellLink = (cell?: TaggedCell): string | undefined =>
     options.articleUrl && cell ? `${options.articleUrl}?idx=${cell.index}` : undefined;
-  const LISTEN = 'Listen to it in the online article.';
+  // Link wording from JDH's styling update (JDH-059).
+  const LISTEN = 'Listen to the audio online';
 
   const placeholder = (variant: 'interactive' | 'video' | 'sound' | 'figure', cell?: TaggedCell): ResolvedImage => {
     const rel = variant === 'sound' ? `${OUTPUTS_DIR}/sound.svg` : `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
@@ -476,7 +478,8 @@ async function improveNotebookFigures(
     // Sound (JDH-034): a small speaker icon, numbered "Sound N", as in JDH's guideline.
     if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width: '9%' };
     // Video (JDH-035): numbered "Video N"; the placeholder's look waits on JDH's design.
-    if (variant === 'video') return { path: rel, from: 'placeholder', link, figureKind: 'video' };
+    if (variant === 'video') return { path: rel, from: 'placeholder', link, linkText: 'Watch the video online', figureKind: 'video' };
+    if (variant === 'interactive') return { path: rel, from: 'placeholder', link, linkText: 'Look at the interactive figure online' };
     return { path: rel, from: 'placeholder', link };
   };
 
