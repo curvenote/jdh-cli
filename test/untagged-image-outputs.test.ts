@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { imageBlock, placeUntaggedImages, untaggedImageOutputs } from '../src/steps/jupytext/improve-untagged-image-outputs.js';
+import { coverCells, imageBlock, placeUntaggedImages, untaggedImageOutputs } from '../src/steps/jupytext/improve-untagged-image-outputs.js';
 import type { RawNotebook } from '../src/steps/shared/notebook-cells.js';
 
 // 1×1 PNG.
@@ -53,5 +53,44 @@ describe('placeUntaggedImages', () => {
 
   test('a cell whose code is not in article.md is reported', () => {
     expect(placeUntaggedImages('```python\nx = 1\n```', [{ index: 3, code: 'y = 2', rel: 'r.png' }]).missing).toEqual([3]);
+  });
+});
+
+describe('cover (JDH-055)', () => {
+  test('a cover cell gives the file its code displays and its stored image', () => {
+    const nb: RawNotebook = {
+      cells: [
+        codeCell('from IPython.display import Image, display\n\ndisplay(Image("./media/cover.png"))', ['cover']),
+        codeCell('display(Image("x.png"))', []),
+        codeCell('make_cover()', ['cover'], false),
+      ],
+    };
+    expect(coverCells(nb).map((c) => [c.index, c.imagePath, c.output?.ext ?? null])).toEqual([
+      [0, './media/cover.png', 'png'],
+      [2, null, null],
+    ]);
+  });
+
+  test('the cover image replaces its code; other images go after theirs', () => {
+    const md = [
+      '# Title',
+      '',
+      '```python tags=["cover"]',
+      'display(Image("media/cover.jpg"))',
+      '```',
+      '',
+      '```python',
+      'plot(a)',
+      '```',
+    ].join('\n');
+    const { content, placed } = placeUntaggedImages(md, [
+      { index: 5, code: 'plot(a)', rel: 'notebook-outputs/cell-5.png' },
+      { index: 3, code: 'display(Image("media/cover.jpg"))', rel: 'media/cover.jpg', replace: true },
+    ]);
+    expect(placed).toEqual([3, 5]);
+    expect(content).not.toContain('display(Image("media/cover.jpg"))');
+    expect(content).toBe(
+      ['# Title', '', imageBlock('media/cover.jpg'), '', '```python', 'plot(a)', '```', imageBlock('notebook-outputs/cell-5.png')].join('\n'),
+    );
   });
 });
