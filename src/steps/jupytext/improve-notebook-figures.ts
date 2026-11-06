@@ -475,12 +475,14 @@ async function improveNotebookFigures(
       fs.copyFileSync(resolveBundledPlaceholder(variant), dest);
     }
     const link = cellLink(cell);
-    // Sound (JDH-034): a small speaker icon, numbered "Sound N", as in JDH's guideline.
-    if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width: '9%' };
-    // Video (JDH-035): numbered "Video N"; the placeholder's look waits on JDH's design.
-    if (variant === 'video') return { path: rel, from: 'placeholder', link, linkText: 'Watch the video online', figureKind: 'video' };
-    if (variant === 'interactive') return { path: rel, from: 'placeholder', link, linkText: 'Look at the interactive figure online' };
-    return { path: rel, from: 'placeholder', link };
+    // Every placeholder is one style at the full text width (JDH-023); only the icon changes.
+    const width = '100%';
+    // Sound (JDH-069): numbered "Sound N", as in JDH's guideline.
+    if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width };
+    // Video (JDH-035): numbered "Video N".
+    if (variant === 'video') return { path: rel, from: 'placeholder', link, linkText: 'Watch the video online', figureKind: 'video', width };
+    if (variant === 'interactive') return { path: rel, from: 'placeholder', link, linkText: 'Look at the interactive figure online', width };
+    return { path: rel, from: 'placeholder', link, width };
   };
 
   const resolveImage = (req: ImageRequest): ResolvedImage | null => {

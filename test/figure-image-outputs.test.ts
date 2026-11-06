@@ -80,7 +80,7 @@ test('interactive output with no image becomes a linked placeholder (JDH-004)', 
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain(
-    '```{figure} notebook-outputs/placeholder-interactive.svg\n:label: fig:pie\n\nDistribution by country. \\\n[Look at the interactive figure online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=1)\n```',
+    '```{figure} notebook-outputs/placeholder-interactive.svg\n:label: fig:pie\n:width: 100%\n:align: left\n\nDistribution by country. \\\n[Look at the interactive figure online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=1)\n```',
   );
   expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'placeholder-interactive.svg'))).toBe(true);
 });
@@ -110,7 +110,7 @@ test('video cells get a video placeholder linking to the online article', async 
   );
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
-  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n:kind: video\n\nHow to analyse an interview. \\\n[Watch the video online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-video.svg\n:label: vid:software\n:kind: video\n:width: 100%\n:align: left\n\nHow to analyse an interview. \\\n[Watch the video online](https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ?idx=0)');
 });
 
 test('image outputs are typed by their bytes, and unreadable formats get a placeholder', async () => {
@@ -126,13 +126,13 @@ test('image outputs are typed by their bytes, and unreadable formats get a place
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain('```{figure} notebook-outputs/fig-a.jpg');
-  expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n\nB. \\\n[Look at the figure online]');
+  expect(md).toContain('```{figure} notebook-outputs/placeholder-figure.svg\n:label: fig:b\n:width: 100%\n:align: left\n\nB. \\\n[Look at the figure online]');
 });
 
 const AUDIO_HTML = '<audio controls="controls"><source src="data:audio/mpeg;base64,//uQRAAA" type="audio/mpeg" /></audio>';
 const URL = 'https://journalofdigitalhistory.org/en/article/6ig87tC5GKjQ';
 
-test('audio cells become "Sound" figures with a speaker icon, linking to the player online (JDH-007, JDH-034)', async () => {
+test('audio cells become "Sound" figures with the media placeholder, linking to the player online (JDH-007, JDH-034)', async () => {
   const caption = { jdh: { object: { type: 'image', source: ['**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html'] } } };
   const { workdir, ctx } = setupCells(
     [
@@ -144,7 +144,7 @@ test('audio cells become "Sound" figures with a speaker icon, linking to the pla
   await improveNotebookFiguresStep.run(ctx);
   const md = fs.readFileSync(path.join(workdir, 'article.md'), 'utf8');
   expect(md).toContain(
-    '```{figure} notebook-outputs/sound.svg\n:label: aud:franklin\n:kind: sound\n:width: 9%\n:align: left\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html \\\n' +
+    '```{figure} notebook-outputs/sound.svg\n:label: aud:franklin\n:kind: sound\n:width: 100%\n:align: left\n\n**Citation:**\n*“Interview with John Hope Franklin.”*\nhttps://docsouth.unc.edu/sohp/A-0339/menu.html \\\n' +
       `[Listen to the audio online](${URL}?idx=1)\n\`\`\``,
   );
   expect(fs.existsSync(path.join(workdir, 'notebook-outputs', 'sound.svg'))).toBe(true);
@@ -157,7 +157,7 @@ test('audio cells with no caption still become a numbered, linked entry; hermene
   );
   await improveNotebookFiguresStep.run(ctx);
   expect(fs.readFileSync(path.join(workdir, 'article.md'), 'utf8')).toContain(
-    `:::{hermeneutics}\n\n\`\`\`{figure} notebook-outputs/sound.svg\n:label: aud:worldcup\n:kind: sound\n:width: 9%\n:align: left\n\nAudio recording. \\\n[Listen to the audio online](${URL}?idx=0)\n\`\`\`\n:::`,
+    `:::{hermeneutics}\n\n\`\`\`{figure} notebook-outputs/sound.svg\n:label: aud:worldcup\n:kind: sound\n:width: 100%\n:align: left\n\nAudio recording. \\\n[Listen to the audio online](${URL}?idx=0)\n\`\`\`\n:::`,
   );
 });
 

@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="40" viewBox="0 0 48 40">
-  <path d="M4 14h8l10-8v28l-10-8H4z" fill="#000"/>
-  <path d="M28 13.5a9 9 0 0 1 0 13" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M33.5 8a16 16 0 0 1 0 24" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300">
+  <rect x="2" y="2" width="996" height="296" rx="10" fill="#F4F6F7" stroke="#B8C2CA" stroke-width="3" stroke-dasharray="14 10"/>
+  <path d="M462 104h16l20-16v60l-20-16h-16z" fill="none" stroke="#5A6874" stroke-width="5" stroke-linejoin="round"/><path d="M510 103a18 18 0 0 1 0 30" fill="none" stroke="#0A84A0" stroke-width="5" stroke-linecap="round"/><path d="M522 91a34 34 0 0 1 0 54" fill="none" stroke="#0A84A0" stroke-width="5" stroke-linecap="round"/>
+  <text x="500" y="200" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#16212B">Sound</text>
+  <text x="500" y="244" text-anchor="middle" font-family="Fira Sans, Helvetica, Arial, sans-serif" font-size="24" fill="#5A6874">Available in the online version of this article</text>
 </svg>
