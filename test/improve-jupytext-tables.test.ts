@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { processArticle } from '../src/steps/jupytext/improve-jupytext-tables.js';
+import { applyTableMaxRows, processArticle } from '../src/steps/jupytext/improve-jupytext-tables.js';
 import { processArticle as wrapHermeneutics } from '../src/steps/jupytext/improve-hermeneutics-blocks.js';
 
 describe('improve jupytext tables', () => {
@@ -79,5 +79,29 @@ describe('descriptive table tags (JDH-016)', () => {
       region('tags=["table-overview-*", "anchor-table-overview"]', TABLE),
     ].join('\n');
     expect(processArticle(md).content).toContain('Noise in [](#table:overview) and [the overview](#table:overview).');
+  });
+});
+
+describe('applyTableMaxRows (JDH-057)', () => {
+  test('sets the row limit on each table and keeps one the table sets itself', () => {
+    const input = [
+      '```{jdh-table} First',
+      ':label: t1',
+      ':align: center',
+      '',
+      '| a |',
+      '```',
+      '',
+      '```{jdh-table} Second',
+      ':max-rows: 2',
+      '',
+      '| b |',
+      '```',
+      '',
+    ].join('\n');
+    const output = applyTableMaxRows(input, 8);
+    expect(output).toContain('```{jdh-table} First\n:max-rows: 8\n:label: t1\n');
+    expect(output).toContain('```{jdh-table} Second\n:max-rows: 2\n');
+    expect(output.match(/:max-rows:/g)).toHaveLength(2);
   });
 });

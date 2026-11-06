@@ -16,6 +16,17 @@ interface RunImproveJupytextTablesOptions {
   article: string;
   dryRun: boolean;
   cwd: string;
+  /** `--table-max-rows`: overrides the plugin's default for every table (JDH-057). */
+  maxRows?: number;
+}
+
+/** Add `:max-rows:` to each `{jdh-table}` directive that doesn't set its own. */
+export function applyTableMaxRows(content: string, maxRows: number): string {
+  return content.replace(
+    /^((?::::|```)\s*\{jdh-table\}[^\n]*\n)((?::[\w-]+:[^\n]*\n)*)/gm,
+    (head, open: string, settings: string) =>
+      settings.includes(':max-rows:') ? head : `${open}:max-rows: ${maxRows}\n${settings}`,
+  );
 }
 
 function readUtf8(p: string): string {
@@ -287,7 +298,8 @@ async function improveJupytextTables(
   }
 
   const content = readUtf8(articlePath);
-  const { content: newContent, tableNumToLabel } = processArticle(content);
+  const { content: processed, tableNumToLabel } = processArticle(content);
+  const newContent = options.maxRows === undefined ? processed : applyTableMaxRows(processed, options.maxRows);
 
   if (newContent === content) {
     process.stdout.write('No table regions found; no changes.\n');
@@ -322,6 +334,7 @@ export const improveJupytextTablesStep: PipelineStep = {
       article: 'article.md',
       dryRun: o.dryRun,
       cwd: o.cwd,
+      maxRows: ctx.options.tableMaxRows,
     });
   },
 };

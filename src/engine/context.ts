@@ -55,10 +55,15 @@ export function parseConvertOptions(opts: {
   zotero?: boolean;
   qrCode?: string;
   fingerprint?: string;
+  tableMaxRows?: string;
 }): ConvertOptions {
   const rorMinScore = opts.rorMinScore != null ? Number(opts.rorMinScore) : 0.8;
   if (!Number.isFinite(rorMinScore) || rorMinScore < 0 || rorMinScore > 1) {
     throw new Error(`--ror-min-score must be between 0 and 1 (got ${opts.rorMinScore})`);
+  }
+  const tableMaxRows = opts.tableMaxRows != null ? Number(opts.tableMaxRows) : undefined;
+  if (tableMaxRows !== undefined && (!Number.isInteger(tableMaxRows) || tableMaxRows < 0)) {
+    throw new Error(`--table-max-rows must be 0 or more (got ${opts.tableMaxRows})`);
   }
 
   return {
@@ -73,5 +78,6 @@ export function parseConvertOptions(opts: {
     zotero: opts.zotero !== false,
     qrCode: opts.qrCode,
     fingerprint: opts.fingerprint,
+    tableMaxRows,
   };
 }

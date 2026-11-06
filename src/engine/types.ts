@@ -47,6 +47,8 @@ export interface ConvertOptions {
   qrCode?: string;
   /** Fingerprint image for the PDF sidebar: local path or http(s) URL. */
   fingerprint?: string;
+  /** Rows a table shows before it is shortened; 0 shows every row (default in the jdh-table plugin). */
+  tableMaxRows?: number;
 }
 
 export interface RunContext {

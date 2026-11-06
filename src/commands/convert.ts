@@ -18,6 +18,7 @@ export function addConvertCommand(program: Command): void {
     .option('--url <url>', 'Set the article URL, project.social.url (default: JDH article page from repo name)')
     .option('--qr-code <path|url>', 'QR code image for the PDF sidebar (default: repo generated/qr.png, else a placeholder)')
     .option('--fingerprint <path|url>', 'Fingerprint image for the PDF sidebar (default: repo generated/fingerprint.png, else a placeholder)')
+    .option('--table-max-rows <n>', 'Rows a table shows before it is shortened; 0 shows every row (default 4)')
     .option('--no-zotero', "Ignore the notebook's Zotero (citation-manager) data; use the repo's .bib files only")
     .option('--list-steps', 'Print planned steps for this input and exit')
     .addHelpText(
@@ -50,6 +51,7 @@ Examples:
         zotero: opts.zotero,
         qrCode: opts.qrCode,
         fingerprint: opts.fingerprint,
+        tableMaxRows: opts.tableMaxRows,
       });
 
       const rulesetId = inferRulesetId(inputAbs);
