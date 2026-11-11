@@ -4,7 +4,7 @@ title: Plugins overview
 
 # Plugins & directives
 
-jdh-cli bundles four MyST JavaScript plugins under `templates/plugins/`. On every `improve` run they are copied to `_improved/plugins/` and registered in `myst.yml`.
+jdh-cli bundles six MyST JavaScript plugins under `templates/plugins/`. On every `improve` run they are copied to `_improved/plugins/` and registered in `myst.yml`.
 
 **Article repos do not ship their own `plugins/` directory.** Extend plugins in jdh-cli, then rebuild and re-run `improve`.
 
@@ -17,6 +17,7 @@ Plugins run at **MyST build time**. They shape the AST and insert Typst `raw` no
 | [Hermeneutics](hermeneutics.md) | `hermeneutics.mjs` | directive + transform | Yes | Cyan commentary blocks |
 | [JDH table](jdh-table.md) | `jdh-table.mjs` | directive + transform | Yes | Row/column truncation + Typst tablex |
 | [JDH dialogue](jdh-dialogue.md) | `jdh-dialogue.mjs` | directive + transform | Yes | Dialogue cells as numbered speech bubbles |
+| JDH lists | `jdh-lists.mjs` | transform only | No | PDF lists: a line break inside an item keeps the numbering going; task items (`- [ ]`) get a box |
 | [Narrative code](narrative-code.md) | `narrative-code.mjs` | transform only | No | Gray full-bleed code styling |
 | [Hide figure code](hide-figure-code.md) | `hide-figure-code.mjs` | transform only | No (safety net) | Remove legacy `code:fig:*` blocks |
 

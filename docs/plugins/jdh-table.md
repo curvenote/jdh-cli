@@ -48,7 +48,7 @@ Caption is the directive argument (no "Table N:" prefix — numbering is automat
 | `enumerated` | boolean | no | — | Table numbering; alias `numbered` |
 | `enumerator` | string | no | — | Custom enumerator; alias `number` |
 
-Pipeline output always includes `:label:`, `:align: center`, `:header-rows:` when multiple header rows are detected, and `:total-rows:` for truncated pandas outputs. It does **not** emit `:max-rows:` or `:max-columns:` (plugin defaults apply).
+Pipeline output always includes `:label:`, `:align: center`, `:header-rows:` when multiple header rows are detected, and `:total-rows:` for truncated pandas outputs. It emits `:max-rows:` only when `jdh-cli --table-max-rows <n>` is given; otherwise, and for `:max-columns:`, the plugin defaults apply.
 
 ### Truncation defaults
 

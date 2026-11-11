@@ -23,7 +23,7 @@ jdh-cli build             # → _improved/article.pdf
 
 | Command | What it does | Common options |
 | --- | --- | --- |
-| `jdh-cli article.md` | Convert the article: runs the 14-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli article.md` | Convert the article: runs the 18-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--table-max-rows`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
 | `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
 | `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place; hand edits there win over derived values ([details](docs/cli.md#iterate-in-place)) | |
@@ -39,6 +39,7 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | `--url <url>` | JDH article page from the repo name | Set the article URL (`project.social.url`) |
 | `--qr-code <path\|url>` | Repo's `generated/qr.png`, else a placeholder | QR code image for the PDF sidebar: a local file or an http(s) URL. PNG, JPEG, GIF or SVG (checked by its bytes) |
 | `--fingerprint <path\|url>` | Repo's `generated/fingerprint.png`, else a placeholder | Fingerprint image for the PDF sidebar, as for `--qr-code` |
+| `--table-max-rows <n>` | `4` | Rows a table shows before "K rows more"; `0` shows every row. Applies to every table in the run; a table's own `:max-rows:` wins |
 | `--no-zotero` | Zotero data used | Ignore the notebook's Zotero data and rely on the repo's `.bib` files. For articles that cite `[@key]` directly; `<cite>` tags then become plain text |
 | `--no-ror-lookup` | ROR lookups on | Skip resolving affiliations via the ROR API (faster, offline) |
 | `--ror-min-score <0..1>` | `0.8` | ROR match threshold |
@@ -59,7 +60,7 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 - the bundled `meta-jdh.yml` (licence, PDF export), unless the repo has its own
 - the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else clearly marked placeholders (with a warning, since a real article needs the real images)
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
-- the MyST plugins for hermeneutics blocks, narrative code and JDH tables
+- the MyST plugins for hermeneutics blocks, narrative code, JDH tables, dialogue and lists
 - `references.bib` from the notebook's Zotero (citation-manager) data, plus any `.bib` files in the article repo (e.g. `direct.bib`)
 - a `.gitignore`, so the article repo stays clean
 
@@ -77,7 +78,7 @@ Files the article repo provides take precedence. With `jdh-cli init`, edits to t
 
 ## Pipeline
 
-`jdh-cli article.md --list-steps` prints the 14 steps: prepare workdir, init `myst.yml`, citations, citation keys, front matter, ROR affiliations, document parts, figures (including video and audio), notebook tables, table regions, dialogues, hermeneutics blocks, GitHub link, DOI and URL. Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
+`jdh-cli article.md --list-steps` prints the 18 steps: prepare workdir, init `myst.yml`, cell numbers, citations, citation keys, front matter, ROR affiliations, document parts, hidden cells, anchors, figures (including video and audio), notebook tables, table regions, dialogues, hermeneutics blocks, images from untagged code cells (including the cover), GitHub link, and the JDH article metadata (DOI, URL, date, licence, issue). Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
 
 ## Documentation
 

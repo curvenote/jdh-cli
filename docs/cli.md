@@ -37,6 +37,7 @@ jdh-cli article.md --dry-run             # log actions without writing
 | `--url <url>` | JDH article page | Set the article URL (`project.social.url`) |
 | `--qr-code <path\|url>` | repo image, else placeholder | QR code for the PDF sidebar (see below) |
 | `--fingerprint <path\|url>` | repo image, else placeholder | Fingerprint for the PDF sidebar (see below) |
+| `--table-max-rows <n>` | `4` (plugin default) | Rows every table shows before "K rows more"; `0` shows all. A table's own `:max-rows:` wins |
 | `--list-steps` | off | List pipeline steps and exit |
 
 ### DOI and URL

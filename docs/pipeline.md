@@ -29,10 +29,11 @@ jdh-cli article.md --list-steps
 | 13 | Improve Jupytext tables | `` ```{jdh-table} `` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links |
 | 14 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
 | 15 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
-| 16 | Set project.github | `project.github` from git remote |
-| 17 | Set article metadata | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url)) |
+| 16 | Image outputs of untagged code cells | An untagged code cell's image output is placed after its code. A cell tagged `cover` shows its image (the file named in `Image(…)`, else the stored output) in place of the code |
+| 17 | Set project.github | `project.github` from git remote |
+| 18 | Set article metadata | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url)) |
 
-Steps 11–15 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
+Steps 11–16 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
 
 ## Paragraph numbers
 
@@ -96,8 +97,8 @@ The Jupytext markdown has cell code and tags but no outputs, so the figure step 
 - **Tags:** numbered (`figure-1-*`, `figure_1`, `fig:1`) and descriptive (`figure-cartoon-*`) tags both become `fig:…` labels; references such as `[this figure](#figure-cartoon-*)` are retargeted.
 - **Captions,** in order: the `metadata={"jdh": …}` literal in the code; cell metadata `jdh.object.source` (also on the Jupytext fence line); output metadata in the notebook. Output metadata is written at execution time and can be older than edits to the code, so a warning is printed when the sources disagree.
 - **Images:** a cell becomes a `{figure}` when its code displays an image file (`Image("…")` or `Image(filename="…")`); files outside the copied folders (e.g. saved next to the notebook) are copied into the workdir. Otherwise, or when that file is missing, the cell's notebook image output (`image/png`, `image/jpeg`, `image/gif`, `image/svg+xml`) is decoded to `notebook-outputs/fig-<label>.<ext>` and used instead. With several image outputs, the first is used.
-- **Interactive figures and video:** when a figure's only output is HTML or JavaScript (Plotly, Bokeh, maps, widgets), or the cell is tagged `video-*`, it becomes a numbered figure with a placeholder image. Video is its own kind, numbered "Video N" (`project.numbering.video`, template `Video %s`); the placeholder look waits on JDH's design (`notebook-outputs/placeholder-interactive.svg` / `placeholder-video.svg`). The caption links to the cell in the online article (`<article URL>?idx=<cell index>`). Nothing is rendered: an image output in the notebook is used when present, otherwise the placeholder.
-- **Audio:** cells tagged `sound-*` (or `audio-*`) become a figure of kind `sound`, numbered "Sound N" separately from figures (the workdir `myst.yml` registers `project.numbering.sound`, template `Sound %s`), with a small speaker icon (`notebook-outputs/sound.svg`). The caption ends "Listen to it in the online article.", linking to the cell with `?idx=`. With no caption anywhere, it is "Audio recording.". A sound cell tagged `hermeneutics` stays inside its hermeneutics block. A figure that has both an image and an audio player (e.g. a waveform) keeps its image and gets the same link.
+- **Interactive figures and video:** when a figure's only output is HTML or JavaScript (Plotly, Bokeh, maps, widgets), or the cell is tagged `video-*`, it becomes a numbered figure with a placeholder image at the full text width. Video is its own kind, numbered "Video N" (`project.numbering.video`, template `Video %s`). Interactive figures, video and audio share one placeholder style, a dashed box with the media's icon (`notebook-outputs/placeholder-interactive.svg`, `placeholder-video.svg`, `sound.svg`), agreed with JDH on 6 Nov 2026. The caption links to the cell in the online article (`<article URL>?idx=<cell index>`). Nothing is rendered: an image output in the notebook is used when present, otherwise the placeholder.
+- **Audio:** cells tagged `sound-*` (or `audio-*`) become a figure of kind `sound`, numbered "Sound N" separately from figures (the workdir `myst.yml` registers `project.numbering.sound`, template `Sound %s`), with the shared placeholder (`notebook-outputs/sound.svg`). Under the caption, a "Listen to the audio online" link goes to the cell with `?idx=`. With no caption anywhere, it is "Audio recording.". A sound cell tagged `hermeneutics` stays inside its hermeneutics block. A figure that has both an image and an audio player (e.g. a waveform) keeps its image and gets the same link.
 - **Figures in markdown cells:** a region tagged `figure-*` holding a single image (`![alt](src)`, local or remote) becomes a numbered `{figure}`. Its caption comes from the region's `jdh` metadata, else a descriptive alt text. MyST downloads remote images at build.
 - **Left as code:** figure cells whose HTML output is a table and cells with no output at all. Size hints such as `w-904px` are not applied.
 - **Logs:** `stream` and `error` outputs are never used.
@@ -132,6 +133,7 @@ project:
     - plugins/hermeneutics.mjs
     - plugins/hide-figure-code.mjs
     - plugins/jdh-dialogue.mjs
+    - plugins/jdh-lists.mjs
     - plugins/jdh-table.mjs
     - plugins/narrative-code.mjs
 ```
