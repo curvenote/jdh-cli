@@ -69,6 +69,7 @@ _improved/
     jdh-table.mjs
     narrative-code.mjs
     hide-figure-code.mjs
+    jdh-figures.mjs
     lib/table-truncate.mjs
     lib/typst-text.mjs
   data/                   # mirrored from project root when present
@@ -133,6 +134,7 @@ project:
     - plugins/hermeneutics.mjs
     - plugins/hide-figure-code.mjs
     - plugins/jdh-dialogue.mjs
+    - plugins/jdh-figures.mjs
     - plugins/jdh-lists.mjs
     - plugins/jdh-table.mjs
     - plugins/narrative-code.mjs

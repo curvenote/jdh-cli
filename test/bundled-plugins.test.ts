@@ -24,6 +24,7 @@ describe('bundled plugins', () => {
     expect(paths).toContain('plugins/narrative-code.mjs');
     expect(paths).toContain('plugins/jdh-table.mjs');
     expect(paths).toContain('plugins/hide-figure-code.mjs');
+    expect(paths).toContain('plugins/jdh-figures.mjs');
     expect(paths.every((p) => p.startsWith('plugins/'))).toBe(true);
   });
 

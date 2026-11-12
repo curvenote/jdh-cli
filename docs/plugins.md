@@ -1,7 +1,7 @@
 # MyST plugins (JDH)
 
 > **Full documentation:** browse the [jdh-cli docs site](index.md) (`myst build --html` from `docs/`).
-> Per-plugin pages: [overview](plugins/index.md) · [hermeneutics](plugins/hermeneutics.md) · [jdh-table](plugins/jdh-table.md) · [narrative-code](plugins/narrative-code.md) · [hide-figure-code](plugins/hide-figure-code.md)
+> Per-plugin pages: [overview](plugins/index.md) · [hermeneutics](plugins/hermeneutics.md) · [jdh-table](plugins/jdh-table.md) · [narrative-code](plugins/narrative-code.md) · [hide-figure-code](plugins/hide-figure-code.md) · [jdh-figures](plugins/jdh-figures.md)
 
 jdh-cli bundles MyST JavaScript plugins under `templates/plugins/` (including
 `plugins/lib/` helpers). On every `improve` run, `prepareWorkdir` copies the
@@ -26,6 +26,7 @@ Typst/HTML styling for HTML is out of scope for now; PDF (Typst) is the target.
 | JDH table | `jdh-table.mjs` | MyST build | `:::{jdh-table}` → row/column truncation + Typst styling |
 | JDH dialogue | `jdh-dialogue.mjs` | MyST build | `` ```{jdh-dialogue} `` → numbered speech-bubble dialogues |
 | Hide figure code | `hide-figure-code.mjs` | MyST build | Removes legacy `code:fig:*` blocks from the AST (PDF safety net) |
+| Full-width figures | `jdh-figures.mjs` | MyST build | Figure images with no width get 100% of the text width |
 
 See linked pages above for directive syntax, options tables, and Typst behaviour.
 

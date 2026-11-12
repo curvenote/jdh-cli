@@ -20,6 +20,7 @@ Plugins run at **MyST build time**. They shape the AST and insert Typst `raw` no
 | JDH lists | `jdh-lists.mjs` | transform only | No | PDF lists: a line break inside an item keeps the numbering going; task items (`- [ ]`) get a box |
 | [Narrative code](narrative-code.md) | `narrative-code.mjs` | transform only | No | Gray full-bleed code styling |
 | [Hide figure code](hide-figure-code.md) | `hide-figure-code.mjs` | transform only | No (safety net) | Remove legacy `code:fig:*` blocks |
+| [Full-width figures](jdh-figures.md) | `jdh-figures.mjs` | transform only | No | Figures at the full text width |
 
 ## Directive vs transform
 

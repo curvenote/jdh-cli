@@ -19,6 +19,7 @@ project:
         - file: plugins/jdh-table.md
         - file: plugins/narrative-code.md
         - file: plugins/hide-figure-code.md
+        - file: plugins/jdh-figures.md
     - file: typst.md
 site:
   template: book-theme
