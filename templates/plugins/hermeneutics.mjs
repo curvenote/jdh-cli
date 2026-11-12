@@ -58,14 +58,33 @@ const hermeneuticsDirective = {
 const wrapHermeneuticsForTypst = {
   name: 'wrap-hermeneutics-for-typst',
   stage: 'document',
-  plugin: (_, utils) => (tree) => {
-    utils.selectAll('block', tree).forEach((node) => {
+  plugin: () => (tree) => {
+    // Consecutive hermeneutics cells share one block, as on the JDH website (JDH-061):
+    // the first opens `#hermeneutics-block[`, the last closes it, and the cell-number
+    // markers between them land inside, so each cell keeps its number.
+    const sequence = [];
+    const walk = (node) => {
+      if (node.type === 'block' && node.kind === 'hermeneutics') {
+        sequence.push(node);
+        return;
+      }
+      if (node.type === 'raw' && /^\s*#jdh-cell\(/.test(node.typst ?? node.value ?? '')) return;
+      if (node.children) {
+        node.children.forEach(walk);
+        return;
+      }
+      sequence.push(node);
+    };
+    walk(tree);
+    sequence.forEach((node, i) => {
       if (node.kind !== 'hermeneutics' || node.data?.hermeneuticsWrapped) return;
       node.data = { ...(node.data ?? {}), hermeneuticsWrapped: true };
+      const joinedBefore = sequence[i - 1]?.kind === 'hermeneutics';
+      const joinedAfter = sequence[i + 1]?.kind === 'hermeneutics';
       node.children = [
-        { type: 'raw', typst: '#hermeneutics-block[\n' },
+        ...(joinedBefore ? [] : [{ type: 'raw', typst: '#hermeneutics-block[\n' }]),
         ...(node.children ?? []),
-        { type: 'raw', typst: '\n]' },
+        ...(joinedAfter ? [] : [{ type: 'raw', typst: '\n]' }]),
       ];
     });
   },

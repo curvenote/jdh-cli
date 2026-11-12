@@ -40,13 +40,15 @@ The directive emits `block[kind=hermeneutics]` with the parsed body as children.
 
 ## Document transform
 
-`wrap-hermeneutics-for-typst` wraps each hermeneutics block with Typst raw nodes:
+`wrap-hermeneutics-for-typst` wraps hermeneutics blocks with Typst raw nodes:
 
 ```typst
 #hermeneutics-block[
   ...content...
 ]
 ```
+
+Consecutive hermeneutics cells share one block, as on the JDH website: the first cell opens it and the last closes it. The cell-number markers between them fall inside the block, so each cell keeps its own paragraph number (JDH-061).
 
 ## Typst export
 
