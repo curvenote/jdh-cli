@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Command } from 'commander';
@@ -16,11 +17,28 @@ function defaultTemplatePath(): string {
   return path.resolve(resolveJdhCliRoot(), '..', 'jdh-typst-template');
 }
 
+/** True for a template given as a URL (e.g. a GitHub release zip) rather than a local path. */
+export function isTemplateUrl(template: string): boolean {
+  return /^https?:\/\//.test(template);
+}
+
+/**
+ * Fonts folder of a URL template once myst has downloaded it. myst caches the zip
+ * under `_build/templates/typst/<sha256 of the URL>/`, so the path is known before
+ * the download; Typst only reads TYPST_FONT_PATHS when it compiles.
+ */
+export function urlTemplateFontPath(workdirAbs: string, url: string): string {
+  const hash = createHash('sha256').update(url).digest('hex');
+  return path.join(workdirAbs, '_build', 'templates', 'typst', hash, 'fonts', 'fira_code');
+}
+
 /**
  * Point every `exports[].template` in a workdir config at `templateAbs`, so the
  * article repo never has to know where the template lives. Returns true if changed.
  */
 export function pointExportsAtTemplate(configPath: string, templateAbs: string): boolean {
+  // myst only treats a URL template as Typst when the export says `format: typst`.
+  const url = isTemplateUrl(templateAbs);
   if (!fileExists(configPath)) return false;
   return updateYamlFile(configPath, (doc) => {
     const exports = doc.getIn(['project', 'exports']);
@@ -28,6 +46,7 @@ export function pointExportsAtTemplate(configPath: string, templateAbs: string):
     exports.items.forEach((_item, i) => {
       if (doc.hasIn(['project', 'exports', i, 'template'])) {
         doc.setIn(['project', 'exports', i, 'template'], templateAbs);
+        if (url) doc.setIn(['project', 'exports', i, 'format'], 'typst');
       }
     });
   });
@@ -41,7 +60,7 @@ export function addBuildCommand(program: Command): void {
     .option('--project-root <path>', 'Article repo root', process.cwd())
     .option(
       '--template <path>',
-      'JDH Typst template path, relative to the workdir unless absolute (default: jdh-typst-template next to jdh-cli)',
+      'JDH Typst template: a path (relative to the workdir unless absolute) or a zip URL such as a GitHub release (default: jdh-typst-template next to jdh-cli)',
     )
     .option(
       '--figure-placement <mode>',
@@ -55,6 +74,7 @@ Examples:
   $ jdh-cli build
   $ jdh-cli build --project-root ./article --workdir _improved
   $ jdh-cli build --template /path/to/jdh-typst-template
+  $ jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip
   $ jdh-cli build --figure-placement auto
 `,
     )
@@ -81,13 +101,14 @@ Examples:
         );
       }
 
+      const templateIsUrl = !!opts.template && isTemplateUrl(opts.template);
       const templateAbs = !opts.template
         ? defaultTemplatePath()
-        : path.isAbsolute(opts.template)
+        : templateIsUrl || path.isAbsolute(opts.template)
           ? opts.template
           : path.resolve(workdirAbs, opts.template);
 
-      if (!fileExists(templateAbs)) {
+      if (!templateIsUrl && !fileExists(templateAbs)) {
         throw new CliError(`Typst template not found: ${templateAbs}`);
       }
 
@@ -100,13 +121,17 @@ Examples:
         pointExportsAtSidebarImages(path.join(workdirAbs, config), new Map([['figure_placement', placement]]));
       }
 
-      const fontPath = path.join(templateAbs, 'fonts', 'fira_code');
+      const fontPath = templateIsUrl
+        ? urlTemplateFontPath(workdirAbs, templateAbs)
+        : path.join(templateAbs, 'fonts', 'fira_code');
       const env = {
         ...process.env,
         TYPST_FONT_PATHS: fontPath,
       };
 
-      const cmd = `myst build --pdf`;
+      // A URL template's exports are `format: typst`, which `--pdf` skips.
+      const buildFlag = templateIsUrl ? '--typst' : '--pdf';
+      const cmd = `myst build ${buildFlag}`;
       console.log(`Workdir:  ${workdirAbs}`);
       console.log(`Template: ${templateAbs}`);
       console.log(`Fonts:    ${fontPath}`);
@@ -115,7 +140,7 @@ Examples:
 
       const pdfPath = path.join(workdirAbs, 'article.pdf');
       const startedAt = Date.now();
-      const res = spawnSync('myst', ['build', '--pdf'], {
+      const res = spawnSync('myst', ['build', buildFlag], {
         cwd: workdirAbs,
         stdio: 'inherit',
         env,

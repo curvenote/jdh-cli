@@ -18,26 +18,30 @@ exports:
 
 ## How the template is found
 
-The template is a separate repo and is **not bundled** in jdh-cli.
+The template is a separate repo; jdh-cli doesn't bundle it. `jdh-cli build --template` picks it:
 
-- Default: `../jdh-typst-template` relative to the jdh-cli checkout. Override with `jdh-cli build --template <path>` (absolute, or relative to the article repo). A missing template fails the build with `Typst template not found`.
-- Every `exports[].template` in `_improved/`'s config is rewritten to that absolute path, so article repos never reference the template.
-- The template isn't pinned: jdh-cli uses whatever is checked out. The bundled plugins emit Typst that `jdh.typ` renders (see the mapping below), so keep the two repos in step.
+| `--template` | Template | `TYPST_FONT_PATHS` | MyST command |
+| --- | --- | --- | --- |
+| omitted | `../jdh-typst-template` next to jdh-cli | `<template>/fonts/fira_code` | `myst build --pdf` |
+| a path | that folder (absolute, or relative to the workdir) | `<template>/fonts/fira_code` | `myst build --pdf` |
+| a zip URL | downloaded by MyST to `_build/templates/typst/<sha256 of URL>/` | that folder's `fonts/fira_code` | `myst build --typst` |
 
-## Template sources MyST accepts
+Every `exports[].template` in the workdir config is rewritten to the chosen template, so article repos never reference it. A missing local template fails the build with `Typst template not found`.
 
-An export's `template:` can take three forms, which are the options for shipping the template with jdh-cli in future:
+A checkout isn't pinned: jdh-cli uses whatever is checked out, and the bundled plugins emit Typst that `jdh.typ` renders (see the mapping below), so keep the two in step. A release URL pins the version.
 
-```yaml
-project:
-  exports:
-    - format: typst
-      template: ../jdh-typst-template   # local folder containing template.yml (used today)
-      # template: https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v1.0.0.zip
-      # template: lapreprint-typst       # name from the public MyST template registry
+## Using a release zip
+
+```bash
+jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip
 ```
 
-A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, giving a versioned template with no separate checkout. Tested with the `v0.1.0` release: the PDF builds and embeds the right fonts, provided (1) the export uses `format: typst` (with `format: pdf` and a URL, MyST assumes a LaTeX template and fails), and (2) `TYPST_FONT_PATHS` points at the downloaded copy's `fonts/fira_code` under `_build/templates/typst/<hash>/`, else Fira Code is missing. The first build needs network access. jdh-cli doesn't support this yet; the alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
+MyST accepts a zip URL as an export's `template:`, downloads it on the first build (network needed) and caches it. Two things don't happen automatically, so jdh-cli does them:
+
+- **Format.** With `format: pdf` and a URL, MyST assumes a LaTeX template and fails. jdh-cli sets the export's `format: typst` and runs `myst build --typst`.
+- **Fonts.** MyST runs `typst compile` without `--font-path` and ignores the template's `font-paths.txt`, so Typst finds only `TYPST_FONT_PATHS`, system fonts and its built-in fonts (Libertinus Serif, New Computer Modern, DejaVu Sans Mono). The cache folder is named by the SHA-256 of the URL, so jdh-cli sets `TYPST_FONT_PATHS` to `<cache>/fonts/fira_code` before the download; Typst only reads it when compiling.
+
+The other form MyST accepts is a name from the public MyST template registry (e.g. `lapreprint-typst`); the JDH template isn't listed there.
 
 ## Plugin → Typst mapping
 
@@ -73,7 +77,8 @@ Table truncation defaults in the plugin (`max-rows: 4`, `max-columns: 6`) align 
 ## Prerequisites
 
 - [MyST CLI](https://mystmd.org) installed globally or on `PATH`
-- `jdh-typst-template` next to jdh-cli (or pass `--template` to `jdh-cli build`)
+- [Typst](https://typst.app) on the PATH (`typst`, e.g. `brew install typst`); MyST runs `typst compile` and doesn't install it
+- `jdh-typst-template` next to jdh-cli, or `--template` with another path or a release zip URL
 - the QR code and fingerprint: `--qr-code` / `--fingerprint` (path or URL), else `generated/qr.png` and `generated/fingerprint.png` in the article repo, else clearly marked placeholders (with a warning). See [CLI](cli.md#qr-code-and-fingerprint)
 
 ## HTML export

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { pointExportsAtTemplate } from '../src/commands/build.js';
+import { pointExportsAtTemplate, urlTemplateFontPath } from '../src/commands/build.js';
 import { deployBundledDefaults } from '../src/init/bundled-assets.js';
 
 let tmpDir: string | undefined;
@@ -65,5 +65,24 @@ describe('pointExportsAtTemplate', () => {
 
   test('returns false when there is no config', () => {
     expect(pointExportsAtTemplate('/nonexistent/myst.yml', '/abs')).toBe(false);
+  });
+  test('a URL template also sets format: typst', () => {
+    const dir = mkTmp();
+    const cfg = path.join(dir, 'myst.yml');
+    fs.writeFileSync(cfg, 'version: 1\nproject:\n  exports:\n    - format: pdf\n      template: ../../jdh-typst-template\n');
+    const url = 'https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip';
+    expect(pointExportsAtTemplate(cfg, url)).toBe(true);
+    const out = fs.readFileSync(cfg, 'utf8');
+    expect(out).toContain('format: typst');
+    expect(out).toContain(`template: ${url}`);
+  });
+});
+
+describe('urlTemplateFontPath', () => {
+  test('matches the folder myst caches the zip in (sha256 of the URL)', () => {
+    const url = 'https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip';
+    expect(urlTemplateFontPath('/w', url)).toBe(
+      '/w/_build/templates/typst/237897ed47fd09773d293e9cbe9b285766d993ed049d68d7b6e298546c278067/fonts/fira_code',
+    );
   });
 });

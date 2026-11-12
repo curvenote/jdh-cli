@@ -116,16 +116,21 @@ jdh-cli clean --workdir _improved
 
 ## Build (`jdh-cli build`)
 
-Runs `myst build --pdf` in the workdir with `TYPST_FONT_PATHS` set for Fira Code.
+Runs `myst build --pdf` in the workdir with `TYPST_FONT_PATHS` set for Fira Code (`myst build --typst` when the template is a zip URL).
 
 ```bash
 jdh-cli build
 jdh-cli build --project-root . --workdir _improved
 jdh-cli build --template /path/to/jdh-typst-template
+jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip
 jdh-cli build --figure-placement auto
 ```
 
-Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it (relative to the workdir unless absolute). Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it with another path (relative to the workdir unless absolute) or a zip URL such as a GitHub release. Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+
+### Template from a release
+
+`--template <zip URL>` builds with a pinned release and needs no template checkout. MyST downloads the zip into `_build/templates/typst/<sha256 of URL>/` on the first build (network needed) and reuses it afterwards. jdh-cli sets the export to `format: typst`, runs `myst build --typst`, and points `TYPST_FONT_PATHS` at that folder's `fonts/fira_code` before the download happens, since MyST doesn't pass font paths to Typst itself. See [Typst integration](typst.md#how-the-template-is-found).
 
 `--figure-placement` sets where figures go:
 - `none` (default) keeps each figure where it is in the text, so the PDF reads in the same order as the online article (JDH-043). A figure that doesn't fit at the bottom of a page moves to the next one and leaves a gap.

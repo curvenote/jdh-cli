@@ -4,7 +4,7 @@ Turns a Journal of Digital History article repo (Jupytext `article.md` + `articl
 
 ## Getting started
 
-**Prerequisites:** [Bun](https://bun.sh), the [MyST CLI](https://mystmd.org) (`myst`) for PDF builds, and [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) checked out next to `jdh-cli`.
+**Prerequisites:** [Bun](https://bun.sh), the [MyST CLI](https://mystmd.org) (`myst`) and [Typst](https://typst.app) (`typst`, e.g. `brew install typst`) for PDF builds, and the [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template): either checked out next to `jdh-cli`, or fetched from a release with `jdh-cli build --template <zip URL>` (see [The Typst template](#the-typst-template)).
 
 ```bash
 # once: build jdh-cli and put it on your PATH
@@ -24,7 +24,7 @@ jdh-cli build             # → _improved/article.pdf
 | Command | What it does | Common options |
 | --- | --- | --- |
 | `jdh-cli article.md` | Convert the article: runs the 18-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--table-max-rows`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
-| `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path>` |
+| `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path or zip URL>`, `--figure-placement` |
 | `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
 | `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place; hand edits there win over derived values ([details](docs/cli.md#iterate-in-place)) | |
 | `jdh-cli --help` | Help for any command (`jdh-cli build --help`) | `--version` |
@@ -64,29 +64,30 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 - `references.bib` from the notebook's Zotero (citation-manager) data, plus any `.bib` files in the article repo (e.g. `direct.bib`)
 - a `.gitignore`, so the article repo stays clean
 
-`jdh-cli build` points the PDF export at `jdh-typst-template` next to jdh-cli; pass `--template` to use another copy.
-
 ### The Typst template
 
-[`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) is a separate repo and is **not bundled** in jdh-cli. At build time:
+[`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) is a separate repo; jdh-cli doesn't bundle it. `jdh-cli build` uses it in one of two ways:
 
-- the template is found at `../jdh-typst-template` relative to the jdh-cli checkout, or at `--template <path>` (absolute, or relative to the article repo); the build fails with `Typst template not found` if it's missing
-- every `exports[].template` in `_improved/`'s config is rewritten to that absolute path, so article repos never reference the template themselves
-- `TYPST_FONT_PATHS` is set to the template's `fonts/fira_code`
-- the template isn't pinned: jdh-cli uses whatever is checked out. The bundled MyST plugins (e.g. narrative code) emit markup that the template's `jdh.typ` renders, so keep the two repos in step
+| `--template` | Where the template comes from | Fonts (`TYPST_FONT_PATHS`) |
+| --- | --- | --- |
+| omitted | `../jdh-typst-template` next to the jdh-cli checkout | `<template>/fonts/fira_code` |
+| a path | that folder (absolute, or relative to the workdir) | `<template>/fonts/fira_code` |
+| a zip URL | downloaded by MyST into `_improved/_build/templates/typst/<sha256 of URL>/` and cached | that folder's `fonts/fira_code` |
 
-MyST itself accepts three forms for an export's `template:`, which are options for shipping the template with jdh-cli in future:
-
-```yaml
-project:
-  exports:
-    - format: typst
-      template: ../jdh-typst-template   # local folder containing template.yml (used today)
-      # template: https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v1.0.0.zip
-      # template: lapreprint-typst       # name from the public MyST template registry
+```bash
+jdh-cli build                                          # sibling checkout
+jdh-cli build --template /path/to/jdh-typst-template   # another checkout
+jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip   # a release
 ```
 
-A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, which gives a versioned template with no separate checkout. Tested with the `v0.1.0` release: the PDF builds and embeds the right fonts, provided (1) the export uses `format: typst` (with `format: pdf` and a URL, MyST assumes a LaTeX template and fails), and (2) `TYPST_FONT_PATHS` points at the downloaded copy's `fonts/fira_code` under `_build/templates/typst/<hash>/`, else Fira Code is missing. The first build needs network access. jdh-cli doesn't support this yet; the alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
+**From a release (zip URL).** A GitHub release or tag archive gives a pinned template with no checkout. jdh-cli handles the two things MyST needs for this:
+
+- it sets the export's `format: typst` and runs `myst build --typst` (with `format: pdf` and a URL, MyST assumes a LaTeX template and fails)
+- it sets `TYPST_FONT_PATHS` to where MyST will unpack the zip; the folder name is the SHA-256 of the URL, so the path is known before the download. MyST itself never passes font paths to Typst, so without this Fira Code is missing
+
+The first build needs network access; later builds reuse the cached copy. `jdh-cli clean` removes it.
+
+**Either way**, every `exports[].template` in `_improved/`'s config is rewritten to the chosen template, so article repos never reference it. A missing local template fails the build with `Typst template not found`. A checkout isn't pinned (jdh-cli uses whatever is checked out), and the bundled MyST plugins emit markup that the template's `jdh.typ` renders, so keep the two in step; a release URL avoids that drift.
 
 **References.** Any `.bib` in the article repo is used alongside the notebook's Zotero data. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
 
