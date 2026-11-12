@@ -14,7 +14,8 @@ Hand-written `:::{table}` directives in article source keep default MyST styling
 | --- | --- |
 | Pipeline | `improveJupytextTables` converts every `#region` with `table-*` tags |
 | Hand-authored | Write `:::{jdh-table}` directly (uncommon; pipeline handles notebook tables) |
-
+koenjjn ooi=ejo0-rrnok-0ek p--wl[prloen  o0-koreop  lppelokop kpkopkpe
+]
 ## Directive syntax
 
 ```markdown
