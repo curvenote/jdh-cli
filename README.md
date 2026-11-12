@@ -66,6 +66,28 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 `jdh-cli build` points the PDF export at `jdh-typst-template` next to jdh-cli; pass `--template` to use another copy.
 
+### The Typst template
+
+[`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) is a separate repo and is **not bundled** in jdh-cli. At build time:
+
+- the template is found at `../jdh-typst-template` relative to the jdh-cli checkout, or at `--template <path>` (absolute, or relative to the article repo); the build fails with `Typst template not found` if it's missing
+- every `exports[].template` in `_improved/`'s config is rewritten to that absolute path, so article repos never reference the template themselves
+- `TYPST_FONT_PATHS` is set to the template's `fonts/fira_code`
+- the template isn't pinned: jdh-cli uses whatever is checked out. The bundled MyST plugins (e.g. narrative code) emit markup that the template's `jdh.typ` renders, so keep the two repos in step
+
+MyST itself accepts three forms for an export's `template:`, which are options for shipping the template with jdh-cli in future:
+
+```yaml
+project:
+  exports:
+    - format: typst
+      template: ../jdh-typst-template   # local folder containing template.yml (used today)
+      # template: https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v1.0.0.zip
+      # template: lapreprint-typst       # name from the public MyST template registry
+```
+
+A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, which gives a versioned template with no separate checkout. It hasn't been tested with jdh-cli yet: the font path would need to follow the downloaded copy, and the first build needs network access. The alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
+
 **References.** Any `.bib` in the article repo is used alongside the notebook's Zotero data. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
 
 Files the article repo provides take precedence. With `jdh-cli init`, edits to the repo's `meta-jdh.yml` are used. From the repo's `myst.yml`, only `project.id` is kept today; keeping other edits is planned.
