@@ -37,7 +37,7 @@ project:
       # template: lapreprint-typst       # name from the public MyST template registry
 ```
 
-A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, giving a versioned template with no separate checkout. Not yet tested with jdh-cli: `TYPST_FONT_PATHS` would need to follow the downloaded copy, and the first build needs network access. The alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
+A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, giving a versioned template with no separate checkout. Tested with the `v0.1.0` release: the PDF builds and embeds the right fonts, provided (1) the export uses `format: typst` (with `format: pdf` and a URL, MyST assumes a LaTeX template and fails), and (2) `TYPST_FONT_PATHS` points at the downloaded copy's `fonts/fira_code` under `_build/templates/typst/<hash>/`, else Fira Code is missing. The first build needs network access. jdh-cli doesn't support this yet; the alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
 
 ## Plugin → Typst mapping
 

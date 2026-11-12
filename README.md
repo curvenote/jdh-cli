@@ -86,7 +86,7 @@ project:
       # template: lapreprint-typst       # name from the public MyST template registry
 ```
 
-A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, which gives a versioned template with no separate checkout. It hasn't been tested with jdh-cli yet: the font path would need to follow the downloaded copy, and the first build needs network access. The alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
+A zip URL (e.g. a GitHub tag archive) is downloaded and cached under `_build/templates/`, which gives a versioned template with no separate checkout. Tested with the `v0.1.0` release: the PDF builds and embeds the right fonts, provided (1) the export uses `format: typst` (with `format: pdf` and a URL, MyST assumes a LaTeX template and fails), and (2) `TYPST_FONT_PATHS` points at the downloaded copy's `fonts/fira_code` under `_build/templates/typst/<hash>/`, else Fira Code is missing. The first build needs network access. jdh-cli doesn't support this yet; the alternative is copying a pinned template into `templates/typst/` when jdh-cli is packaged.
 
 **References.** Any `.bib` in the article repo is used alongside the notebook's Zotero data. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
 
