@@ -81,15 +81,25 @@ export async function installSuppliedSidebarImages(
   return supplied;
 }
 
-/** Set template options (`qr_code`, `fingerprint`, `article_url`, …) on every templated export in a MyST config file. */
-export function pointExportsAtSidebarImages(configPath: string, paths: ReadonlyMap<string, string | boolean>): boolean {
+/**
+ * Set template options (`qr_code`, `fingerprint`, `article_url`, …) on every templated
+ * export in a MyST config file. A `null` value removes the option instead, so a build
+ * without a flag clears what an earlier build with it left behind.
+ */
+export function pointExportsAtSidebarImages(
+  configPath: string,
+  paths: ReadonlyMap<string, string | boolean | null>,
+): boolean {
   if (!paths.size || !fileExists(configPath)) return false;
   return updateYamlFile(configPath, (doc) => {
     const exports = doc.getIn(['project', 'exports']);
     if (!isSeq(exports)) return;
     exports.items.forEach((_item, i) => {
       if (!doc.hasIn(['project', 'exports', i, 'template'])) return;
-      for (const [key, rel] of paths) doc.setIn(['project', 'exports', i, key], rel);
+      for (const [key, rel] of paths) {
+        if (rel === null) doc.deleteIn(['project', 'exports', i, key]);
+        else doc.setIn(['project', 'exports', i, key], rel);
+      }
     });
   });
 }

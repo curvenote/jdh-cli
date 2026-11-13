@@ -124,6 +124,7 @@ jdh-cli build --project-root . --workdir _improved
 jdh-cli build --template /path/to/jdh-typst-template
 jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip
 jdh-cli build --figure-placement auto
+jdh-cli build --preprint
 ```
 
 Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it with another path (relative to the workdir unless absolute) or a zip URL such as a GitHub release. Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
@@ -137,6 +138,24 @@ Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](
 - `auto` floats figures to the top or bottom of a page instead. That packs pages more tightly, but figures can move away from the paragraphs around them.
 
 Tables and dialogue always stay in the text flow.
+
+### Preprint builds
+
+`--preprint` watermarks every page, for a PDF built before the article is published —
+authors often need one once peer review is passed (JDH-077). `--preprint-text "…"`
+changes the wording from the default "PREPRINT"; the styling (face, size, angle, how
+light it is, and whether it sits over or behind the page) comes from the template's
+`preprint` theme tokens.
+
+The option is written on every build, so a build without the flag clears a watermark an
+earlier one left behind. A normal build is byte-for-byte what it was before.
+
+### Citation style
+
+Citations and references use Typst's built-in APA 7th. `--csl <path>` replaces it with a
+[CSL](https://citationstyles.org) style file, which drives both the inline citations and
+the reference list (JDH-078). MyST copies the file into the build and rewrites the path,
+so any readable path works. Dropping the flag goes back to the built-in style.
 
 ## Article repo integration
 
