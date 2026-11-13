@@ -55,13 +55,30 @@ const hermeneuticsDirective = {
  * Inserts `raw` nodes whose `typst` field `myst-to-typst` writes verbatim
  * (see mystmd `packages/myst-to-typst/src/index.ts`, `raw` handler).
  */
+/** True if `node` holds a fenced code block anywhere inside it. */
+function hasCode(node) {
+  if (!node || typeof node !== 'object') return false;
+  if (node.type === 'code') return true;
+  return Array.isArray(node.children) && node.children.some(hasCode);
+}
+
+/**
+ * A hermeneutics cell joins its neighbours only if it holds no code. A code cell
+ * draws its own HERMENEUTICS CODE / END markers against the block's top and bottom
+ * edges, so it needs a block of its own (JDH-074).
+ */
+function joinable(node) {
+  return node?.type === 'block' && node.kind === 'hermeneutics' && !hasCode(node);
+}
+
 const wrapHermeneuticsForTypst = {
   name: 'wrap-hermeneutics-for-typst',
   stage: 'document',
   plugin: () => (tree) => {
     // Consecutive hermeneutics cells share one block, as on the JDH website (JDH-061):
     // the first opens `#hermeneutics-block[`, the last closes it, and the cell-number
-    // markers between them land inside, so each cell keeps its number.
+    // markers between them land inside, so each cell keeps its number. A cell holding
+    // code keeps a block of its own (JDH-074).
     const sequence = [];
     const walk = (node) => {
       if (node.type === 'block' && node.kind === 'hermeneutics') {
@@ -79,8 +96,8 @@ const wrapHermeneuticsForTypst = {
     sequence.forEach((node, i) => {
       if (node.kind !== 'hermeneutics' || node.data?.hermeneuticsWrapped) return;
       node.data = { ...(node.data ?? {}), hermeneuticsWrapped: true };
-      const joinedBefore = sequence[i - 1]?.kind === 'hermeneutics';
-      const joinedAfter = sequence[i + 1]?.kind === 'hermeneutics';
+      const joinedBefore = joinable(node) && joinable(sequence[i - 1]);
+      const joinedAfter = joinable(node) && joinable(sequence[i + 1]);
       node.children = [
         ...(joinedBefore ? [] : [{ type: 'raw', typst: '#hermeneutics-block[\n' }]),
         ...(node.children ?? []),
