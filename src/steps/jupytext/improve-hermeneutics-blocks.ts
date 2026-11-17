@@ -70,18 +70,14 @@ function stripHermeneuticsTagFromInnerCodeFences(inner: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!inFence) {
-      const open = line.match(
-        /^```([A-Za-z0-9_+-]+)\b(?:\s+(tags\s*=\s*\[[^\]]*\]))?\s*$/,
-      );
+      const open = line.match(/^```([A-Za-z0-9_+-]+)\b(.*)$/);
       if (open) {
-        const lang = open[1];
-        const tagsAttr = open[2];
-        if (tagsAttr) {
-          const tags = parseTagsFromAttrs(tagsAttr);
-          if (tags.includes(TARGET_TAG)) {
-            const stripped = stripHermeneuticsFromTagsAttr(tagsAttr);
-            lines[i] = stripped ? `\`\`\`${lang} ${stripped}` : `\`\`\`${lang}`;
-          }
+        const [, lang, attrs] = open;
+        const tagsAttr = attrs.match(/\btags\s*=\s*\[[^\]]*\]/)?.[0];
+        if (tagsAttr && parseTagsFromAttrs(tagsAttr).includes(TARGET_TAG)) {
+          const stripped = stripHermeneuticsFromTagsAttr(tagsAttr);
+          const rest = attrs.replace(tagsAttr, () => stripped).replace(/\s+$/, '');
+          lines[i] = `\`\`\`${lang}${rest}`;
         }
         inFence = true;
         continue;
@@ -154,7 +150,10 @@ function findHermeneuticsCodeFences(content: string): Match[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const fenceMatch = line.match(/^```([A-Za-z0-9_+-]+)\b\s+(tags\s*=\s*\[[^\]]*\])\s*$/);
+    // `tags=[…]` need not be the only attribute: Jupytext also writes `jdh={…}`,
+    // `editable=true` and `slideshow={…}` on the fence, and the Radio Archive's
+    // hermeneutics cells carry those before their tags (JDH-066).
+    const fenceMatch = line.match(/^```([A-Za-z0-9_+-]+)\b\s+(.*\btags\s*=\s*\[[^\]]*\].*)$/);
     if (!fenceMatch) continue;
     const tags = parseTagsFromAttrs(fenceMatch[2]);
     if (!tags.includes(TARGET_TAG)) continue;
