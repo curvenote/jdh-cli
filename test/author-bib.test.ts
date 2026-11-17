@@ -95,6 +95,71 @@ describe('rewriteMdCitationsToMyst', () => {
     expect(unresolved).toEqual(['(Missing, 2020)']);
   });
 
+  // JDH-076: a group of citations the author wrapped in one pair of parentheses must
+  // not end up with a second pair of its own.
+  describe('a parenthesised group of citations', () => {
+    const keys: Record<string, string> = {
+      '20666258/XX4NZQSF': 'Terras2015',
+      '20666258/VRE8WZEV': 'Ruhse2017',
+    };
+    const resolve = (id: string) => keys[id];
+
+    test('merges into one citation when the author separated them with semicolons', () => {
+      const md = `Public (${cite('xi7s3', 'XX4NZQSF', '[NO_PRINTED_FORM]')}; ${cite('p1jqs', 'VRE8WZEV', '[NO_PRINTED_FORM]')}).`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), resolve);
+      expect(out).toBe('Public [@Terras2015; @Ruhse2017].');
+    });
+
+    test('merges them when the author separated them with commas', () => {
+      const md = `Public (${cite('xi7s3', 'XX4NZQSF', '[NO_PRINTED_FORM]')}, ${cite('p1jqs', 'VRE8WZEV', '[NO_PRINTED_FORM]')}).`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), resolve);
+      expect(out).toBe('Public [@Terras2015; @Ruhse2017].');
+    });
+
+    test('drops each unresolved citation’s own parentheses and separates with a semicolon', () => {
+      const md = `(${cite('tjh4i', '8337629H', '(Boisvert, 2000)')}, ${cite('lecos', 'JQCJ539L', '(Boisvert, 2015)')}) highlights`;
+      const { md: out, unresolved } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('(Boisvert, 2000; Boisvert, 2015) highlights');
+      expect(unresolved).toEqual(['(Boisvert, 2000)', '(Boisvert, 2015)']);
+    });
+
+    test('turns a resolved citation’s locator into a MyST supplement', () => {
+      const md = `period.” (${cite('zz0', 'MILL2019', '[NO_PRINTED_FORM]')}, 3). This`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => 'Milligan2019');
+      expect(out).toBe('period.” [@Milligan2019, 3]. This');
+    });
+
+    test('keeps a page locator inside the one pair of parentheses', () => {
+      const md = `words.” (${cite('zz1', 'NOPE1111', '(Milligan, 2019)')}, 3). Next`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('words.” (Milligan, 2019, 3). Next');
+    });
+
+    test('keeps a page range locator too', () => {
+      const md = `output (${cite('zz2', 'NOPE2222', '(Perrin & Piot, 2024)')}, pp. 50-52), a dynamic`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('output (Perrin & Piot, 2024, pp. 50-52), a dynamic');
+    });
+
+    test('leaves a citation inside a longer parenthesised sentence alone', () => {
+      const md = `A (as argued ${cite('zz3', 'NOPE3333', '(Smith, 2020)')} and later).`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('A (as argued (Smith, 2020) and later).');
+    });
+
+    test('leaves a parenthesised aside beside a citation alone', () => {
+      const md = `Memory (specific to humans) (${cite('abc12', 'NOPE1111', '(Compagno, 2025)')}).`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('Memory (specific to humans) (Compagno, 2025).');
+    });
+
+    test('leaves a citation the author did not wrap in parentheses alone', () => {
+      const md = `A (note) and ${cite('abc12', 'NOPE1111', '(Smith, 2020)')} (later).`;
+      const { md: out } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe('A (note) and (Smith, 2020) (later).');
+    });
+  });
+
   test('reads Zotero ids and visible text from cite HTML', () => {
     expect(zoteroIdsFromCiteHtml('<a href="#zotero%7C1%2FAB12">x</a><a href="#zotero|2/CD34">y</a>')).toEqual([
       '1/AB12',

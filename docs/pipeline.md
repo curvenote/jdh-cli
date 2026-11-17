@@ -17,7 +17,7 @@ jdh-cli article.md --list-steps
 | 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
 | 2 | Init myst.yml | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins |
 | 3 | Number cells | A `#jdh-cell(n)` marker before each markdown cell: paragraph numbers as on the JDH website (see [Paragraph numbers](#paragraph-numbers)) |
-| 4 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text |
+| 4 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text. Citations the author grouped in one pair of parentheses are merged into one, so APA prints a single pair; a page locator becomes a citation supplement, `[@key, pp. 50-52]` |
 | 5 | Improve citation tags | Author–year citekeys |
 | 6 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords (a `Keywords:` label, `;` and `,` all handled); the regions are removed from the article |
 | 7 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
@@ -87,6 +87,10 @@ _improved/
 | Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*` | `improveNotebookFigures` | `` ```{figure} `` (placeholder and online link for video and audio) |
 | Region tagged `dialog-*` | `improveDialogueRegions` | `` ```{jdh-dialogue} `` |
 | Region/cell tagged `hermeneutics` | `improveHermeneuticsBlocks` | `:::{hermeneutics}` |
+
+The `hermeneutics` tag is found wherever `tags=[…]` sits on the fence, so a cell that also
+carries Jupytext's `editable=`, `slideshow=` or `jdh=` attributes is wrapped like any other;
+the other attributes are left as the author wrote them.
 | Untagged fenced code | — (hand-authored) | Plain `` ```lang `` → narrative-code transform |
 
 Hand-written `:::{table}` directives in article source are **not** converted to `jdh-table`; only pipeline-produced table regions are.

@@ -470,6 +470,63 @@ export function citeVisibleText(html: string): string {
     .trim();
 }
 
+/** The citation-manager `<cite id="…">…</cite>` element. */
+const CITE_PATTERN = '<cite\\s+id="([^"]+)"[^>]*>([\\s\\S]*?)<\\/cite>';
+
+/** A character markdown won't contain, standing in for a blanked-out `<cite>` element. */
+const CITE_MASK = '';
+
+/**
+ * `md` with every `<cite>` element blanked out, keeping its length, so a scan for the
+ * author's own parentheses isn't thrown off by parentheses in the citation's own text.
+ */
+function maskCites(md: string): string {
+  return md.replace(new RegExp(CITE_PATTERN, 'g'), (m) => CITE_MASK.repeat(m.length));
+}
+
+/**
+ * APA separates the works in a parenthesised group with a semicolon, and a citation
+ * holds commas of its own, so a group the author separated with commas —
+ * `(<cite/>, <cite/>)` — reads wrongly once the citations are rendered (JDH-076).
+ * Replacement is the same length, so offsets into the result still match `md`.
+ */
+function normalizeCiteGroupSeparators(md: string): string {
+  const masked = maskCites(md);
+  const re = new RegExp(`\\(([${CITE_MASK}\\s,;]*)\\)`, 'g');
+  let out = md;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(masked)) !== null) {
+    const inside = m[1];
+    if (!inside.includes(CITE_MASK) || !inside.includes(',')) continue;
+    // Only the separators, which are the commas the mask left visible — a comma inside a
+    // citation's own text ("(Boisvert, 2000)") sits under the mask and must stay.
+    const start = m.index + 1;
+    // split('') not [...], so the indices stay UTF-16 code units, as `inside`'s are.
+    const chars = out.slice(start, start + inside.length).split('');
+    for (let i = 0; i < inside.length; i++) if (inside[i] === ',') chars[i] = ';';
+    out = out.slice(0, start) + chars.join('') + out.slice(start + inside.length);
+  }
+  return out;
+}
+
+/** A page locator the author put in with the citation: ", 3", ", pp. 50-52". */
+const LOCATOR_PATTERN = '(?:pp?\\.\\s*)?\\d+(?:\\s*[-–]\\s*\\d+)?';
+
+/**
+ * True if the cite at `[start, end)` sits inside a pair of the author's own parentheses
+ * holding nothing but citations, their separators and page locators, so its own
+ * parentheses would nest. A parenthesised aside beside a citation — "(specific to
+ * humans) (Compagno, 2025)" — is not such a group and keeps its brackets, and neither is
+ * a citation inside a longer parenthesised sentence.
+ */
+function inParenthesisedCiteGroup(masked: string, start: number, end: number): boolean {
+  const open = masked.lastIndexOf('(', start);
+  const close = masked.indexOf(')', end);
+  if (open === -1 || close === -1) return false;
+  const inside = new RegExp(`^(?:[${CITE_MASK}\\s,;]|${LOCATOR_PATTERN})*$`);
+  return inside.test(masked.slice(open + 1, close));
+}
+
 /**
  * Rewrite citation-manager `<cite id>` elements to MyST citations.
  *
@@ -485,9 +542,12 @@ export function rewriteMdCitationsToMyst(
 ): { md: string; unresolved: string[] } {
   const unresolved: string[] = [];
 
-  let out = md.replace(
-    /<cite\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/cite>/g,
-    (_full, citeId: string, inner: string, offset: number, whole: string) => {
+  const source = normalizeCiteGroupSeparators(md);
+  const masked = maskCites(source);
+
+  let out = source.replace(
+    new RegExp(CITE_PATTERN, 'g'),
+    (_full: string, citeId: string, inner: string, offset: number) => {
       const mapped = (citeIdToRefs.get(citeId) ?? [])
         .filter((r) => r && r.source === 'zotero' && r.id)
         .map((r) => r.id);
@@ -497,14 +557,16 @@ export function rewriteMdCitationsToMyst(
 
       let text = citeVisibleText(inner);
       unresolved.push(text || citeId);
-      // Avoid "((Author, 2023))" when the article already wraps the citation in parentheses.
-      const wrapped = whole[offset - 1] === '(' && whole[offset + _full.length] === ')';
+      // Avoid "((Author, 2023))" when the article already wraps the citation — or the
+      // whole group of citations — in parentheses.
+      const wrapped = inParenthesisedCiteGroup(masked, offset, offset + _full.length);
       if (wrapped && /^\(.*\)$/.test(text)) text = text.slice(1, -1);
       return text;
     },
   );
 
-  out = out.replace(/\[@[^\]]+?\](?:\s*,\s*\[@[^\]]+?\])+/g, (chunk) => {
+  // Both separators: APA groups with a semicolon, and the author may have written either.
+  out = out.replace(/\[@[^\]]+?\](?:\s*[,;]\s*\[@[^\]]+?\])+/g, (chunk) => {
     const keys: string[] = [];
     const re = /\[@([^\]]+?)\]/g;
     let m: RegExpExecArray | null;
@@ -514,6 +576,15 @@ export function rewriteMdCitationsToMyst(
   });
 
   out = out.replace(/\(\s*(\[@[^\]]+?\])\s*\)/g, '$1');
+
+  // "([@key], pp. 50-52)" → "[@key, pp. 50-52]". MyST reads the tail as a citation
+  // supplement, so the locator prints inside the citation's own parentheses instead of
+  // leaving the author's wrapped around them (JDH-076).
+  out = out.replace(
+    new RegExp(`\\(\\s*\\[@([^\\]]+?)\\]\\s*,\\s*(${LOCATOR_PATTERN})\\s*\\)`, 'g'),
+    (_m, keys: string, locator: string) => `[@${keys}, ${locator}]`,
+  );
+
   out = stripCitationManagerFromAllComments(out);
 
   return { md: out, unresolved };
