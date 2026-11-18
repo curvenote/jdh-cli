@@ -160,6 +160,79 @@ describe('rewriteMdCitationsToMyst', () => {
     });
   });
 
+  // JDH-080: cite2c leaves an empty <cite data-cite="…"></cite>; the item id is the
+  // attribute itself, and the author writes the locator without a comma.
+  describe('a cite2c marker', () => {
+    const c2 = (id: string) => `<cite data-cite="${id}"></cite>`;
+    const run = (md: string, resolve: (id: string) => string | undefined = () => 'KeyA') =>
+      rewriteMdCitationsToMyst(md, new Map(), resolve).md;
+
+    test('becomes a MyST citation, dropping the author’s parentheses', () => {
+      expect(run(`form (${c2('1787664/QEP4R77C')}).`)).toBe('form [@KeyA].');
+    });
+
+    test('takes a locator written without a comma', () => {
+      expect(run(`cannot’ (${c2('A')} p. iii).`)).toBe('cannot’ [@KeyA, p. iii].');
+      expect(run(`term (${c2('A')} esp. p. 67).`)).toBe('term [@KeyA, esp. p. 67].');
+      expect(run(`Milligan (${c2('A')} esp. pp. 205–10).`)).toBe('Milligan [@KeyA, esp. pp. 205–10].');
+    });
+
+    test('still takes one written with a comma', () => {
+      expect(run(`sick (${c2('A')}, p. 199).`)).toBe('sick [@KeyA, p. 199].');
+    });
+
+    test('takes a locator that is a reference rather than a page', () => {
+      expect(run(`benefits (${c2('A')} 22 July 1997 vol 298 col 793).`)).toBe(
+        'benefits [@KeyA, 22 July 1997 vol 298 col 793].',
+      );
+    });
+
+    test('does not mistake ordinary prose for a locator', () => {
+      expect(run(`a point ([@Existing] and others disagree).`)).toBe(
+        'a point ([@Existing] and others disagree).',
+      );
+    });
+
+    test('moves a group’s prefix inside the citation', () => {
+      const keys: Record<string, string> = { A: 'Crane2018', B: 'MoldEtAl2019' };
+      expect(run(`form (e.g. ${c2('A')}, ${c2('B')}).`, (id) => keys[id])).toBe(
+        'form [e.g. @Crane2018; @MoldEtAl2019].',
+      );
+      expect(run(`potential (see ${c2('A')}, ${c2('B')}).`, (id) => keys[id])).toBe(
+        'potential [see @Crane2018; @MoldEtAl2019].',
+      );
+    });
+
+    test('lifts a group with a locator or connective between the citations', () => {
+      const keys: Record<string, string> = { A: 'KeyA', B: 'KeyB', C: 'KeyC' };
+      const r = (md: string) => run(md, (id) => keys[id]);
+      expect(r(`Europe”’ (${c2('A')}, 1085; ${c2('B')}).`)).toBe('Europe”’ [@KeyA, 1085; @KeyB].');
+      expect(r(`belonging’ (${c2('A')}; see also ${c2('B')}, ${c2('C')}).`)).toBe(
+        'belonging’ [@KeyA; see also @KeyB; @KeyC].',
+      );
+      expect(r(`Italians.’ (${c2('A')}, 234; see also ${c2('B')}).`)).toBe(
+        'Italians.’ [@KeyA, 234; see also @KeyB].',
+      );
+      // "and" between keys is not MyST syntax; Typst refuses to build on it.
+      expect(r(`Italy (see also ${c2('A')} and ${c2('B')}, 30–49).`)).toBe(
+        'Italy [see also @KeyA; @KeyB, 30–49].',
+      );
+    });
+
+    test('leaves a longer parenthesised aside alone', () => {
+      expect(run(`A (as argued at length in that chapter ${c2('A')} and later).`)).toBe(
+        'A (as argued at length in that chapter [@KeyA] and later).',
+      );
+    });
+
+    test('is left in place when its id is in no bibliography', () => {
+      const md = `form (${c2('1787664/MISSING')}).`;
+      const { md: out, unresolved } = rewriteMdCitationsToMyst(md, new Map(), () => undefined);
+      expect(out).toBe(md);
+      expect(unresolved).toEqual(['1787664/MISSING']);
+    });
+  });
+
   test('reads Zotero ids and visible text from cite HTML', () => {
     expect(zoteroIdsFromCiteHtml('<a href="#zotero%7C1%2FAB12">x</a><a href="#zotero|2/CD34">y</a>')).toEqual([
       '1/AB12',
@@ -241,5 +314,94 @@ describe('jupyterZotero with author .bib files', () => {
     expect(readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project.bibliography).toEqual([
       'references.bib',
     ]);
+  });
+});
+
+// JDH-080: cite2c keeps the bibliography in notebook metadata, with its own date shape.
+describe('jupyterZotero with cite2c notebook metadata', () => {
+  function setup(): string {
+    const dir = mkTmp();
+    const nb = {
+      metadata: {
+        cite2c: {
+          citations: {
+            '1787664/2BY9KDLI': {
+              id: '1787664/2BY9KDLI',
+              type: 'article-journal',
+              title: 'Can Compulsory Dialogues Nudge Sick-listed Workers Back to Work?',
+              'container-title': 'Economic Journal',
+              DOI: '10.1111/ecoj.12468',
+              // cite2c's own date shape: not CSL "date-parts".
+              issued: { year: 2018, month: 5 },
+              author: [{ family: 'Markussen', given: 'Simen' }],
+            },
+            '1787664/NODATE': {
+              id: '1787664/NODATE',
+              type: 'webpage',
+              title: 'The Twenty Year Rule',
+              author: [{ family: 'The National Archives', given: '' }],
+            },
+          },
+        },
+      },
+      cells: [],
+    };
+    fs.writeFileSync(path.join(dir, 'article.ipynb'), JSON.stringify(nb));
+    fs.writeFileSync(
+      path.join(dir, 'article.md'),
+      'Absence (<cite data-cite="1787664/2BY9KDLI"></cite> p. 1290) and rules ' +
+        '(<cite data-cite="1787664/NODATE"></cite>).\n',
+    );
+    fs.writeFileSync(path.join(dir, 'myst.yml'), 'version: 1\nproject:\n  id: x\n');
+    fs.writeFileSync(path.join(dir, 'direct.bib'), AUTHOR_BIB);
+    return dir;
+  }
+
+  const run = (cwd: string) =>
+    jupyterZotero({
+      article: 'article.md',
+      notebook: 'article.ipynb',
+      bib: 'references.bib',
+      myst: 'myst.yml',
+      dryRun: false,
+      rewriteMd: true,
+      updateMyst: true,
+      stripCitationManagerComments: false,
+      zotero: true,
+      cwd,
+    });
+
+  test('the {year, month, day} date becomes a BibTeX year', async () => {
+    const dir = setup();
+    await run(dir);
+    const bib = fs.readFileSync(path.join(dir, 'references.bib'), 'utf8');
+    expect(bib).toContain('cite2c');
+    expect(bib).toContain('year = {2018}');
+    expect(bib).toContain('Economic Journal');
+  });
+
+  test('an entry with no date still produces a BibTeX entry', async () => {
+    const dir = setup();
+    await run(dir);
+    const bib = fs.readFileSync(path.join(dir, 'references.bib'), 'utf8');
+    expect(bib).toContain('The Twenty Year Rule');
+    expect(bib).toContain('% Entries: 2');
+  });
+
+  test('markers become MyST citations, locator and all', async () => {
+    const dir = setup();
+    await run(dir);
+    const md = fs.readFileSync(path.join(dir, 'article.md'), 'utf8');
+    expect(md).not.toContain('data-cite');
+    expect(md).toMatch(/Absence \[@[^\],]+, p\. 1290\] and rules \[@[^\]]+\]\./);
+  });
+
+  test('the generated bib is registered beside the author’s own', async () => {
+    const dir = setup();
+    await run(dir);
+    expect(
+      readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project
+        .bibliography,
+    ).toEqual(['references.bib', 'direct.bib']);
   });
 });

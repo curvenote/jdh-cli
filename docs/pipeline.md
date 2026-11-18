@@ -17,7 +17,7 @@ jdh-cli article.md --list-steps
 | 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
 | 2 | Init myst.yml | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins |
 | 3 | Number cells | A `#jdh-cell(n)` marker before each markdown cell: paragraph numbers as on the JDH website (see [Paragraph numbers](#paragraph-numbers)) |
-| 4 | Citations (Zotero and author .bib) | `references.bib` from notebook Zotero data; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text. Citations the author grouped in one pair of parentheses are merged into one, so APA prints a single pair; a page locator becomes a citation supplement, `[@key, pp. 50-52]` |
+| 4 | Citations (Zotero, cite2c and author .bib) | `references.bib` from notebook citation metadata — `citation-manager` items and cite2c's `metadata.cite2c.citations` alike; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text. Citations the author grouped in one pair of parentheses are merged into one, so APA prints a single pair; a page locator becomes a citation supplement, `[@key, pp. 50-52]`, with or without the author's comma. A pair of parentheses holding only citations, locators and short connectives is lifted whole into one citation, so `(e.g. <cite/>, <cite/>)` prints `(e.g. Crane, 2018; Mold et al., 2019)` |
 | 5 | Improve citation tags | Author–year citekeys |
 | 6 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords (a `Keywords:` label, `;` and `,` all handled); the regions are removed from the article |
 | 7 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
@@ -61,7 +61,7 @@ _improved/
   myst.yml
   meta-jdh.yml            # the repo's own, else the bundled default
   article.md
-  references.bib          # Zotero items not covered by an author .bib
+  references.bib          # notebook citation items not covered by an author .bib
   direct.bib              # author .bib files copied from the repo (references.bib → references.author.bib)
   plugins/
     hermeneutics.mjs
