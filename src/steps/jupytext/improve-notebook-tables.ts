@@ -23,6 +23,8 @@ export interface TableReport {
   /** Table cells left as code, with the reason (e.g. no table in the notebook output). */
   skipped: { label: string; reason: string }[];
   captionConflicts: { label: string; used: string; others: string[] }[];
+  /** Tables converted with no caption: MyST won't number these (JDH-082). */
+  uncaptioned: string[];
 }
 
 function parseTagsFromFenceLine(line: string): string[] {
@@ -48,7 +50,7 @@ export function processArticle(
   content: string,
   notebookCells: readonly TaggedCell[] = [],
 ): { content: string; report: TableReport } {
-  const report: TableReport = { converted: [], skipped: [], captionConflicts: [] };
+  const report: TableReport = { converted: [], skipped: [], captionConflicts: [], uncaptioned: [] };
   // Notebook table cells by tag, in order (a tag can repeat).
   const byTag = new Map<string, TaggedCell[]>();
   for (const cell of notebookCells) {
@@ -94,6 +96,7 @@ export function processArticle(
       const caption = cleanCaption(resolved.text ?? table.caption ?? '');
       const { markdown, headerRows } = outputTableToGfm(table);
       report.converted.push(label);
+      if (!caption) report.uncaptioned.push(label);
       return [
         ':::{jdh-table}' + (caption ? ` ${caption.replace(/`/g, '\\`')}` : ''),
         `:label: ${label}`,
@@ -129,6 +132,13 @@ async function improveNotebookTables(options: {
   for (const c of report.captionConflicts) {
     process.stdout.write(
       `Warning: ${c.label} caption differs between ${[c.used, ...c.others].join(', ')}; using ${c.used}.\n`,
+    );
+  }
+  if (report.uncaptioned.length) {
+    process.stdout.write(
+      `Warning: no caption for ${report.uncaptioned.join(', ')}; ` +
+        'MyST numbers a table only when it has one, so this prints with no "Table N" and no caption line. ' +
+        'Add one to the notebook cell as jdh.object.source.\n',
     );
   }
   for (const s of report.skipped) process.stdout.write(`Left as code: ${s.label} (${s.reason}).\n`);
