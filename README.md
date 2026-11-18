@@ -173,6 +173,20 @@ All pipeline logic lives in `src/steps/`.
       <img src=".github/assets/curvenote-light.svg" alt="Curvenote" height="26">
     </picture>
   </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://journalofdigitalhistory.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/jdh-dark.svg">
+      <img src=".github/assets/jdh-light.svg" alt="Journal of Digital History" height="32">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.c2dh.uni.lu">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/c2dh-dark.svg">
+      <img src=".github/assets/c2dh-light.svg" alt="C2DH, University of Luxembourg" height="46">
+    </picture>
+  </a>
 </p>
 
 <p align="center">
