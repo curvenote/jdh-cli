@@ -17,7 +17,7 @@ All pipeline logic lives in this package (`src/steps/`). Article repos need no s
 | `generated/*.png` | workdir | QR code and fingerprint; placeholders unless the repo has its own |
 | `article.md` | workdir | Improved MyST markdown |
 | `plugins/*.mjs` | workdir | Bundled MyST plugins (copied on every run) |
-| `references.bib` | workdir | BibTeX from Zotero citations (when present) |
+| `references.bib` | workdir | BibTeX from the notebook's citation metadata, `citation-manager` or cite2c (when present) |
 
 ## Quick start
 

@@ -52,6 +52,56 @@ The PDF numbers paragraphs as the JDH website does (JDH-042), so "¶40" refers t
   Cells are found by the first 40 characters of their first line, searching forward, so later rewrites of the rest of the line (e.g. citations) don't matter. Cells it can't find are reported and get no number. The template's `jdh-cell(n)` shows `n` on the next block. Without any markers (no `article.ipynb`), the template numbers paragraphs in order, as before.
 - Dialogue cells get no marker: they become "Dialogue N" figures.
 
+## Citations
+
+Two notebook formats, read by step 4 into one `references.bib`:
+
+| | Metadata | In the prose |
+|---|---|---|
+| `citation-manager` | `metadata['citation-manager'].items.zotero` | `<cite id="c1"><a href="#zotero%7C…">(Rosenzweig, 2003)</a></cite>` — the id needs the markdown-comment mapping, and the element carries printable text to fall back on |
+| **cite2c** | `metadata.cite2c.citations` | `<cite data-cite="1787664/QEP4R77C"></cite>` — the item id *is* the attribute, and there is no fallback text |
+
+Both hold CSL-JSON, except that cite2c writes dates as `{year, month, day}` rather than
+`{"date-parts": [[y, m, d]]}`; they are converted on the way in. Without that every entry
+silently loses its year. No article uses both formats.
+
+A `.bib` in the article repo wins over a notebook item describing the same work (same DOI,
+else same title and year), and is registered beside the generated file — a repo's own
+`references.bib` is copied in as `references.author.bib` so the names don't collide. A
+cite2c marker whose id is in no bibliography is left in place rather than dropped, so an
+empty `()` cannot hide it.
+
+Step 5 then renames every citekey to author–year (`Allen2020`, `BambraSmith2010`,
+`BrownEtAl2020`), the same for both formats.
+
+### One pair of parentheses
+
+Authors write their own brackets around a citation, which would otherwise print as
+`((Author, 2023))`. A pair holding **nothing but** citations, locators and short
+connectives is lifted whole into a single MyST citation:
+
+| The author wrote | Becomes | Prints |
+|---|---|---|
+| `(<cite/>)` | `[@key]` | `(Milligan, 2019)` |
+| `(<cite/> p. 203)` — comma optional | `[@key, p. 203]` | `(Milligan, 2019, p. 203)` |
+| `(<cite/>, <cite/>)` | `[@a; @b]` | `(Crane, 2018; Mold et al., 2019)` |
+| `(e.g. <cite/>, <cite/>)` | `[e.g. @a; @b]` | `(e.g. Crane, 2018; Mold et al., 2019)` |
+| `(<cite/>, 1085; <cite/>)` | `[@a, 1085; @b]` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
+| `(as argued <cite/> and later)` | unchanged | the author's own parentheses |
+
+How it avoids damaging prose:
+
+- The scan **masks every `<cite>` element first**, so a comma or bracket inside a
+  citation's own text — `(Boisvert, 2000)` — can't be read as a separator.
+- A **locator must open** with a page marker (`p.`, `pp.`, `chap.`, `sec.`), a bare
+  number, or a roman numeral, so `and others disagree` is not swallowed. Roman numerals
+  are matched as real numerals: `[ivxlcdm]+` would also match *civil*, *mill* and *ill*.
+- A **lift needs the whole parenthesised span** to be citations and filler. Anything
+  longer is left alone.
+- **`and` between two keys becomes `;`.** MyST reads only `;` there; given
+  `[see also @a and @b]` it looks for a label that does not exist and Typst then refuses
+  to build the document at all — one connective costs the whole PDF.
+
 ## Workdir layout
 
 After `improve`, the workdir (default `_improved/`) contains:
