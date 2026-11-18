@@ -163,3 +163,20 @@ jdh-cli/
 ```
 
 All pipeline logic lives in `src/steps/`.
+
+---
+
+<p align="center">
+  <a href="https://curvenote.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/curvenote-dark.svg">
+      <img src=".github/assets/curvenote-light.svg" alt="Curvenote" height="26">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
+  Built by <a href="https://curvenote.com">Curvenote</a> for the
+  <a href="https://journalofdigitalhistory.org">Journal of Digital History</a><br>
+  <sub><a href="https://www.c2dh.uni.lu">Luxembourg Centre for Contemporary and Digital History (C2DH)</a>, University of Luxembourg</sub>
+</p>
