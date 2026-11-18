@@ -16,6 +16,61 @@ exports:
 
 `jdh-cli build` runs `myst build --pdf` with `TYPST_FONT_PATHS` pointing at the template's Fira Code fonts.
 
+## Typst version
+
+**Supported: Typst 0.15.x** (>= 0.15.0, < 0.16.0), with mystmd 1.10 or later.
+
+`jdh-cli build` checks both before doing any work (`src/engine/toolchain.ts`) and prints
+what it found:
+
+```
+Toolchain: MyST (mystmd) 1.10.1, Typst 0.15.1
+```
+
+A missing tool stops the build with install instructions. A version outside the tested
+range only warns — the build still runs, because an untested Typst usually works; it just
+has not been compared against the corpus.
+
+### Why 0.15
+
+The whole JDH corpus was rebuilt and compared page by page on 0.15.1 (JDH-050). 0.14.2
+builds the same documents, but renders references worse:
+
+| On 0.14.2 | On 0.15.1 |
+| --- | --- |
+| name particles dropped — `Lange, M. v.`, `Rio-Chanona, R. M. d.` | `van`, `del` restored |
+| diacritics mis-sorted — Åberg, Šabec, Řehůřek out of place | sorted correctly |
+| a journal title lost (*Semiotica*) | present |
+| issue numbers corrupted — `jdh002` printed as `jdh2` | `(jdh002)` intact |
+| an edition statement lost ("Third Edition") | present |
+
+0.15.1 introduced one regression of its own: 22 references across the corpus print an
+incomplete `Retrieved <url>` clause, missing the date and the word "from". It is an APA
+deviation, not malformed output.
+
+### Upgrading Typst
+
+Typst bundles [hayagriva](https://github.com/typst/hayagriva) for bibliography rendering, so
+**a Typst upgrade changes reference output** — that is where every difference in the table
+above came from, not from the template. Before adopting a new Typst:
+
+1. Rebuild the corpus (`scripts/build-articles.sh art-focus art-unpub`).
+2. Diff the extracted text (`pdftotext`) against the previous run, not just page counts.
+3. Update the range in `src/engine/toolchain.ts` and its test, the README, and this page.
+
+### Known upstream faults on 0.15.1
+
+Two APA punctuation faults remain, both in Typst's built-in style rather than our template,
+and neither is worked around in the pipeline:
+
+| Fault | Scope | Upstream |
+| --- | --- | --- |
+| stray comma — `Internet Archive Forums. (2014,).` | 15 references, 6 articles | fixed by [hayagriva#503](https://github.com/typst/hayagriva/pull/503), merged but not yet in a release |
+| doubled stop — `…capturing duplicates?.` | 13 references, 6 articles | reported as [hayagriva#552](https://github.com/typst/hayagriva/issues/552) |
+
+The comma clears itself on whatever Typst release first carries a newer hayagriva. Recount
+both after any upgrade.
+
 ## How the template is found
 
 The template is a separate repo; jdh-cli doesn't bundle it. `jdh-cli build --template` picks it:
@@ -77,7 +132,7 @@ Table truncation defaults in the plugin (`max-rows: 4`, `max-columns: 6`) align 
 ## Prerequisites
 
 - [MyST CLI](https://mystmd.org) installed globally or on `PATH`
-- [Typst](https://typst.app) on the PATH (`typst`, e.g. `brew install typst`); MyST runs `typst compile` and doesn't install it
+- [Typst](https://typst.app) **0.15.x** on the PATH (`typst`, e.g. `brew install typst`); MyST runs `typst compile` and doesn't install it. See [Typst version](#typst-version)
 - `jdh-typst-template` next to jdh-cli, or `--template` with another path or a release zip URL
 - the QR code and fingerprint: `--qr-code` / `--fingerprint` (path or URL), else `generated/qr.png` and `generated/fingerprint.png` in the article repo, else clearly marked placeholders (with a warning). See [CLI](cli.md#qr-code-and-fingerprint)
 

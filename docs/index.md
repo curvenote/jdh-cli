@@ -28,7 +28,7 @@ jdh-cli article.md                        # convert into _improved/
 jdh-cli build                             # myst build --pdf
 ```
 
-Prerequisites: [MyST CLI](https://mystmd.org) for PDF builds; [`jdh-typst-template`](../../jdh-typst-template) checked out next to jdh-cli.
+Prerequisites for PDF builds: [MyST CLI](https://mystmd.org) 1.10 or later and [Typst](https://typst.app) 0.15.x on the PATH (`jdh-cli build` checks both and says what to install), plus [`jdh-typst-template`](../../jdh-typst-template) checked out next to jdh-cli. See [Typst version](typst.md#typst-version).
 
 ## Documentation map
 
