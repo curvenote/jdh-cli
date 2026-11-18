@@ -127,7 +127,7 @@ jdh-cli build --figure-placement auto
 jdh-cli build --preprint
 ```
 
-Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it with another path (relative to the workdir unless absolute) or a zip URL such as a GitHub release. Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
+Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](https://typst.app) on the PATH (MyST runs `typst compile`). `build` checks both first (`src/engine/toolchain.ts`). A missing tool stops the build with install instructions; a version outside the tested range gets a warning. Supported: mystmd >= 1.10, Typst 0.15.x. The versions used are printed as `Toolchain: …`. By default the template is `jdh-typst-template` checked out next to jdh-cli; `--template` overrides it with another path (relative to the workdir unless absolute) or a zip URL such as a GitHub release. Before building, the workdir's PDF export is pointed at that template, so article repos never hard-code its location.
 
 ### Template from a release
 
