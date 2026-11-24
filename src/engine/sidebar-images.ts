@@ -94,18 +94,33 @@ export function pointExportsAtSidebarImages(configPath: string, paths: ReadonlyM
   });
 }
 
-/** Say where each sidebar image came from; warn when the PDF will show a placeholder. */
-export function reportSidebarImages(supplied: ReadonlyMap<string, string>, fromRepo: ReadonlySet<string>): void {
+export function placeholderWarning(img: (typeof SIDEBAR_IMAGES)[number], reason?: string): string {
+  return (
+    `Warning: no ${img.noun} given (${img.flag} <path|url>) and none in the repo's ` +
+    `${GENERATED_DIR}/${img.file}${reason ? `, and it could not be generated (${reason})` : ''}; ` +
+    `the PDF will show a PLACEHOLDER ${img.noun}.`
+  );
+}
+
+/**
+ * Say where each sidebar image came from; warn when the PDF will show a placeholder.
+ * With `generating`, an image that is neither given nor in the repo is left to the
+ * generate step, which reports it.
+ */
+export function reportSidebarImages(
+  supplied: ReadonlyMap<string, string>,
+  fromRepo: ReadonlySet<string>,
+  generating = false,
+): void {
   for (const img of SIDEBAR_IMAGES) {
     if (supplied.has(img.exportKey)) {
       console.log(`${img.label}: ${supplied.get(img.exportKey)} (from ${img.flag})`);
     } else if (fromRepo.has(img.file)) {
       console.log(`${img.label}: ${GENERATED_DIR}/${img.file} from the article repo`);
+    } else if (generating) {
+      console.log(`${img.label}: to be generated (last pipeline step)`);
     } else {
-      console.log(
-        `Warning: no ${img.noun} given (${img.flag} <path|url>) and none in the repo's ` +
-          `${GENERATED_DIR}/${img.file}; the PDF will show a PLACEHOLDER ${img.noun}.`,
-      );
+      console.log(placeholderWarning(img));
     }
   }
 }

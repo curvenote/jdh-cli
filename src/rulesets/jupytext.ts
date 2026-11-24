@@ -2,6 +2,7 @@ import type { Ruleset } from '../engine/types.js';
 import {
   enrichAffiliationsRorStep,
   extractGithubRemoteStep,
+  generateSidebarImagesStep,
   improveCitationTagsStep,
   initMystConfigStep,
   prepareWorkdirStep,
@@ -30,5 +31,6 @@ export const jupytextRuleset: Ruleset = {
     ...jupytextTransformSteps,
     extractGithubRemoteStep,
     setJdhArticleMetadataStep,
+    generateSidebarImagesStep,
   ],
 };

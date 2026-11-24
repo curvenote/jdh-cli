@@ -99,7 +99,7 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
   if (!options.dryRun) {
     for (const config of [META_JDH_FILE, 'myst.yml']) pointExportsAtSidebarImages(path.join(workdirAbs, config), supplied);
   }
-  reportSidebarImages(supplied, fromRepo);
+  reportSidebarImages(supplied, fromRepo, options.generateImages);
 
   // Keep the generated workdir out of the article repo without touching its .gitignore.
   if (!options.dryRun) fs.writeFileSync(path.join(workdirAbs, '.gitignore'), '*\n');
