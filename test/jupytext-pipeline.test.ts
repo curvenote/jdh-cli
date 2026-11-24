@@ -54,7 +54,7 @@ describe.skipIf(!hasArticle)('jupytext pipeline', () => {
 
     const workdir = '_improved';
     const res = runCli(
-      ['article.md', '--project-root', '.', '--workdir', workdir, '--no-ror-lookup'],
+      ['article.md', '--project-root', '.', '--workdir', workdir, '--no-ror-lookup', '--no-generate-images'],
       tmpDir,
     );
 

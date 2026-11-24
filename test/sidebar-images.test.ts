@@ -129,9 +129,12 @@ test('pointExportsAtSidebarImages sets paths on templated exports only', () => {
 });
 
 describe('prepareWorkdir sidebar images', () => {
-  async function prepare(root: string, flags: { qrCode?: string; fingerprint?: string } = {}): Promise<string> {
+  async function prepare(
+    root: string,
+    flags: { qrCode?: string; fingerprint?: string; generateImages?: boolean } = {},
+  ): Promise<string> {
     const input = write(root, 'article.md', '# A\n');
-    const ctx = buildRunContext('jupytext', input, parseConvertOptions({ projectRoot: root, ...flags }));
+    const ctx = buildRunContext('jupytext', input, parseConvertOptions({ projectRoot: root, generateImages: false, ...flags }));
     const log = spyOn(console, 'log').mockImplementation(() => {});
     try {
       await prepareWorkdir(ctx);
@@ -160,5 +163,11 @@ describe('prepareWorkdir sidebar images', () => {
     const out = await prepare(mkTmp());
     expect(out).toContain('Warning: no QR code given (--qr-code <path|url>)');
     expect(out).toContain('the PDF will show a PLACEHOLDER fingerprint');
+  });
+
+  test('with image generation on, missing images are left to the generate step', async () => {
+    const out = await prepare(mkTmp(), { generateImages: true });
+    expect(out).toContain('QR code: to be generated (last pipeline step)');
+    expect(out).not.toContain('PLACEHOLDER');
   });
 });
