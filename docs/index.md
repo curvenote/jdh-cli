@@ -17,7 +17,7 @@ All pipeline logic lives in this package (`src/steps/`). Article repos need no s
 | `generated/*.png` | workdir | QR code and fingerprint; the repo's own, else generated, else placeholders |
 | `article.md` | workdir | Improved MyST markdown |
 | `plugins/*.mjs` | workdir | Bundled MyST plugins (copied on every run) |
-| `references.bib` | workdir | BibTeX from Zotero citations (when present) |
+| `references.bib` | workdir | BibTeX from the notebook's citation metadata, `citation-manager` or cite2c (when present) |
 
 ## Quick start
 
@@ -28,7 +28,7 @@ jdh-cli article.md                        # convert into _improved/
 jdh-cli build                             # myst build --pdf
 ```
 
-Prerequisites: [MyST CLI](https://mystmd.org) for PDF builds; [`jdh-typst-template`](../../jdh-typst-template) checked out next to jdh-cli.
+Prerequisites for PDF builds: [MyST CLI](https://mystmd.org) 1.10 or later and [Typst](https://typst.app) 0.15.x on the PATH (`jdh-cli build` checks both and says what to install), plus [`jdh-typst-template`](../../jdh-typst-template) checked out next to jdh-cli. See [Typst version](typst.md#typst-version).
 
 ## Documentation map
 

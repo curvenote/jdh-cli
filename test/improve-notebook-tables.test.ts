@@ -39,6 +39,28 @@ describe('tableLabelFromTag', () => {
 });
 
 describe('improve notebook tables', () => {
+  // JDH-082: 6EWgjJtoiW6R's table cell has jdh: null, so nothing supplies a caption and
+  // MyST never numbers it. The run has to say so rather than pass silently.
+  test('a table with no caption anywhere is reported as uncaptioned', () => {
+    const article = ['```python tags=["table-1"]', 'df', '```'].join('\n');
+    const nb = notebook([{ tags: ['table-1'], outputs: [html(PANDAS_HTML)] }]);
+    const { content, report } = processArticle(article, readTaggedCells(nb));
+    expect(content).toContain(':::{jdh-table}\n');
+    expect(content).not.toContain(':::{jdh-table} ');
+    expect(report.converted).toEqual(['table:1']);
+    expect(report.uncaptioned).toEqual(['table:1']);
+  });
+
+  test('a table that has a caption is not reported', () => {
+    const article = ['```python tags=["table-1"]', 'df', '```'].join('\n');
+    const nb = notebook([
+      { tags: ['table-1'], outputs: [html(PANDAS_HTML)], jdh: { object: { source: ['Counts by year'] } } },
+    ]);
+    const { content, report } = processArticle(article, readTaggedCells(nb));
+    expect(content).toContain(':::{jdh-table} Counts by year');
+    expect(report.uncaptioned).toEqual([]);
+  });
+
   test('a pandas output becomes a captioned jdh-table; the code is dropped', () => {
     const article = [
       'Intro.',

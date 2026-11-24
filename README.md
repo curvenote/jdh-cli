@@ -4,7 +4,14 @@ Turns a Journal of Digital History article repo (Jupytext `article.md` + `articl
 
 ## Getting started
 
-**Prerequisites:** [Bun](https://bun.sh), the [MyST CLI](https://mystmd.org) (`myst`) and [Typst](https://typst.app) (`typst`, e.g. `brew install typst`) for PDF builds, and the [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template): either checked out next to `jdh-cli`, or fetched from a release with `jdh-cli build --template <zip URL>` (see [The Typst template](#the-typst-template)).
+**Prerequisites:**
+- [Bun](https://bun.sh).
+- The [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template): either checked out next to `jdh-cli`, or fetched from a release with `jdh-cli build --template <zip URL>` (see [The Typst template](#the-typst-template)).
+- For PDF builds, two tools on the PATH, which jdh-cli doesn't bundle:
+  - the [MyST CLI](https://mystmd.org) (`myst`, mystmd 1.10 or later; `npm install -g mystmd`);
+  - [Typst](https://typst.app) 0.15.x (`brew install typst`), which MyST runs.
+
+  `jdh-cli build` checks both first. It stops with install instructions if either is missing, warns about an untested version, and prints the versions in the build log.
 
 ```bash
 # once: build jdh-cli and put it on your PATH
@@ -48,6 +55,7 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | `--list-steps`              |                                                                        | Print the pipeline steps and exit                                                                                                                     |
 | `-d, --dry-run`             |                                                                        | Show what would happen without writing files                                                                                                          |
 
+
 The DOI comes from the JDH API (`/api/articles/<id>/?format=json`) using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`); the URL is the article's JDH page. When the API can't supply a DOI (unreachable, article not found or not yet public, no usable `doi` field), jdh-cli prints a warning saying which and builds without one. `--doi` always wins, with no lookup. During production, before an article is published, pass `--doi` (and `--url`) explicitly:
 
 ```bash
@@ -62,7 +70,7 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 - the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else generated: the QR code from the article URL, the fingerprint from `article.ipynb` (rendered with the JDH site's fingerprint viewer in a headless browser `/en/fingerprint-viewer`, which needs network access and `playwright-core` with Chromium or Chrome). If generation fails, clearly marked placeholders with a warning
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
 - the MyST plugins for hermeneutics blocks, narrative code, JDH tables, dialogue and lists
-- `references.bib` from the notebook's Zotero (citation-manager) data, plus any `.bib` files in the article repo (e.g. `direct.bib`)
+- `references.bib` from the notebook's citation metadata — `citation-manager` items or cite2c's `metadata.cite2c.citations` — plus any `.bib` files in the article repo (e.g. `direct.bib`)
 - a `.gitignore`, so the article repo stays clean
 
 ### The Typst template
@@ -90,7 +98,22 @@ The first build needs network access; later builds reuse the cached copy. `jdh-c
 
 **Either way**, every `exports[].template` in `_improved/`'s config is rewritten to the chosen template, so article repos never reference it. A missing local template fails the build with `Typst template not found`. A checkout isn't pinned (jdh-cli uses whatever is checked out), and the bundled MyST plugins emit markup that the template's `jdh.typ` renders, so keep the two in step; a release URL avoids that drift.
 
-**References.** Any `.bib` in the article repo is used alongside the notebook's Zotero data. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
+**References.** Any `.bib` in the article repo is used alongside the notebook's citation metadata. When both describe the same work (same DOI, else same title and year), the repo's `.bib` entry wins. A citation whose plugin mapping was lost is recovered from the Zotero key in its link; one that can't be found anywhere is kept as its visible text, with a warning.
+
+Both notebook citation formats are read. `citation-manager` keeps its items under `metadata['citation-manager']` and writes `<cite id="…">(Author, 2003)</cite>`; **cite2c** keeps them under `metadata.cite2c.citations` and writes an empty `<cite data-cite="1787664/QEP4R77C"></cite>`, with the item id in the attribute and nothing to fall back on. cite2c's `{year, month, day}` dates are converted to CSL `date-parts` on the way in. A cite2c marker whose id is in no bibliography is left in the markdown rather than deleted, so an empty `()` can't hide it.
+
+**One pair of parentheses.** Authors wrap citations in their own brackets, which would print as `((Author, 2023))`. A pair holding *nothing but* citations, page locators and short connectives is lifted whole into one MyST citation; anything longer is left alone:
+
+| The author wrote | The PDF prints |
+|---|---|
+| `(<cite/>)` | `(Milligan, 2019)` |
+| `(<cite/> p. 203)` — comma optional | `(Milligan, 2019, p. 203)` |
+| `(<cite/>, <cite/>)` | `(Crane, 2018; Mold et al., 2019)` |
+| `(e.g. <cite/>, <cite/>)` | `(e.g. Crane, 2018; Mold et al., 2019)` |
+| `(<cite/>, 1085; <cite/>)` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
+| `(as argued <cite/> and later)` | left as the author's own parentheses |
+
+A locator must open with a page marker, a number or a roman numeral, so prose isn't mistaken for one. `and` between two keys becomes `;`: MyST reads only `;` there, and Typst fails the whole document on the label it otherwise looks for.
 
 Files the article repo provides take precedence. With `jdh-cli init`, edits to the repo's `meta-jdh.yml` are used. From the repo's `myst.yml`, only `project.id` is kept today; keeping other edits is planned.
 
@@ -142,3 +165,34 @@ jdh-cli/
 ```
 
 All pipeline logic lives in `src/steps/`.
+
+---
+
+<p align="center">
+  <a href="https://curvenote.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/curvenote-dark.svg">
+      <img src=".github/assets/curvenote-light.svg" alt="Curvenote" height="26">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://journalofdigitalhistory.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/jdh-dark.svg">
+      <img src=".github/assets/jdh-light.svg" alt="Journal of Digital History" height="32">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.c2dh.uni.lu">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/c2dh-dark.svg">
+      <img src=".github/assets/c2dh-light.svg" alt="C2DH, University of Luxembourg" height="52">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
+  Built by <a href="https://curvenote.com">Curvenote</a> for the
+  <a href="https://journalofdigitalhistory.org">Journal of Digital History</a><br>
+  <sub><a href="https://www.c2dh.uni.lu">Luxembourg Centre for Contemporary and Digital History (C2DH)</a>, University of Luxembourg</sub>
+</p>

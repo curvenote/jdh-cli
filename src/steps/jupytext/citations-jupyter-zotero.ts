@@ -323,6 +323,42 @@ function buildCitekeyMap(itemsById: Record<string, CslItem>): Map<string, string
   return citekeyById;
 }
 
+/**
+ * cite2c writes dates as `{year, month, day}`; the rest of this file, and CSL-JSON,
+ * expect `{"date-parts": [[y, m, d]]}`. Without this every entry loses its year.
+ */
+function cite2cDateToCsl(d: unknown): { 'date-parts'?: Array<Array<number | string>> } | undefined {
+  if (!d || typeof d !== 'object') return undefined;
+  const o = d as Record<string, unknown>;
+  if (o['date-parts']) return o as { 'date-parts': Array<Array<number | string>> };
+  if (o.year == null) return undefined;
+  const parts = [o.year, o.month, o.day].filter((x) => x != null).map(Number);
+  return { 'date-parts': [parts] };
+}
+
+/**
+ * Items from a notebook's cite2c metadata. cite2c keeps the whole bibliography in
+ * `metadata.cite2c.citations`, keyed by Zotero id, and leaves only an empty
+ * `<cite data-cite="…"></cite>` marker in the prose (JDH-080).
+ */
+function loadCite2cItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
+  if (!fileExists(notebookPath)) return {};
+  const nb = JSON.parse(readUtf8(notebookPath)) as { metadata?: Record<string, unknown> };
+  const cite2c = nb?.metadata?.cite2c as Record<string, unknown> | undefined;
+  const citations = cite2c?.citations;
+  if (!citations || typeof citations !== 'object') return {};
+
+  const out: Record<string, CslItem> = {};
+  for (const [id, raw] of Object.entries(citations as Record<string, unknown>)) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = { ...(raw as CslItem) };
+    const issued = cite2cDateToCsl((raw as Record<string, unknown>).issued);
+    if (issued) item.issued = issued;
+    out[id] = item;
+  }
+  return out;
+}
+
 function loadZoteroItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
   if (!fileExists(notebookPath)) return {};
   const nb = JSON.parse(readUtf8(notebookPath)) as {
@@ -471,6 +507,73 @@ export function citeVisibleText(html: string): string {
 }
 
 /**
+ * Both citation elements: citation-manager's `<cite id="…">(Author, 2003)</cite>`, whose
+ * id needs the markdown-comment mapping, and cite2c's empty `<cite data-cite="…"></cite>`,
+ * whose attribute is the item id itself (JDH-080).
+ */
+const CITE_PATTERN = '<cite\\s+(id|data-cite)="([^"]+)"[^>]*>([\\s\\S]*?)<\\/cite>';
+
+/** A character markdown won't contain, standing in for a blanked-out `<cite>` element. */
+const CITE_MASK = '';
+
+/**
+ * `md` with every `<cite>` element blanked out, keeping its length, so a scan for the
+ * author's own parentheses isn't thrown off by parentheses in the citation's own text.
+ */
+function maskCites(md: string): string {
+  return md.replace(new RegExp(CITE_PATTERN, 'g'), (m) => CITE_MASK.repeat(m.length));
+}
+
+/**
+ * APA separates the works in a parenthesised group with a semicolon, and a citation
+ * holds commas of its own, so a group the author separated with commas —
+ * `(<cite/>, <cite/>)` — reads wrongly once the citations are rendered (JDH-076).
+ * Replacement is the same length, so offsets into the result still match `md`.
+ */
+function normalizeCiteGroupSeparators(md: string): string {
+  const masked = maskCites(md);
+  const re = new RegExp(`\\(([${CITE_MASK}\\s,;]*)\\)`, 'g');
+  let out = md;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(masked)) !== null) {
+    const inside = m[1];
+    if (!inside.includes(CITE_MASK) || !inside.includes(',')) continue;
+    // Only the separators, which are the commas the mask left visible — a comma inside a
+    // citation's own text ("(Boisvert, 2000)") sits under the mask and must stay.
+    const start = m.index + 1;
+    // split('') not [...], so the indices stay UTF-16 code units, as `inside`'s are.
+    const chars = out.slice(start, start + inside.length).split('');
+    for (let i = 0; i < inside.length; i++) if (inside[i] === ',') chars[i] = ';';
+    out = out.slice(0, start) + chars.join('') + out.slice(start + inside.length);
+  }
+  return out;
+}
+
+/**
+ * A locator the author put in beside the citation: "3", "p. 199", "p. iii",
+ * "esp. pp. 205-10", "22 July 1997 vol 298 col 793". It has to open with a page marker,
+ * a bare number, or a roman numeral after one, so ordinary prose ("and others") is not
+ * swallowed; from there it runs to the closing bracket (JDH-080).
+ */
+const LOCATOR_PATTERN =
+  '(?:esp\\.|cf\\.|see)?\\s*(?:(?:pp?\\.|chap\\.|sec\\.)\\s*[\\divxlcIVXLC]+|\\d+|(?:(?=[ivxlcdm])m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))|(?:(?=[IVXLCDM])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})))[^()\\[\\]]*';
+
+/**
+ * True if the cite at `[start, end)` sits inside a pair of the author's own parentheses
+ * holding nothing but citations, their separators and page locators, so its own
+ * parentheses would nest. A parenthesised aside beside a citation — "(specific to
+ * humans) (Compagno, 2025)" — is not such a group and keeps its brackets, and neither is
+ * a citation inside a longer parenthesised sentence.
+ */
+function inParenthesisedCiteGroup(masked: string, start: number, end: number): boolean {
+  const open = masked.lastIndexOf('(', start);
+  const close = masked.indexOf(')', end);
+  if (open === -1 || close === -1) return false;
+  const inside = new RegExp(`^(?:[${CITE_MASK}\\s,;]|${LOCATOR_PATTERN})*$`);
+  return inside.test(masked.slice(open + 1, close));
+}
+
+/**
  * Rewrite citation-manager `<cite id>` elements to MyST citations.
  *
  * Keys come from the cell's citation-manager mapping; when that is empty (a
@@ -478,6 +581,13 @@ export function citeVisibleText(html: string): string {
  * Citations that still can't be resolved become their visible text and are
  * returned in `unresolved`.
  */
+/**
+ * What may sit between citations inside one pair of the author's parentheses without
+ * making it prose: separators, page locators and the short connectives authors use.
+ */
+const CITE_GROUP_FILLER =
+  /^(?:[\s,;.-]|\u2013|and|see|also|cf\.|e\.g\.|i\.e\.|esp\.|pp?\.|chap\.|sec\.|vol\.|col\.|\d+)*$/i;
+
 export function rewriteMdCitationsToMyst(
   md: string,
   citeIdToRefs: Map<string, CitationManagerRef[]>,
@@ -485,26 +595,44 @@ export function rewriteMdCitationsToMyst(
 ): { md: string; unresolved: string[] } {
   const unresolved: string[] = [];
 
-  let out = md.replace(
-    /<cite\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/cite>/g,
-    (_full, citeId: string, inner: string, offset: number, whole: string) => {
-      const mapped = (citeIdToRefs.get(citeId) ?? [])
-        .filter((r) => r && r.source === 'zotero' && r.id)
-        .map((r) => r.id);
-      const ids = mapped.length ? mapped : zoteroIdsFromCiteHtml(inner);
+  const source = normalizeCiteGroupSeparators(md);
+  const masked = maskCites(source);
+
+  let out = source.replace(
+    new RegExp(CITE_PATTERN, 'g'),
+    (_full: string, attr: string, citeId: string, inner: string, offset: number) => {
+      // cite2c puts the item id in the attribute; citation-manager's id needs the mapping.
+      let ids: string[];
+      if (attr === 'data-cite') {
+        ids = [citeId];
+      } else {
+        const mapped = (citeIdToRefs.get(citeId) ?? [])
+          .filter((r) => r && r.source === 'zotero' && r.id)
+          .map((r) => r.id);
+        ids = mapped.length ? mapped : zoteroIdsFromCiteHtml(inner);
+      }
       const keys = [...new Set(ids.map(keyForZoteroId).filter((k): k is string => Boolean(k)))];
       if (keys.length) return `[${keys.map((k) => `@${k}`).join('; ')}]`;
 
+      // A cite2c marker carries no text, so there is nothing to fall back to. Leave the
+      // element alone rather than deleting it: an empty "()" would hide the problem.
+      if (attr === 'data-cite') {
+        unresolved.push(citeId);
+        return _full;
+      }
+
       let text = citeVisibleText(inner);
       unresolved.push(text || citeId);
-      // Avoid "((Author, 2023))" when the article already wraps the citation in parentheses.
-      const wrapped = whole[offset - 1] === '(' && whole[offset + _full.length] === ')';
+      // Avoid "((Author, 2023))" when the article already wraps the citation — or the
+      // whole group of citations — in parentheses.
+      const wrapped = inParenthesisedCiteGroup(masked, offset, offset + _full.length);
       if (wrapped && /^\(.*\)$/.test(text)) text = text.slice(1, -1);
       return text;
     },
   );
 
-  out = out.replace(/\[@[^\]]+?\](?:\s*,\s*\[@[^\]]+?\])+/g, (chunk) => {
+  // Both separators: APA groups with a semicolon, and the author may have written either.
+  out = out.replace(/\[@[^\]]+?\](?:\s*[,;]\s*\[@[^\]]+?\])+/g, (chunk) => {
     const keys: string[] = [];
     const re = /\[@([^\]]+?)\]/g;
     let m: RegExpExecArray | null;
@@ -514,6 +642,38 @@ export function rewriteMdCitationsToMyst(
   });
 
   out = out.replace(/\(\s*(\[@[^\]]+?\])\s*\)/g, '$1');
+
+  // "([@key], pp. 50-52)" → "[@key, pp. 50-52]". MyST reads the tail as a citation
+  // supplement, so the locator prints inside the citation's own parentheses instead of
+  // leaving the author's wrapped around them (JDH-076). The comma is optional: cite2c
+  // authors write "(<cite/> p. 203)" with none (JDH-080).
+  out = out.replace(
+    new RegExp(`\\(\\s*\\[@([^\\]]+?)\\]\\s*,?\\s*(${LOCATOR_PATTERN})\\s*\\)`, 'g'),
+    (_m, keys: string, locator: string) => `[@${keys}, ${locator.trim()}]`,
+  );
+
+  // "([@a], 1085; [@b])", "([@a]; see also [@b; @c])": one pair of the author's
+  // parentheses holding nothing but citations, their locators and short connecting words.
+  // Lift the whole lot into a single MyST citation, so only its own parentheses print and
+  // the author's are not left wrapped around them (JDH-080).
+  out = out.replace(/\(([^()]*\[@[^()]*)\)/g, (full: string, inner: string) => {
+    const betweenCitations = inner.replace(/\[@[^\]]*\]/g, ' ');
+    if (!CITE_GROUP_FILLER.test(betweenCitations)) return full;
+    // MyST reads only ";" between the keys of one citation: "@a and @b" makes it look for
+    // a label that is not there, and Typst then refuses to build at all.
+    const joined = inner.replace(/\]\s+and\s+\[@/g, ']; [@');
+    return `[${joined.replace(/\[@([^\]]*)\]/g, '@$1')}]`;
+  });
+
+  // "(e.g. [@a; @b])" → "[e.g. @a; @b]". MyST prints the prefix inside the citation's own
+  // parentheses, so the author's pair is not left wrapped around them. Only a short run of
+  // words directly before the citation, with the bracket closing straight after, so a
+  // longer parenthesised aside is left alone (JDH-080).
+  out = out.replace(
+    /\(\s*([A-Za-z][^()\[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
+    (_full: string, prefix: string, cite: string) => `[${prefix} ${cite.slice(1)}`,
+  );
+
   out = stripCitationManagerFromAllComments(out);
 
   return { md: out, unresolved };
@@ -543,8 +703,14 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   const mystPath = resolveProjectConfigPath(cwd, options.myst);
   const log: string[] = ['Done.'];
 
+  // Both notebook citation formats. No article carries both, but merging costs nothing
+  // and keeps one code path for author-.bib matching (JDH-080).
   const zoteroItems = options.zotero === false ? {} : loadZoteroItemsFromNotebook(notebookPath);
+  const cite2cItems = options.zotero === false ? {} : loadCite2cItemsFromNotebook(notebookPath);
+  const notebookItems: Record<string, CslItem> = { ...zoteroItems, ...cite2cItems };
   if (options.zotero === false) log.push('- Zotero:   skipped (--no-zotero)');
+  if (Object.keys(cite2cItems).length)
+    log.push(`- cite2c:   ${Object.keys(cite2cItems).length} items from notebook metadata`);
 
   const authorBibs = loadAuthorBibEntries(cwd, listWorkdirAuthorBibFiles(cwd));
   for (const file of authorBibs.emptyFiles) {
@@ -553,7 +719,7 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
 
   // The author's .bib wins when it describes the same work as a Zotero item.
   const authorKeyByZoteroId = new Map<string, string>();
-  for (const [id, item] of Object.entries(zoteroItems)) {
+  for (const [id, item] of Object.entries(notebookItems)) {
     const match = findAuthorEntry(
       { doi: extractDoi(item), title: item.title ?? null, year: getIssuedDateParts(item).year },
       authorBibs.entries,
@@ -565,8 +731,10 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   }
 
   const ownItems = Object.fromEntries(
-    Object.entries(zoteroItems).filter(([id]) => !authorKeyByZoteroId.has(id)),
+    Object.entries(notebookItems).filter(([id]) => !authorKeyByZoteroId.has(id)),
   );
+  // These are machine keys; the next step ("Improve citekeys to author–year") turns them
+  // into Allen2020 / BambraSmith2010 / BrownEtAl2020, the same for both formats.
   const citekeyByZoteroId = buildCitekeyMap(ownItems);
   const bibEntries = Object.keys(ownItems)
     .sort()
@@ -580,7 +748,8 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   if (bibEntries.length) {
     writeUtf8(
       bibPath,
-      `% Generated from ${path.basename(notebookPath)} notebook metadata (citation-manager)\n` +
+      `% Generated from ${path.basename(notebookPath)} notebook metadata ` +
+        `(${[Object.keys(zoteroItems).length ? 'citation-manager' : null, Object.keys(cite2cItems).length ? 'cite2c' : null].filter(Boolean).join(' + ')})\n` +
         `% Entries: ${bibEntries.length}\n\n` +
         bibEntries.join('\n'),
       options.dryRun,
@@ -588,7 +757,7 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
     bibliography.push(path.basename(bibPath));
     log.push(`- BibTeX:   ${path.relative(cwd, bibPath)} (${bibEntries.length} entries)`);
   } else if (!authorBibs.usableFiles.length) {
-    log.push('- BibTeX:   no citation-manager items; references.bib not written');
+    log.push('- BibTeX:   no notebook citation items; references.bib not written');
   }
   bibliography.push(...authorBibs.usableFiles);
   if (authorBibs.usableFiles.length) {

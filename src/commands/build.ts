@@ -8,6 +8,7 @@ import { CliError } from '../cli/errors.js';
 import { fileExists } from '../engine/context.js';
 import { DEFAULT_WORKDIR, resolveProjectRoot, resolveWorkdirAbs } from '../engine/paths.js';
 import { pointExportsAtSidebarImages } from '../engine/sidebar-images.js';
+import { checkToolchain } from '../engine/toolchain.js';
 import { META_JDH_FILE, resolveJdhCliRoot } from '../init/bundled-assets.js';
 import { resolveProjectConfigPath } from '../steps/shared/myst-config.js';
 import { updateYamlFile } from '../steps/shared/yaml-doc.js';
@@ -52,6 +53,33 @@ export function pointExportsAtTemplate(configPath: string, templateAbs: string):
   });
 }
 
+/**
+ * Template options written onto every templated export.
+ *
+ * `preprint` is written on every build, including `false`, and `csl` is removed when
+ * no file is given, so dropping either flag undoes what an earlier build left in the
+ * config (JDH-077, JDH-078).
+ */
+export function templateExportOptions(
+  placement: string,
+  preprint: boolean,
+  preprintText?: string,
+  cslAbs?: string,
+): Map<string, string | boolean | null> {
+  if (!['none', 'auto'].includes(placement)) {
+    throw new CliError(`--figure-placement must be "none" or "auto" (got "${placement}")`);
+  }
+  if (preprintText && !preprint) throw new CliError('--preprint-text only applies with --preprint.');
+  const options = new Map<string, string | boolean | null>([
+    ['figure_placement', placement],
+    ['preprint', preprint],
+    // null removes the option, so dropping --csl goes back to the built-in APA.
+    ['csl', cslAbs ?? null],
+  ]);
+  if (preprint && preprintText) options.set('preprint_text', preprintText);
+  return options;
+}
+
 export function addBuildCommand(program: Command): void {
   program
     .command('build')
@@ -67,6 +95,12 @@ export function addBuildCommand(program: Command): void {
       'Figures: "none" keeps each where it is in the text; "auto" floats them to the top or bottom of a page (JDH-049)',
       'none',
     )
+    .option('--preprint', 'Watermark every page: the article is not published yet (JDH-077)')
+    .option('--preprint-text <text>', 'Wording of the preprint watermark (default "PREPRINT")')
+    .option(
+      '--csl <path>',
+      "A CSL style file for citations and references, instead of Typst's built-in APA 7th (JDH-078)",
+    )
     .addHelpText(
       'after',
       `
@@ -76,6 +110,8 @@ Examples:
   $ jdh-cli build --template /path/to/jdh-typst-template
   $ jdh-cli build --template https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip
   $ jdh-cli build --figure-placement auto
+  $ jdh-cli build --preprint
+  $ jdh-cli build --preprint --preprint-text "ACCEPTED MANUSCRIPT"
 `,
     )
     .action((opts) => {
@@ -112,13 +148,24 @@ Examples:
         throw new CliError(`Typst template not found: ${templateAbs}`);
       }
 
+      // MyST and Typst are not bundled: check them first, with install guidance (JDH-051).
+      const toolchain = checkToolchain();
+      if (toolchain.errors.length) throw new CliError(toolchain.errors.join('\n\n'));
+      for (const warning of toolchain.warnings) console.warn(`Warning: ${warning}\n`);
+
       const placement = String(opts.figurePlacement);
-      if (!['none', 'auto'].includes(placement)) {
-        throw new CliError(`--figure-placement must be "none" or "auto" (got "${placement}")`);
+      const preprint = opts.preprint === true;
+      // MyST copies a `type: file` option into the build's `files/` folder and
+      // rewrites the path, so an absolute path here is enough.
+      let cslAbs: string | undefined;
+      if (opts.csl) {
+        cslAbs = path.resolve(String(opts.csl));
+        if (!fileExists(cslAbs)) throw new CliError(`CSL file not found: ${cslAbs}`);
       }
+      const templateOptions = templateExportOptions(placement, preprint, opts.preprintText, cslAbs);
       for (const config of [META_JDH_FILE, path.basename(mystYml)]) {
         pointExportsAtTemplate(path.join(workdirAbs, config), templateAbs);
-        pointExportsAtSidebarImages(path.join(workdirAbs, config), new Map([['figure_placement', placement]]));
+        pointExportsAtSidebarImages(path.join(workdirAbs, config), templateOptions);
       }
 
       const fontPath = templateIsUrl
@@ -132,10 +179,13 @@ Examples:
       // A URL template's exports are `format: typst`, which `--pdf` skips.
       const buildFlag = templateIsUrl ? '--typst' : '--pdf';
       const cmd = `myst build ${buildFlag}`;
+      console.log(`Toolchain: ${toolchain.summary}`);
       console.log(`Workdir:  ${workdirAbs}`);
       console.log(`Template: ${templateAbs}`);
       console.log(`Fonts:    ${fontPath}`);
       console.log(`Figures:  ${placement === 'auto' ? 'float to the top or bottom of a page' : 'stay where they are in the text'}`);
+      if (preprint) console.log(`Preprint: every page watermarked "${opts.preprintText ?? 'PREPRINT'}"`);
+      console.log(`Citations: ${cslAbs ?? "Typst's built-in APA 7th"}`);
       console.log(`$ cd ${workdirAbs} && TYPST_FONT_PATHS=${fontPath} ${cmd}\n`);
 
       const pdfPath = path.join(workdirAbs, 'article.pdf');
@@ -146,13 +196,8 @@ Examples:
         env,
       });
 
-      if (res.error) {
-        throw new CliError(
-          res.error.message.includes('ENOENT')
-            ? 'myst CLI not found. Install MyST: https://mystmd.org'
-            : res.error.message,
-        );
-      }
+      // A missing `myst` is already caught by the toolchain check above.
+      if (res.error) throw new CliError(res.error.message);
 
       const code = typeof res.status === 'number' ? res.status : 1;
       if (code !== 0) {

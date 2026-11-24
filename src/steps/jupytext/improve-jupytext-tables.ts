@@ -99,7 +99,12 @@ function normalizeTableTags(content: string): string {
 /**
  * Process article: normalize table-n-* -> table:n, then replace table regions with MyST table directives and update refs.
  */
-function processArticle(content: string): { content: string; tableNumToLabel: Map<number, string> } {
+function processArticle(content: string): {
+  content: string;
+  tableNumToLabel: Map<number, string>;
+  /** Labels of tables converted with no caption: MyST won't number these (JDH-082). */
+  uncaptioned: string[];
+} {
   const tableNumToLabel = new Map<number, string>();
 
   content = normalizeTableTags(content);
@@ -281,7 +286,7 @@ function processArticle(content: string): { content: string; tableNumToLabel: Ma
   result = result.replace(/((?::::|```)\s*\{jdh-table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
   result = result.replace(/(:::\s*\{table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
 
-  return { content: result, tableNumToLabel };
+  return { content: result, tableNumToLabel, uncaptioned: regions.filter((r) => !r.caption).map((r) => r.label) };
 }
 
 export { processArticle };
@@ -298,12 +303,21 @@ async function improveJupytextTables(
   }
 
   const content = readUtf8(articlePath);
-  const { content: processed, tableNumToLabel } = processArticle(content);
+  const { content: processed, tableNumToLabel, uncaptioned } = processArticle(content);
   const newContent = options.maxRows === undefined ? processed : applyTableMaxRows(processed, options.maxRows);
 
   if (newContent === content) {
     process.stdout.write('No table regions found; no changes.\n');
     return;
+  }
+
+  // MyST numbers a table only when it has a caption (JDH-082).
+  if (uncaptioned.length) {
+    process.stdout.write(
+      `Warning: no caption for ${uncaptioned.join(', ')}; ` +
+        'this prints with no "Table N" and no caption line. ' +
+        'Add one to the notebook cell as jdh.object.source.\n',
+    );
   }
 
   writeUtf8(articlePath, newContent, options.dryRun);

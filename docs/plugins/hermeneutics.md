@@ -50,6 +50,8 @@ The directive emits `block[kind=hermeneutics]` with the parsed body as children.
 
 Consecutive hermeneutics cells share one block, as on the JDH website: the first cell opens it and the last closes it. The cell-number markers between them fall inside the block, so each cell keeps its own paragraph number (JDH-061).
 
+A cell holding code is the exception and always gets a block of its own. Its "HERMENEUTICS CODE / END" markers and the truncation fade are drawn against the block's top and bottom edges, so sharing a block prints them on top of each other and over the next cell's first line (JDH-074).
+
 ## Typst export
 
 `#hermeneutics-block` in `jdh.typ` — cyan fill, right bleed. Code inside the block gets optional sidebar markers ("HERMENEUTICS CODE EXCERPT / END"). Truncation for code inside uses `jdh-theme.code` (shared with narrative code).
