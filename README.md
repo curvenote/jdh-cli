@@ -5,6 +5,7 @@ Turns a Journal of Digital History article repo (Jupytext `article.md` + `articl
 ## Getting started
 
 **Prerequisites:**
+
 - [Bun](https://bun.sh).
 - The [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template): either checked out next to `jdh-cli`, or fetched from a release with `jdh-cli build --template <zip URL>` (see [The Typst template](#the-typst-template)).
 - For PDF builds, two tools on the PATH, which jdh-cli doesn't bundle:
@@ -55,7 +56,6 @@ Convert, `build` and `clean` also accept `--project-root <path>` (default: the i
 | `--list-steps`              |                                                                        | Print the pipeline steps and exit                                                                                                                     |
 | `-d, --dry-run`             |                                                                        | Show what would happen without writing files                                                                                                          |
 
-
 The DOI comes from the JDH API (`/api/articles/<id>/?format=json`) using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`); the URL is the article's JDH page. When the API can't supply a DOI (unreachable, article not found or not yet public, no usable `doi` field), jdh-cli prints a warning saying which and builds without one. `--doi` always wins, with no lookup. During production, before an article is published, pass `--doi` (and `--url`) explicitly:
 
 ```bash
@@ -102,16 +102,16 @@ The first build needs network access; later builds reuse the cached copy. `jdh-c
 
 Both notebook citation formats are read. `citation-manager` keeps its items under `metadata['citation-manager']` and writes `<cite id="…">(Author, 2003)</cite>`; **cite2c** keeps them under `metadata.cite2c.citations` and writes an empty `<cite data-cite="1787664/QEP4R77C"></cite>`, with the item id in the attribute and nothing to fall back on. cite2c's `{year, month, day}` dates are converted to CSL `date-parts` on the way in. A cite2c marker whose id is in no bibliography is left in the markdown rather than deleted, so an empty `()` can't hide it.
 
-**One pair of parentheses.** Authors wrap citations in their own brackets, which would print as `((Author, 2023))`. A pair holding *nothing but* citations, page locators and short connectives is lifted whole into one MyST citation; anything longer is left alone:
+**One pair of parentheses.** Authors wrap citations in their own brackets, which would print as `((Author, 2023))`. A pair holding _nothing but_ citations, page locators and short connectives is lifted whole into one MyST citation; anything longer is left alone:
 
-| The author wrote | The PDF prints |
-|---|---|
-| `(<cite/>)` | `(Milligan, 2019)` |
-| `(<cite/> p. 203)` — comma optional | `(Milligan, 2019, p. 203)` |
-| `(<cite/>, <cite/>)` | `(Crane, 2018; Mold et al., 2019)` |
-| `(e.g. <cite/>, <cite/>)` | `(e.g. Crane, 2018; Mold et al., 2019)` |
-| `(<cite/>, 1085; <cite/>)` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
-| `(as argued <cite/> and later)` | left as the author's own parentheses |
+| The author wrote                    | The PDF prints                                   |
+| ----------------------------------- | ------------------------------------------------ |
+| `(<cite/>)`                         | `(Milligan, 2019)`                               |
+| `(<cite/> p. 203)` — comma optional | `(Milligan, 2019, p. 203)`                       |
+| `(<cite/>, <cite/>)`                | `(Crane, 2018; Mold et al., 2019)`               |
+| `(e.g. <cite/>, <cite/>)`           | `(e.g. Crane, 2018; Mold et al., 2019)`          |
+| `(<cite/>, 1085; <cite/>)`          | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
+| `(as argued <cite/> and later)`     | left as the author's own parentheses             |
 
 A locator must open with a page marker, a number or a roman numeral, so prose isn't mistaken for one. `and` between two keys becomes `;`: MyST reads only `;` there, and Typst fails the whole document on the label it otherwise looks for.
 
