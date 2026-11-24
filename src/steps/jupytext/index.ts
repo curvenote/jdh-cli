@@ -7,6 +7,7 @@ import { improveDialogueRegionsStep } from './improve-dialogue-regions.js';
 import { improveHermeneuticsBlocksStep } from './improve-hermeneutics-blocks.js';
 import { improveUntaggedImageOutputsStep } from './improve-untagged-image-outputs.js';
 import { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
+import { markMarkdownCodeStep } from './mark-markdown-code.js';
 import { improveJupytextTablesStep } from './improve-jupytext-tables.js';
 import { improveNotebookFiguresStep } from './improve-notebook-figures.js';
 import { improveNotebookTablesStep } from './improve-notebook-tables.js';
@@ -23,10 +24,13 @@ export { dropHiddenCellsStep } from './drop-hidden-cells.js';
 export { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
 export { numberCellsStep } from './number-cells.js';
 export { improveUntaggedImageOutputsStep } from './improve-untagged-image-outputs.js';
+export { markMarkdownCodeStep, markMarkdownCode, MARKDOWN_CODE_CLASS } from './mark-markdown-code.js';
 
 /** Region / notebook transforms (run after extract-jupytext-parts in the full jupytext chain). */
 export const jupytextTransformSteps: PipelineStep[] = [
   dropHiddenCellsStep,
+  // Must run while `<!-- #region -->` comments are still present (JDH-100).
+  markMarkdownCodeStep,
   improveJupytextAnchorsStep,
   improveNotebookFiguresStep,
   improveNotebookTablesStep,
