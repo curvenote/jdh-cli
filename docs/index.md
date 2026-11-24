@@ -14,7 +14,7 @@ All pipeline logic lives in this package (`src/steps/`). Article repos need no s
 | --- | --- | --- |
 | `myst.yml` | workdir | Project config, plugin registration, PDF export |
 | `meta-jdh.yml` | workdir | Shared JDH defaults (license, PDF export); bundled unless the repo has its own |
-| `generated/*.png` | workdir | QR code and fingerprint; placeholders unless the repo has its own |
+| `generated/*.png` | workdir | QR code and fingerprint; the repo's own, else generated, else placeholders |
 | `article.md` | workdir | Improved MyST markdown |
 | `plugins/*.mjs` | workdir | Bundled MyST plugins (copied on every run) |
 | `references.bib` | workdir | BibTeX from Zotero citations (when present) |

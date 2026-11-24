@@ -4,7 +4,7 @@ title: Improve pipeline
 
 # Improve pipeline
 
-The **jupytext** ruleset runs 17 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
+The **jupytext** ruleset runs 19 steps in order. Steps in `steps/common/` are shared; `steps/jupytext/` handle notebook regions and cell tags.
 
 ```bash
 jdh-cli article.md --list-steps
@@ -32,6 +32,7 @@ jdh-cli article.md --list-steps
 | 16 | Image outputs of untagged code cells | An untagged code cell's image output is placed after its code. A cell tagged `cover` shows its image (the file named in `Image(…)`, else the stored output) in place of the code |
 | 17 | Set project.github | `project.github` from git remote |
 | 18 | Set article metadata | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url)) |
+| 19 | Generate QR code and fingerprint | `generated/qr.png` from the article URL and `generated/fingerprint.png` from `article.ipynb`, for each one not given with `--qr-code` / `--fingerprint` or present in the repo's `generated/` (see [CLI](cli.md#qr-code-and-fingerprint)) |
 
 Steps 11–16 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
 
@@ -74,7 +75,7 @@ _improved/
     lib/typst-text.mjs
   data/                   # mirrored from project root when present
   notebook-outputs/       # figure images decoded from notebook outputs
-  generated/              # QR / fingerprint: the repo's own, else bundled placeholders
+  generated/              # QR / fingerprint: the repo's own, else generated, else bundled placeholders
   .gitignore              # `*`, keeps the workdir out of the article repo
 ```
 
