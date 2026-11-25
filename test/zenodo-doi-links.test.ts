@@ -1,18 +1,37 @@
 import { describe, expect, test } from 'bun:test';
 import plugin, { zenodoDoiUrl } from '../templates/plugins/zenodo-doi-links.mjs';
 
-function run(tree: any) {
+/** Just enough of an mdast node for these trees; the plugins only read these fields. */
+type TestNode = {
+  type: string;
+  url?: string;
+  value?: string;
+  typst?: string;
+  children?: TestNode[];
+};
+
+function run(tree: TestNode) {
   plugin.transforms[0].plugin({}, {})(tree);
   return tree;
 }
 
-const link = (url: string) => ({ type: 'link', url, children: [{ type: 'text', value: 'TCS project' }] });
+const link = (url: string) => ({
+  type: 'link',
+  url,
+  children: [{ type: 'text', value: 'TCS project' }],
+});
 
 describe('zenodo-doi-links (JDH-095)', () => {
   test('a bare record URL becomes its DOI, in either spelling', () => {
-    expect(zenodoDoiUrl('https://zenodo.org/record/8178990')).toBe('https://doi.org/10.5281/zenodo.8178990');
-    expect(zenodoDoiUrl('https://zenodo.org/records/8178990')).toBe('https://doi.org/10.5281/zenodo.8178990');
-    expect(zenodoDoiUrl('http://www.zenodo.org/record/8178990/')).toBe('https://doi.org/10.5281/zenodo.8178990');
+    expect(zenodoDoiUrl('https://zenodo.org/record/8178990')).toBe(
+      'https://doi.org/10.5281/zenodo.8178990',
+    );
+    expect(zenodoDoiUrl('https://zenodo.org/records/8178990')).toBe(
+      'https://doi.org/10.5281/zenodo.8178990',
+    );
+    expect(zenodoDoiUrl('http://www.zenodo.org/record/8178990/')).toBe(
+      'https://doi.org/10.5281/zenodo.8178990',
+    );
   });
 
   test('anything that is not a bare record is left alone', () => {
@@ -37,7 +56,9 @@ describe('zenodo-doi-links (JDH-095)', () => {
     const other = link('https://example.org/page?a=1');
     const tree = {
       type: 'root',
-      children: [{ type: 'blockquote', children: [{ type: 'paragraph', children: [inner, other] }] }],
+      children: [
+        { type: 'blockquote', children: [{ type: 'paragraph', children: [inner, other] }] },
+      ],
     };
     run(tree);
     expect(inner.url).toBe('https://doi.org/10.5281/zenodo.1');

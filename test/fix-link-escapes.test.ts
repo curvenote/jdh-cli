@@ -1,18 +1,30 @@
 import { describe, expect, test } from 'bun:test';
 import plugin from '../templates/plugins/fix-link-escapes.mjs';
 
-function run(tree: any) {
+/** Just enough of an mdast node for these trees; the plugins only read these fields. */
+type TestNode = {
+  type: string;
+  url?: string;
+  value?: string;
+  typst?: string;
+  children?: TestNode[];
+};
+
+function run(tree: TestNode) {
   plugin.transforms[0].plugin({}, {})(tree);
   return tree;
 }
 
-const link = (url: string, children: any[]) => ({ type: 'link', url, children });
-const text = (value: string) => ({ type: 'text', value });
+const link = (url: string, children: TestNode[]): TestNode => ({ type: 'link', url, children });
+const text = (value: string): TestNode => ({ type: 'text', value });
 
 describe('fix-link-escapes (JDH-094)', () => {
   test('a URL with "&" becomes raw Typst, with the ampersand unescaped', () => {
     const url = 'https://data.un.org/Data.aspx?q=internet&d=ITU&f=ind1Code%3AI99H';
-    const tree = { type: 'root', children: [{ type: 'paragraph', children: [link(url, [text(url)])] }] };
+    const tree = {
+      type: 'root',
+      children: [{ type: 'paragraph', children: [link(url, [text(url)])] }],
+    };
     run(tree);
     const node = tree.children[0].children[0] as { type: string; typst: string };
     expect(node.type).toBe('raw');
@@ -25,10 +37,14 @@ describe('fix-link-escapes (JDH-094)', () => {
   test('link text that differs from the URL is kept', () => {
     const tree = {
       type: 'root',
-      children: [{ type: 'paragraph', children: [link('https://ex.com/a?x=1&y=2', [text('UNData')])] }],
+      children: [
+        { type: 'paragraph', children: [link('https://ex.com/a?x=1&y=2', [text('UNData')])] },
+      ],
     };
     run(tree);
-    expect((tree.children[0].children[0] as any).typst).toBe('#link("https://ex.com/a?x=1&y=2", "UNData")');
+    expect(tree.children![0].children![0].typst).toBe(
+      '#link("https://ex.com/a?x=1&y=2", "UNData")',
+    );
   });
 
   test('a URL without "&" is left for MyST', () => {
@@ -54,10 +70,10 @@ describe('fix-link-escapes (JDH-094)', () => {
       ],
     };
     run(tree);
-    expect((tree.children[0].children[0] as any).typst).toBe(
+    expect(tree.children![0].children![0].typst).toBe(
       '#link("https://ex.com/a?x=1&y=2", "https://ex.com/a?x=1&y=2")',
     );
-    expect((tree.children[1].children[0] as any).typst).toBe(
+    expect(tree.children![1].children![0].typst).toBe(
       '#link("https://ex.com/a?q=\\"x\\"&y=2", "q\\"x\\"")',
     );
   });
@@ -68,16 +84,22 @@ describe('fix-link-escapes (JDH-094)', () => {
     const tree = {
       type: 'root',
       children: [
-        { type: 'paragraph', children: [link(url, [text('https://w.uk/shine/search?query=“sick+note”&page=1')])] },
-        { type: 'paragraph', children: [link('https://ex.com/a?x=1&y=2', [text('the “sick note” search')])] },
+        {
+          type: 'paragraph',
+          children: [link(url, [text('https://w.uk/shine/search?query=“sick+note”&page=1')])],
+        },
+        {
+          type: 'paragraph',
+          children: [link('https://ex.com/a?x=1&y=2', [text('the “sick note” search')])],
+        },
       ],
     };
     run(tree);
     // Straight quotes, escaped for the Typst string literal they sit in.
-    expect((tree.children[0].children[0] as any).typst).toInclude('query=\\"sick+note\\"&page=1');
-    expect((tree.children[0].children[0] as any).typst).not.toInclude('“');
+    expect(tree.children![0].children![0].typst).toInclude('query=\\"sick+note\\"&page=1');
+    expect(tree.children![0].children![0].typst).not.toInclude('“');
     // Prose keeps the typography the rest of the document uses.
-    expect((tree.children[1].children[0] as any).typst).toInclude('the “sick note” search');
+    expect(tree.children![1].children![0].typst).toInclude('the “sick note” search');
   });
 
   test('links nested deeper in the tree are rewritten too', () => {
@@ -86,12 +108,17 @@ describe('fix-link-escapes (JDH-094)', () => {
       children: [
         {
           type: 'blockquote',
-          children: [{ type: 'paragraph', children: [text('see '), link('https://ex.com/a?x=1&y=2', [text('here')])] }],
+          children: [
+            {
+              type: 'paragraph',
+              children: [text('see '), link('https://ex.com/a?x=1&y=2', [text('here')])],
+            },
+          ],
         },
       ],
     };
     run(tree);
-    const para = (tree.children[0] as any).children[0];
+    const para = tree.children![0].children![0];
     expect(para.children[1].type).toBe('raw');
   });
 });

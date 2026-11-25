@@ -49,7 +49,11 @@ export function markMarkdownCode(content: string): { content: string; marked: nu
       let j = i + 1;
       while (j < cell.end && !close.test(lines[j])) j++;
       if (j >= cell.end) break; // unclosed fence: leave the cell alone
-      rewrite.set(i, [`${ticks}{code-block} ${lang || 'text'}`, `:class: ${MARKDOWN_CODE_CLASS}`, '']);
+      rewrite.set(i, [
+        `${ticks}{code-block} ${lang || 'text'}`,
+        `:class: ${MARKDOWN_CODE_CLASS}`,
+        '',
+      ]);
       i = j;
     }
   }

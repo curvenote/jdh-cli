@@ -24,7 +24,11 @@ export { dropHiddenCellsStep } from './drop-hidden-cells.js';
 export { improveJupytextAnchorsStep } from './improve-jupytext-anchors.js';
 export { numberCellsStep } from './number-cells.js';
 export { improveUntaggedImageOutputsStep } from './improve-untagged-image-outputs.js';
-export { markMarkdownCodeStep, markMarkdownCode, MARKDOWN_CODE_CLASS } from './mark-markdown-code.js';
+export {
+  markMarkdownCodeStep,
+  markMarkdownCode,
+  MARKDOWN_CODE_CLASS,
+} from './mark-markdown-code.js';
 
 /** Region / notebook transforms (run after extract-jupytext-parts in the full jupytext chain). */
 export const jupytextTransformSteps: PipelineStep[] = [
