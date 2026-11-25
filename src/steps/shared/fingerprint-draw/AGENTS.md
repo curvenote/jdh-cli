@@ -10,17 +10,20 @@ below. "It still looks like a fingerprint" is not a check.
 
 ## Why this exists at all
 
-The other route is `../fingerprint.ts`, which drives a headless Chromium to JDH's live
-`/en/fingerprint-viewer`, intercepts the viewer's notebook fetch with the local
-`article.ipynb`, and reads the rendered SVG back out of the page. That works, but it makes
-every build depend on a browser binary and on the JDH site being reachable and willing to
-serve a headless client — and as of 25 Nov 2026 it was **not** willing: from a Mac,
-`journalofdigitalhistory.org` reset the connection for Playwright's Chromium on every path
-while `curl` got 200 and the same Chromium reached other hosts fine. Suspected bot
-protection; not confirmed, because testing it would have meant spoofing a user agent.
+The original approach, and what this replaced, was to drive a headless Chromium to JDH's
+live `/en/fingerprint-viewer`, intercept the viewer's notebook fetch with the local
+`article.ipynb`, and read the rendered SVG back out of the page. That made every build
+depend on a browser binary and on the JDH site being reachable and willing to serve a
+headless client — and it was not: as of 25 Nov 2026, `journalofdigitalhistory.org` reset
+the connection for Playwright's Chromium on every path, while `curl` got 200 and the same
+Chromium reached other hosts fine. Suspected bot protection; confirmed with JDH that this
+was not a local problem.
 
-This module removes that dependency. It was **not wired into the pipeline** when written
-(see **Status** below) — check before assuming.
+That route was removed along with the `playwright-core` dependency. It is in this
+repository's history if it is ever wanted again — see the commit that deleted
+`src/steps/shared/fingerprint.ts`. The one part of it still worth having is the snippet
+for reading the site's own SVG back out of the page, which is how the check below works;
+it is reproduced in **Reproducing the check**.
 
 ## Upstream source
 
@@ -109,13 +112,31 @@ curl -sL -o nb.ipynb https://raw.githubusercontent.com/jdh-observer/6ig87tC5GKjQ
 
    `https://journalofdigitalhistory.org/en/fingerprint-viewer?url=<url-encoded notebook URL>`
 
-   then in the page, clone `svg.ArticleFingerprint`, inline each element's computed
-   `fill`/`stroke`/`stroke-width`/`opacity` onto the clone, and take its `outerHTML`.
-   `../fingerprint.ts` does exactly this; its `INLINE_STYLES` is the snippet to reuse.
+   then run this in the page to clone `svg.ArticleFingerprint` with the computed paint
+   properties inlined, so it renders without the site's CSS:
 
-   One gotcha: the markup contains `stroke="var(--secondary)"`, which resolves only against
-   the site's stylesheet. Typst tolerates it but ImageMagick refuses the whole file, so
-   strip it (`sanitizeSvg` in `../fingerprint.ts`) before rasterising.
+```js
+(() => {
+  const svg = document.querySelector('svg.ArticleFingerprint');
+  if (!svg) return null;
+  const props = ['fill', 'stroke', 'stroke-width', 'opacity'];
+  const style = (el) => {
+    const computed = window.getComputedStyle(el);
+    return props.map((p) => p + ':' + computed.getPropertyValue(p)).join(';');
+  };
+  const clone = svg.cloneNode(true);
+  const originals = svg.querySelectorAll('*');
+  const clones = clone.querySelectorAll('*');
+  originals.forEach((el, i) => clones[i].setAttribute('style', style(el)));
+  clone.setAttribute('style', style(svg));
+  return clone.outerHTML;
+})()
+```
+
+   Two gotchas. The markup contains `stroke="var(--secondary)"`, which resolves only
+   against the site's stylesheet — Typst tolerates it but ImageMagick refuses the whole
+   file, so strip it before rasterising. And the site draws one more `<line>` than we do:
+   its hover pointer, marked `stroke-opacity="0"`.
 
 3. **Draw the same notebook here**, at the size the page used (it is set by the page's
    layout — read `width` off the site's SVG; it was `615.984375`):
@@ -150,7 +171,11 @@ that real differences hide — a first attempt at 130 dpi looked blank for both.
 
 ## Status
 
-When written, this module was **not called by the pipeline**. `generateSidebarImagesStep`
-still used `renderFingerprint()` from `../fingerprint.ts` (the browser route). Switching
-over changes what every article's fingerprint is built from, so it was left as a separate
-decision. Check the current wiring before trusting this paragraph.
+Wired in: `generateSidebarImagesStep` calls `fingerprintFromNotebook()` here, drawing at
+`size: 400`. That size is not cosmetic — see the comment on `FINGERPRINT_SIZE` in
+`../../common/generate-sidebar-images.ts` for why a larger coordinate space makes the
+strokes too fine to survive the sidebar.
+
+![ported against the website's own](comparison.png)
+
+Left: drawn here from `article.ipynb`. Right: the website's own, same article.

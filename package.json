@@ -49,8 +49,5 @@
   },
   "engines": {
     "node": ">=20 <25"
-  },
-  "optionalDependencies": {
-    "playwright-core": "^1.65.1"
   }
 }

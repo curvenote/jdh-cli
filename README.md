@@ -67,7 +67,7 @@ jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhis
 A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 - the bundled `meta-jdh.yml` (licence, PDF export), unless the repo has its own
-- the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else generated: the QR code from the article URL, the fingerprint from `article.ipynb` (rendered with the JDH site's fingerprint viewer in a headless browser `/en/fingerprint-viewer`, which needs network access and `playwright-core` with Chromium or Chrome). If generation fails, clearly marked placeholders with a warning
+- the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else generated: the QR code from the article URL, the fingerprint drawn from `article.ipynb` with no browser and no network call. If generation fails, clearly marked placeholders with a warning
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
 - the MyST plugins for hermeneutics blocks, narrative code, JDH tables, dialogue and lists
 - `references.bib` from the notebook's citation metadata — `citation-manager` items or cite2c's `metadata.cite2c.citations` — plus any `.bib` files in the article repo (e.g. `direct.bib`)
