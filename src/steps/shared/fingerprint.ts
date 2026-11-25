@@ -39,6 +39,19 @@ export function buildFingerprintViewerUrl(
   return `${baseUrl.replace(/\/+$/, "")}/${lang}/fingerprint-viewer?${new URLSearchParams({ url: notebookUrl })}`;
 }
 
+/**
+ * Make the page's SVG stand on its own, outside the website.
+ *
+ * The viewer leaves one `var(--secondary)` presentation attribute in the markup, which
+ * resolves only against the site's stylesheet. The inlined style already carries the
+ * colour it resolved to, so nothing is lost by dropping it — but left in, the file is
+ * not valid on its own: ImageMagick refuses it outright. (Typst tolerates it, so this
+ * is for everything else that opens the written generated/fingerprint.svg.)
+ */
+export function sanitizeSvg(svg: string): string {
+  return svg.replace(/\s[a-zA-Z-]+="var\(--[^)"]*\)"/g, '');
+}
+
 export function wrapSvgStandalone(svg: string): string {
   return svg.trimStart().startsWith("<?xml")
     ? svg
@@ -143,7 +156,7 @@ export async function renderFingerprint(
       );
     }
 
-    const svg = wrapSvgStandalone(markup);
+    const svg = wrapSvgStandalone(sanitizeSvg(markup));
 
     const pngPage = await browser.newPage({ deviceScaleFactor: PNG_SCALE });
     await pngPage.setContent(

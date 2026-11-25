@@ -8,6 +8,7 @@ import { resolveBundledLogo } from "../src/init/bundled-assets.js";
 import { generateSidebarImagesStep } from "../src/steps/common/generate-sidebar-images.js";
 import {
   buildFingerprintViewerUrl,
+  sanitizeSvg,
   wrapSvgStandalone,
 } from "../src/steps/shared/fingerprint.js";
 import { renderQrPng } from "../src/steps/shared/qr-code.js";
@@ -56,6 +57,24 @@ describe("fingerprint helpers", () => {
     const wrapped = wrapSvgStandalone("<svg/>");
     expect(wrapped).toBe('<?xml version="1.0" encoding="UTF-8"?>\n<svg/>');
     expect(wrapSvgStandalone(wrapped)).toBe(wrapped);
+  });
+
+  describe("sanitizeSvg", () => {
+    test("drops attributes that only resolve against the site's stylesheet", () => {
+      // ImageMagick refuses the whole file over this one. The inlined style already
+      // carries the colour it resolved to, so nothing is lost.
+      const out = sanitizeSvg(
+        '<line stroke="var(--secondary)" x1="0" style="stroke:rgb(34, 35, 36)"/>',
+      );
+      expect(out).not.toContain("var(--");
+      expect(out).toContain('style="stroke:rgb(34, 35, 36)"');
+      expect(out).toContain('x1="0"');
+    });
+
+    test("anything else is untouched", () => {
+      const svg = '<circle stroke-opacity="0" style="stroke:rgb(1, 2, 3);fill:none"/>';
+      expect(sanitizeSvg(svg)).toBe(svg);
+    });
   });
 });
 

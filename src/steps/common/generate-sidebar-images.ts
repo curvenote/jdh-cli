@@ -3,11 +3,13 @@ import path from "node:path";
 import { fileExists } from "../../engine/context.js";
 import {
   placeholderWarning,
+  pointExportsAtSidebarImages,
   SIDEBAR_IMAGES,
 } from "../../engine/sidebar-images.js";
 import type { PipelineStep, RunContext } from "../../engine/types.js";
 import {
   GENERATED_DIR,
+  META_JDH_FILE,
   resolveBundledLogo,
 } from "../../init/bundled-assets.js";
 import { renderFingerprint } from "../shared/fingerprint.js";
@@ -37,7 +39,7 @@ function resolveQrUrl(ctx: RunContext): string | null {
 async function generate(
   img: SidebarImage,
   ctx: RunContext,
-): Promise<{ bytes: Buffer; from: string }> {
+): Promise<{ bytes: Buffer; from: string; ext: string }> {
   if (img.file === "qr.png") {
     const url = resolveQrUrl(ctx);
     if (!url)
@@ -48,13 +50,14 @@ async function generate(
     return {
       bytes: renderQrPng(url, fs.readFileSync(resolveBundledLogo())),
       from: url,
+      ext: "png",
     };
   }
   if (!fileExists(ctx.articleIpynb))
     throw new Error("no article.ipynb in the article repo");
-  const { png } = await renderFingerprint(ctx.articleIpynb);
+  const { svg } = await renderFingerprint(ctx.articleIpynb);
 
-  return { bytes: png, from: "article.ipynb" };
+  return { bytes: Buffer.from(svg, "utf8"), from: "article.ipynb", ext: "svg" };
 }
 
 /**
@@ -82,20 +85,24 @@ export const generateSidebarImagesStep: PipelineStep = {
       );
       return;
     }
-    for (const img of missing) {
-      const dest = `${GENERATED_DIR}/${img.file}`;
+    const written = new Map<string, string>();
 
+    for (const img of missing) {
       if (ctx.options.dryRun) {
-        console.log(`[dry-run] would generate ${dest}`);
+        console.log(`[dry-run] would generate ${GENERATED_DIR}/${img.file}`);
         continue;
       }
 
       try {
-        const { bytes, from } = await generate(img, ctx);
+        const { bytes, from, ext } = await generate(img, ctx);
+        const dest = `${GENERATED_DIR}/${path.parse(img.file).name}.${ext}`;
         const abs = path.join(ctx.workdirAbs, dest);
 
         fs.mkdirSync(path.dirname(abs), { recursive: true });
+        // Drop the placeholder this replaces, so only the generated image is in generated/.
+        fs.rmSync(path.join(ctx.workdirAbs, GENERATED_DIR, img.file), { force: true });
         fs.writeFileSync(abs, bytes);
+        written.set(img.exportKey, `./${dest}`);
 
         console.log(`${img.label}: generated ${dest} (from ${from})`);
       } catch (err) {
@@ -106,6 +113,12 @@ export const generateSidebarImagesStep: PipelineStep = {
           ),
         );
       }
+    }
+
+    // The bundled meta-jdh.yml names the placeholders by their own extension, so an
+    // image generated under a different one has to be pointed at explicitly.
+    for (const config of [META_JDH_FILE, "myst.yml"]) {
+      pointExportsAtSidebarImages(path.join(ctx.workdirAbs, config), written);
     }
   },
 };
