@@ -33,6 +33,15 @@ function isFigureCodeLabel(value) {
   return typeof value === 'string' && value.startsWith('code:fig:');
 }
 
+/**
+ * Code an author typed into a markdown cell, handled by markdown-code.mjs (JDH-100).
+ * Checked by class rather than by the wrapping flag, so the two plugins do not depend
+ * on which of them MyST happens to run first.
+ */
+function isMarkdownCode(node) {
+  return typeof node.class === 'string' && node.class.split(/\s+/).includes('jdh-markdown-code');
+}
+
 /** Walk the tree and wrap eligible block `code` nodes for Typst. */
 function wrapNarrativeCode(tree, utils) {
   const skip = hermeneuticsCodeNodes(utils.selectAll, tree);
@@ -46,6 +55,7 @@ function wrapNarrativeCode(tree, utils) {
       if (node.type === 'code') {
         if (skip.has(node)) continue;
         if (node.data?.narrativeCodeWrapped) continue;
+        if (isMarkdownCode(node)) continue;
         if (isFigureCodeLabel(node.identifier) || isFigureCodeLabel(node.label)) continue;
 
         node.data = { ...(node.data ?? {}), narrativeCodeWrapped: true };
