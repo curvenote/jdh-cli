@@ -1,9 +1,9 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { fileExists } from "../engine/context.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { fileExists } from '../engine/context.js';
 
-export const META_JDH_FILE = "meta-jdh.yml";
+export const META_JDH_FILE = 'meta-jdh.yml';
 
 /** Resolve path to the shipped `meta-jdh.yml` template bundled with jdh-cli. */
 export function resolveBundledMetaJdhPath(): string {
@@ -12,39 +12,32 @@ export function resolveBundledMetaJdhPath(): string {
 
   if (entry) {
     candidates.push(path.join(path.dirname(entry), META_JDH_FILE));
-    candidates.push(
-      path.join(path.dirname(entry), "..", "templates", META_JDH_FILE),
-    );
+    candidates.push(path.join(path.dirname(entry), '..', 'templates', META_JDH_FILE));
   }
 
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   // Source layout (`src/init/…` during dev / tests).
-  candidates.push(path.join(moduleDir, "..", "..", "templates", META_JDH_FILE));
-  candidates.push(path.join(moduleDir, "..", "..", "dist", META_JDH_FILE));
+  candidates.push(path.join(moduleDir, '..', '..', 'templates', META_JDH_FILE));
+  candidates.push(path.join(moduleDir, '..', '..', 'dist', META_JDH_FILE));
   // Shipped bundle (`dist/jdh-cli.cjs` — moduleDir is `dist/`).
-  candidates.push(path.join(moduleDir, "..", "templates", META_JDH_FILE));
+  candidates.push(path.join(moduleDir, '..', 'templates', META_JDH_FILE));
   candidates.push(path.join(moduleDir, META_JDH_FILE));
 
   for (const candidate of candidates) {
     if (fileExists(candidate)) return candidate;
   }
 
-  throw new Error(
-    `Bundled ${META_JDH_FILE} template not found. Rebuild jdh-cli: bun run build`,
-  );
+  throw new Error(`Bundled ${META_JDH_FILE} template not found. Rebuild jdh-cli: bun run build`);
 }
 
 export function readBundledMetaJdhTemplate(): string {
-  return fs.readFileSync(resolveBundledMetaJdhPath(), "utf8");
+  return fs.readFileSync(resolveBundledMetaJdhPath(), 'utf8');
 }
 
-export const GENERATED_DIR = "generated";
+export const GENERATED_DIR = 'generated';
 
 /** Sidebar images the PDF export expects in `generated/` (see bundled meta-jdh.yml). */
-export const GENERATED_IMAGES: readonly string[] = [
-  "qr.png",
-  "fingerprint.png",
-];
+export const GENERATED_IMAGES: readonly string[] = ['qr.png', 'fingerprint.png'];
 
 /** Resolve the directory of placeholder `generated/` images bundled with jdh-cli. */
 export function resolveBundledGeneratedDir(): string {
@@ -53,11 +46,7 @@ export function resolveBundledGeneratedDir(): string {
 
 /** The JDH logo placed in the middle of generated QR codes. */
 export function resolveBundledLogo(): string {
-  return path.join(
-    path.dirname(resolveBundledMetaJdhPath()),
-    "assets",
-    "jdh-logo.png",
-  );
+  return path.join(path.dirname(resolveBundledMetaJdhPath()), 'assets', 'jdh-logo.png');
 }
 
 /** jdh-cli package root (parent of `templates/` or `dist/`). */
@@ -76,8 +65,8 @@ export function deployBundledDefaults(
   /** Sidebar images already supplied another way (e.g. `--qr-code`), by file name. */
   skipImages: ReadonlySet<string> = new Set(),
 ): number {
-  const prefix = dryRun ? "[dry-run] " : "";
-  const verb = dryRun ? "would copy" : "copy    ";
+  const prefix = dryRun ? '[dry-run] ' : '';
+  const verb = dryRun ? 'would copy' : 'copy    ';
   let deployed = 0;
 
   const metaDest = path.join(workdirAbs, META_JDH_FILE);
@@ -104,11 +93,7 @@ export function deployBundledDefaults(
 
 /** Placeholder images for figures that only exist online (interactive charts, video), and the sound icon. */
 export function resolveBundledPlaceholder(
-  variant: "interactive" | "video" | "sound" | "figure",
+  variant: 'interactive' | 'video' | 'sound' | 'figure',
 ): string {
-  return path.join(
-    path.dirname(resolveBundledMetaJdhPath()),
-    "placeholders",
-    `${variant}.svg`,
-  );
+  return path.join(path.dirname(resolveBundledMetaJdhPath()), 'placeholders', `${variant}.svg`);
 }

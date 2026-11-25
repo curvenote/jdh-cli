@@ -11,9 +11,7 @@ export function resolveProjectRoot(projectRoot?: string): string {
 
 /** Resolve workdir path inside project root; throws if outside root. */
 export function resolveWorkdirAbs(projectRoot: string, workdir = DEFAULT_WORKDIR): string {
-  const workdirAbs = path.isAbsolute(workdir)
-    ? workdir
-    : path.resolve(projectRoot, workdir);
+  const workdirAbs = path.isAbsolute(workdir) ? workdir : path.resolve(projectRoot, workdir);
 
   const rel = path.relative(projectRoot, workdirAbs);
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {

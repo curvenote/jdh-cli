@@ -54,8 +54,12 @@ describe('jdh-table Typst serialization', () => {
     const table = makeTableNode();
     const typst = tableNodeToTypst(table, 2);
 
-    expect(typst).toContain('#let jdh-ts = jdh-table-style(header-rows: 1, hidden-rows: 2, data-rows: 1)');
-    expect(typst).toContain('#tablex(columns: (1fr, 1fr), header-rows: 1, repeat-header: true, ..jdh-ts,');
+    expect(typst).toContain(
+      '#let jdh-ts = jdh-table-style(header-rows: 1, hidden-rows: 2, data-rows: 1)',
+    );
+    expect(typst).toContain(
+      '#tablex(columns: (1fr, 1fr), header-rows: 1, repeat-header: true, ..jdh-ts,',
+    );
     expect(typst).toContain('[A \\* bold],');
     expect(typst).toContain('[B \\# hash],');
     expect(typst).toContain('[x \\\\ y \\[br\\] \\$ \\@ \\_ \\` \\< \\> \\= $tilde$],');
@@ -97,17 +101,43 @@ describe('jdh-table Typst serialization', () => {
 
 describe('columnWidths', () => {
   test('even content keeps equal columns', () => {
-    expect(columnWidths([['Year', 'Results'], ['1996', '3'], ['1997', '216']], 1)).toEqual(['1fr', '1fr']);
+    expect(
+      columnWidths(
+        [
+          ['Year', 'Results'],
+          ['1996', '3'],
+          ['1997', '216'],
+        ],
+        1,
+      ),
+    ).toEqual(['1fr', '1fr']);
   });
 
   test('a data table with short and long values stays equal', () => {
-    expect(columnWidths([['id', 'name', 'value'], ['1', 'Christian Democratic Union', '0.31'], ['2', 'Social Democratic Party', '0.27']], 1)).toEqual(['1fr', '1fr', '1fr']);
+    expect(
+      columnWidths(
+        [
+          ['id', 'name', 'value'],
+          ['1', 'Christian Democratic Union', '0.31'],
+          ['2', 'Social Democratic Party', '0.27'],
+        ],
+        1,
+      ),
+    ).toEqual(['1fr', '1fr', '1fr']);
   });
 
   test('paragraph columns next to ids get the width (Chronoferencing Table 4)', () => {
     const long = 'When speaking about geopolitical and economic borders this is true '.repeat(20);
     const rows = [
-      ['PostID', 'PostText', 'User who uploaded Post', 'CommentID', 'CommentText', 'User who made Comment', 'Role'],
+      [
+        'PostID',
+        'PostText',
+        'User who uploaded Post',
+        'CommentID',
+        'CommentText',
+        'User who made Comment',
+        'Role',
+      ],
       ['21', long.slice(0, 500), 'Binghost', '30', long, 'Deadsaint', 'Citizen scientist'],
       ['33', long.slice(0, 300), 'Gich', '41', long.slice(0, 900), 'GamingScorpion', 'CS'],
     ];
@@ -123,9 +153,24 @@ describe('columnWidths', () => {
   test('short columns beside text columns stay as wide as their longest word (In Search of Truth Table 2, #1189)', () => {
     const rows = [
       ['Activities', 'Objectives', 'Approach', 'Comments'],
-      ['1', 'Understanding the principles of an educational approach based on active learning methods', 'Developing a passport form using AI and secondary literature', 'Collecting work for analysis'],
-      ['2', 'Group discussion led by the trainer', 'Mobilisation of sources Supported argumentation Social interaction and co-construction Comparative analysis Critical questioning Detection of errors/inaccuracies', ''],
-      ['3', 'Objectivity regarding the uses of GenAI', 'Reflexivity Transfer of learning Critical distance', ''],
+      [
+        '1',
+        'Understanding the principles of an educational approach based on active learning methods',
+        'Developing a passport form using AI and secondary literature',
+        'Collecting work for analysis',
+      ],
+      [
+        '2',
+        'Group discussion led by the trainer',
+        'Mobilisation of sources Supported argumentation Social interaction and co-construction Comparative analysis Critical questioning Detection of errors/inaccuracies',
+        '',
+      ],
+      [
+        '3',
+        'Objectivity regarding the uses of GenAI',
+        'Reflexivity Transfer of learning Critical distance',
+        '',
+      ],
     ];
     const widths = columnWidths(rows, 1).map((w) => parseInt(w, 10));
     // Shares of 100: "Activities" and "Collecting" need (10 + 3) / 96 of the width.

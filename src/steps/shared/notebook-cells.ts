@@ -90,8 +90,13 @@ export function kindFromTags(tags: readonly string[]): { kind: CellKind; tag: st
     const m = tag.match(KIND_TAG);
     if (!m) continue;
     const word = (m[1] ?? m[2]).toLowerCase();
-    const kind: CellKind =
-      word.startsWith('fig') ? 'figure' : word.endsWith('table') ? 'table' : word.startsWith('vid') ? 'video' : 'sound';
+    const kind: CellKind = word.startsWith('fig')
+      ? 'figure'
+      : word.endsWith('table')
+        ? 'table'
+        : word.startsWith('vid')
+          ? 'video'
+          : 'sound';
     return { kind, tag };
   }
   return null;
@@ -136,7 +141,10 @@ export function audioLabelFromTag(tag: string): string {
 /** True when an output is an audio player (`<audio>` HTML or an `audio/*` MIME type). */
 export function hasAudioOutput(cell: Pick<TaggedCell, 'outputs'> | undefined): boolean {
   return (cell?.outputs ?? []).some(
-    (o) => o.mime.startsWith('audio/') || Object.keys(o.text).some((m) => m.startsWith('audio/')) || /<audio\b/i.test(o.text['text/html'] ?? ''),
+    (o) =>
+      o.mime.startsWith('audio/') ||
+      Object.keys(o.text).some((m) => m.startsWith('audio/')) ||
+      /<audio\b/i.test(o.text['text/html'] ?? ''),
   );
 }
 
@@ -157,7 +165,10 @@ export function captionFromJdh(jdh: unknown): string | null {
   const parts = Array.isArray(source) ? source.map(String) : [joinText(source)];
   // Caption pieces are separate strings (often sentences without trailing spaces).
   const text = parts
-    .reduce((acc, part) => (acc && !/\s$/.test(acc) && !/^\s/.test(part) ? `${acc} ${part}` : acc + part), '')
+    .reduce(
+      (acc, part) => (acc && !/\s$/.test(acc) && !/^\s/.test(part) ? `${acc} ${part}` : acc + part),
+      '',
+    )
     .trim();
   return text || null;
 }
@@ -237,11 +248,13 @@ export function selectOutputs(outputs: readonly RawOutput[]): {
     const value = data[mime];
     const text: Record<string, string> = {};
     for (const [m, v] of Object.entries(data)) {
-      if (m.startsWith('text/') && (typeof v === 'string' || Array.isArray(v))) text[m] = joinText(v);
+      if (m.startsWith('text/') && (typeof v === 'string' || Array.isArray(v)))
+        text[m] = joinText(v);
     }
     chosen.push({
       mime,
-      data: typeof value === 'string' || Array.isArray(value) ? joinText(value) : JSON.stringify(value),
+      data:
+        typeof value === 'string' || Array.isArray(value) ? joinText(value) : JSON.stringify(value),
       text,
       metadata: out.metadata ?? {},
     });

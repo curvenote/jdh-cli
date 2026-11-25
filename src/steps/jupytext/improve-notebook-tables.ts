@@ -90,7 +90,9 @@ export function processArticle(
         report.captionConflicts.push({
           label,
           used: resolved.from!,
-          others: (['code', 'cell', 'output'] as const).filter((k) => k !== resolved.from && captions[k]),
+          others: (['code', 'cell', 'output'] as const).filter(
+            (k) => k !== resolved.from && captions[k],
+          ),
         });
       }
       const caption = cleanCaption(resolved.text ?? table.caption ?? '');
@@ -163,6 +165,11 @@ export const improveNotebookTablesStep: PipelineStep = {
   inputs: ['markdown', 'ipynb'],
   run: async (ctx) => {
     const o = stepOpts(ctx);
-    await improveNotebookTables({ article: 'article.md', notebook: 'article.ipynb', dryRun: o.dryRun, cwd: o.cwd });
+    await improveNotebookTables({
+      article: 'article.md',
+      notebook: 'article.ipynb',
+      dryRun: o.dryRun,
+      cwd: o.cwd,
+    });
   },
 };

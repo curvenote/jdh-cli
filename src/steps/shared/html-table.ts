@@ -19,12 +19,20 @@ export interface OutputTable {
   caption: string | null;
 }
 
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
 
 export function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
     if (e[0] === '#') {
-      const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      const code =
+        e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
       return Number.isFinite(code) ? String.fromCodePoint(code) : m;
     }
     return ENTITIES[e.toLowerCase()] ?? m;
@@ -60,7 +68,10 @@ function dropEllipses(table: { headerRows: string[][]; dataRows: string[][] }): 
   );
   const all = [...table.headerRows, ...table.dataRows];
   const width = Math.max(0, ...all.map((r) => r.length));
-  const keep = Array.from({ length: width }, (_, i) => !all.every((r) => ELLIPSIS.test(r[i] ?? '')));
+  const keep = Array.from(
+    { length: width },
+    (_, i) => !all.every((r) => ELLIPSIS.test(r[i] ?? '')),
+  );
   if (keep.every(Boolean)) return;
   const pick = (r: string[]) => r.filter((_, i) => keep[i]);
   table.headerRows = table.headerRows.map(pick);
@@ -99,14 +110,22 @@ export function tableFromHtml(html: string): OutputTable | null {
   const headRows = theadHtml ? rowsOf(theadHtml).map((r) => r.cells) : [];
   const bodyRows = rowsOf(theadHtml ? tableHtml.replace(theadHtml, '') : tableHtml);
   // Without a <thead>, leading all-<th> rows are the header.
-  while (!theadHtml && bodyRows.length > 1 && bodyRows[0].header) headRows.push(bodyRows.shift()!.cells);
-  const table = { headerRows: headRows, dataRows: bodyRows.map((r) => r.cells).filter((r) => r.length) };
+  while (!theadHtml && bodyRows.length > 1 && bodyRows[0].header)
+    headRows.push(bodyRows.shift()!.cells);
+  const table = {
+    headerRows: headRows,
+    dataRows: bodyRows.map((r) => r.cells).filter((r) => r.length),
+  };
   if (!table.headerRows.length && !table.dataRows.length) return null;
   tidyHeaders(table);
   dropEllipses(table);
   dropRangeIndex(table);
-  const footer = html.slice((match.index ?? 0) + tableHtml.length).match(/(\d[\d,]*)\s+rows\s+×\s+(\d[\d,]*)\s+columns/);
-  const captionText = htmlText(tableHtml.match(/<caption\b[^>]*>([\s\S]*?)<\/caption>/i)?.[1] ?? '');
+  const footer = html
+    .slice((match.index ?? 0) + tableHtml.length)
+    .match(/(\d[\d,]*)\s+rows\s+×\s+(\d[\d,]*)\s+columns/);
+  const captionText = htmlText(
+    tableHtml.match(/<caption\b[^>]*>([\s\S]*?)<\/caption>/i)?.[1] ?? '',
+  );
   return {
     ...table,
     totalRows: footer ? parseInt(footer[1].replace(/,/g, ''), 10) : null,
@@ -118,20 +137,35 @@ export function tableFromHtml(html: string): OutputTable | null {
 /** The table in a `text/markdown` output (prose lines around it are ignored), or null. */
 export function tableFromMarkdown(markdown: string): OutputTable | null {
   const lines = markdown.split('\n').map((l) => l.trim());
-  const sep = lines.findIndex((l, i) => i > 0 && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/.test(l) && lines[i - 1].includes('|'));
+  const sep = lines.findIndex(
+    (l, i) =>
+      i > 0 && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/.test(l) && lines[i - 1].includes('|'),
+  );
   if (sep === -1) return null;
   const split = (l: string) =>
-    l.replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map((c) => decodeEntities(c.replace(/\\\|/g, '|')).trim());
+    l
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split(/(?<!\\)\|/)
+      .map((c) => decodeEntities(c.replace(/\\\|/g, '|')).trim());
   const body: string[][] = [];
   for (const l of lines.slice(sep + 1)) {
     if (!l.includes('|')) break;
     body.push(split(l));
   }
-  return { headerRows: [split(lines[sep - 1])], dataRows: body, totalRows: null, totalColumns: null, caption: null };
+  return {
+    headerRows: [split(lines[sep - 1])],
+    dataRows: body,
+    totalRows: null,
+    totalColumns: null,
+    caption: null,
+  };
 }
 
 /** Table from a cell's outputs: the first HTML `<table>`, else a markdown table. */
-export function tableFromOutputs(outputs: readonly { text: Record<string, string> }[]): OutputTable | null {
+export function tableFromOutputs(
+  outputs: readonly { text: Record<string, string> }[],
+): OutputTable | null {
   for (const o of outputs) {
     const t = o.text['text/html'] ? tableFromHtml(o.text['text/html']) : null;
     if (t) return t;

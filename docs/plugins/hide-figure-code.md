@@ -10,10 +10,10 @@ This plugin has **no directive**. It is a document transform only.
 
 ## When used
 
-| Source | How |
-| --- | --- |
-| Pipeline | `improveNotebookFigures` no longer writes `code:fig:*` blocks — only `{figure}` |
-| Build time | This transform strips any remaining `code:fig:*` nodes |
+| Source     | How                                                                             |
+| ---------- | ------------------------------------------------------------------------------- |
+| Pipeline   | `improveNotebookFigures` no longer writes `code:fig:*` blocks — only `{figure}` |
+| Build time | This transform strips any remaining `code:fig:*` nodes                          |
 
 ## Background (Option B)
 
@@ -52,10 +52,10 @@ Cross-references in prose use `fig:N`. The pipeline rewrites legacy `code:fig:N`
 
 None. Matching is by label prefix only.
 
-| Pattern | Action |
-| --- | --- |
+| Pattern                              | Action      |
+| ------------------------------------ | ----------- |
 | `identifier` starts with `code:fig:` | Remove node |
-| `label` starts with `code:fig:` | Remove node |
+| `label` starts with `code:fig:`      | Remove node |
 
 ## Typst export
 

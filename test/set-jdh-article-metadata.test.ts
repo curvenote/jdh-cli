@@ -94,7 +94,10 @@ describe('setJdhArticleMetadata', () => {
       url: 'https://example.org/article',
       fetch: async () => new Response('{}', { status: 404 }),
     });
-    expect(result).toMatchObject({ doi: '10.1515/jdh-2025-0002', url: 'https://example.org/article' });
+    expect(result).toMatchObject({
+      doi: '10.1515/jdh-2025-0002',
+      url: 'https://example.org/article',
+    });
     expect(readYaml(myst)).toEqual({
       version: 1,
       project: {
@@ -118,7 +121,11 @@ describe('setJdhArticleMetadata', () => {
     });
     expect(readYaml(myst)).toEqual({
       version: 1,
-      project: { id: 'abc', doi: '10.1515/jdh-2025-0002', social: { url: 'https://example.org/article' } },
+      project: {
+        id: 'abc',
+        doi: '10.1515/jdh-2025-0002',
+        social: { url: 'https://example.org/article' },
+      },
     });
   });
 
@@ -153,9 +160,18 @@ describe('setJdhArticleMetadata', () => {
       projectRoot: root,
       dryRun: false,
       fetch: async () =>
-        new Response(JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2099-0001' }, publication_date: '2025-07-24T10:07:42+02:00' })),
+        new Response(
+          JSON.stringify({
+            citation: { URL: 'https://doi.org/10.1515/JDH-2099-0001' },
+            publication_date: '2025-07-24T10:07:42+02:00',
+          }),
+        ),
     });
-    expect(result).toMatchObject({ doi: '10.0/old', url: 'https://old.example', date: '2025-07-24' });
+    expect(result).toMatchObject({
+      doi: '10.0/old',
+      url: 'https://old.example',
+      date: '2025-07-24',
+    });
     expect(readYaml<{ project: { doi: string } }>(myst).project.doi).toBe('10.0/old');
   });
 });
@@ -164,7 +180,9 @@ describe('lookupDoi (JDH API)', () => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-  async function run(respond: () => Promise<Response>): Promise<{ doi: string | null; out: string; urls: string[] }> {
+  async function run(
+    respond: () => Promise<Response>,
+  ): Promise<{ doi: string | null; out: string; urls: string[] }> {
     const urls: string[] = [];
     const fetchStub = async (input: string) => {
       urls.push(input);
@@ -172,7 +190,10 @@ describe('lookupDoi (JDH API)', () => {
     };
     const write = process.stdout.write;
     let out = '';
-    process.stdout.write = ((chunk: string) => ((out += chunk), true)) as typeof process.stdout.write;
+    process.stdout.write = ((chunk: string) => (
+      (out += chunk),
+      true
+    )) as typeof process.stdout.write;
     try {
       const doi = await lookupDoi('6ig87tC5GKjQ', fetchStub);
       return { doi, out, urls };
@@ -183,9 +204,14 @@ describe('lookupDoi (JDH API)', () => {
 
   test('requests ?format=json and returns the registered DOI from citation.URL', async () => {
     const { doi, out, urls } = await run(async () =>
-      json({ doi: '10.1515/JDH.2023.0020.R2', citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020?locatt=x' } }),
+      json({
+        doi: '10.1515/JDH.2023.0020.R2',
+        citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020?locatt=x' },
+      }),
     );
-    expect(urls).toEqual(['https://journalofdigitalhistory.org/api/articles/6ig87tC5GKjQ/?format=json']);
+    expect(urls).toEqual([
+      'https://journalofdigitalhistory.org/api/articles/6ig87tC5GKjQ/?format=json',
+    ]);
     expect(doi).toBe('10.1515/jdh-2023-0020');
     expect(out).toBe('');
   });
@@ -201,23 +227,33 @@ describe('lookupDoi (JDH API)', () => {
       throw new TypeError('fetch failed');
     });
     expect(doi).toBeNull();
-    expect(out).toBe('Warning: could not reach the JDH API (fetch failed); building without a DOI. Pass --doi to set one.\n');
+    expect(out).toBe(
+      'Warning: could not reach the JDH API (fetch failed); building without a DOI. Pass --doi to set one.\n',
+    );
   });
 
   test('warns when the article is not found', async () => {
-    const { doi, out } = await run(async () => json({ detail: 'No Article matches the given query.' }, 404));
+    const { doi, out } = await run(async () =>
+      json({ detail: 'No Article matches the given query.' }, 404),
+    );
     expect(doi).toBeNull();
     expect(out).toContain('Warning: article 6ig87tC5GKjQ is not in the JDH API (HTTP 404)');
   });
 
   test('warns when the article is not public yet', async () => {
-    const { out } = await run(async () => json({ detail: 'Authentication credentials were not provided.' }, 403));
+    const { out } = await run(async () =>
+      json({ detail: 'Authentication credentials were not provided.' }, 403),
+    );
     expect(out).toContain('is not public in the JDH API yet (HTTP 403)');
   });
 
   test('warns on other HTTP errors and on a non-JSON body', async () => {
-    expect((await run(async () => new Response('oops', { status: 502 }))).out).toContain('returned HTTP 502');
-    expect((await run(async () => new Response('<html>', { status: 200 }))).out).toContain('is not JSON');
+    expect((await run(async () => new Response('oops', { status: 502 }))).out).toContain(
+      'returned HTTP 502',
+    );
+    expect((await run(async () => new Response('<html>', { status: 200 }))).out).toContain(
+      'is not JSON',
+    );
   });
 
   test('warns when the doi field is missing or unrecognised', async () => {
@@ -253,7 +289,10 @@ describe('setJdhArticleMetadata with the API', () => {
       projectRoot: root,
       dryRun: false,
       doi: '10.1515/jdh-2099-0001',
-      fetch: async () => new Response(JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' } })),
+      fetch: async () =>
+        new Response(
+          JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' } }),
+        ),
     });
     expect(result.doi).toBe('10.1515/jdh-2099-0001');
   });
@@ -293,7 +332,9 @@ describe('setJdhArticleMetadata with the API', () => {
     expect(project.date).toBe('2025-03-20');
     expect(project.license).toBe('CC-BY-4.0');
     expect(project.venue).toEqual({ title: 'Varia' });
-    const meta = readYaml<{ project: { exports: { article_url?: string; forthcoming?: boolean }[] } }>(path.join(workdir, 'meta-jdh.yml'));
+    const meta = readYaml<{
+      project: { exports: { article_url?: string; forthcoming?: boolean }[] };
+    }>(path.join(workdir, 'meta-jdh.yml'));
     expect(meta.project.exports[0].article_url).toBe(articleUrl('6ig87tC5GKjQ'));
     expect(meta.project.exports[0].forthcoming).toBe(false);
   });
@@ -308,7 +349,8 @@ describe('setJdhArticleMetadata with the API', () => {
       cwd: workdir,
       projectRoot: root,
       dryRun: false,
-      fetch: async () => new Response('{"detail":"Authentication credentials were not provided."}', { status: 403 }),
+      fetch: async () =>
+        new Response('{"detail":"Authentication credentials were not provided."}', { status: 403 }),
     });
     expect(result).toMatchObject({ date: null, license: 'CC-BY-NC-ND-4.0', issue: null });
   });
@@ -319,7 +361,10 @@ describe('setJdhArticleMetadata with the API', () => {
       cwd: workdir,
       projectRoot: root,
       dryRun: false,
-      fetch: async () => new Response(JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' } })),
+      fetch: async () =>
+        new Response(
+          JSON.stringify({ citation: { URL: 'https://doi.org/10.1515/JDH-2023-0020' } }),
+        ),
     });
     expect(readYaml<{ project: { doi: string } }>(myst).project.doi).toBe('10.1515/jdh-2023-0020');
   });
@@ -332,7 +377,13 @@ describe('setJdhArticleMetadata with the API', () => {
       dryRun: false,
       fetch: async () => new Response('{}', { status: 404 }),
     });
-    expect(result).toEqual({ doi: null, url: articleUrl('6ig87tC5GKjQ'), date: null, license: null, issue: null });
+    expect(result).toEqual({
+      doi: null,
+      url: articleUrl('6ig87tC5GKjQ'),
+      date: null,
+      license: null,
+      issue: null,
+    });
     expect(readYaml<{ project: Record<string, unknown> }>(myst).project.doi).toBeUndefined();
   });
 });
@@ -346,8 +397,14 @@ describe('API field helpers (JDH-041)', () => {
   });
 
   test('licenseFromCopyrightText', () => {
-    expect(licenseFromCopyrightText('[License CC-BY](https://creativecommons.org/licenses/by/4.0/)')).toBe('CC-BY-4.0');
-    expect(licenseFromCopyrightText('under the terms of the Creative Commons Attribution License CC-BY-NC-ND')).toBe('CC-BY-NC-ND-4.0');
+    expect(
+      licenseFromCopyrightText('[License CC-BY](https://creativecommons.org/licenses/by/4.0/)'),
+    ).toBe('CC-BY-4.0');
+    expect(
+      licenseFromCopyrightText(
+        'under the terms of the Creative Commons Attribution License CC-BY-NC-ND',
+      ),
+    ).toBe('CC-BY-NC-ND-4.0');
     expect(licenseFromCopyrightText('All rights reserved')).toBeNull();
   });
 

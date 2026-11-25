@@ -32,11 +32,11 @@ Repository: **`C2DH/journal-of-digital-history`**, default branch **`develop`**.
 Ported at `develop` = `c3aa3dafd834902a2b7e68f8a96fdd3ef856785c` (2026-11-24T15:49:12Z),
 read on 2026-11-25.
 
-| Upstream file | What came from it | Last upstream commit when ported |
-| --- | --- | --- |
-| `src/logic/parseNotebook.jsx` | `parseNotebook()` — per-cell character and cite2c counts, the heading/hermeneutics flags, and both extents | `7676fab3cee1716cf9fa04519e1294d15faa2fec` (2026-10-05) |
-| `src/components/Article/ArticleFingerprint.jsx` | `drawFingerprint()` — the scales, the radii, the polar layout | `09ba0ff5f76b6e599b5915f3c84221af92f88deb` (2026-11-24) |
-| `src/components/Article/ArticleFingerprintCellGraphics.jsx` | the per-cell line and circles | `328806ef7e009e13f3cc3987bdd83987a53f1aa6` (2026-06-17) |
+| Upstream file                                               | What came from it                                                                                          | Last upstream commit when ported                        |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `src/logic/parseNotebook.jsx`                               | `parseNotebook()` — per-cell character and cite2c counts, the heading/hermeneutics flags, and both extents | `7676fab3cee1716cf9fa04519e1294d15faa2fec` (2026-10-05) |
+| `src/components/Article/ArticleFingerprint.jsx`             | `drawFingerprint()` — the scales, the radii, the polar layout                                              | `09ba0ff5f76b6e599b5915f3c84221af92f88deb` (2026-11-24) |
+| `src/components/Article/ArticleFingerprintCellGraphics.jsx` | the per-cell line and circles                                                                              | `328806ef7e009e13f3cc3987bdd83987a53f1aa6` (2026-06-17) |
 
 Fetch any of them again with:
 
@@ -83,7 +83,7 @@ To re-derive the palette: render a fingerprint in a browser (see below), then fo
 ## Upstream is ahead of production
 
 At the time of porting, `develop` carried `lineStrokeWidth = 1.2` (commit `09ba0ff5`,
-*"fix(ArticleFingerprint): lineStrokeWidth increased to 1.2"*, 2026-11-24) — JDH's own fix
+_"fix(ArticleFingerprint): lineStrokeWidth increased to 1.2"_, 2026-11-24) — JDH's own fix
 for the fingerprint rendering too faint, which Marion Salaün said in Slack was merged but
 not yet deployed.
 
@@ -130,13 +130,13 @@ curl -sL -o nb.ipynb https://raw.githubusercontent.com/jdh-observer/6ig87tC5GKjQ
   originals.forEach((el, i) => clones[i].setAttribute('style', style(el)));
   clone.setAttribute('style', style(svg));
   return clone.outerHTML;
-})()
+})();
 ```
 
-   Two gotchas. The markup contains `stroke="var(--secondary)"`, which resolves only
-   against the site's stylesheet — Typst tolerates it but ImageMagick refuses the whole
-   file, so strip it before rasterising. And the site draws one more `<line>` than we do:
-   its hover pointer, marked `stroke-opacity="0"`.
+Two gotchas. The markup contains `stroke="var(--secondary)"`, which resolves only
+against the site's stylesheet — Typst tolerates it but ImageMagick refuses the whole
+file, so strip it before rasterising. And the site draws one more `<line>` than we do:
+its hover pointer, marked `stroke-opacity="0"`.
 
 3. **Draw the same notebook here**, at the size the page used (it is set by the page's
    layout — read `width` off the site's SVG; it was `615.984375`):
@@ -159,7 +159,7 @@ that real differences hide — a first attempt at 130 dpi looked blank for both.
 
 - **The shortest cell sits exactly on the ring.** The character scale's range starts at 0,
   so the minimum-length cell has offset 0 and its line has zero length. A test fixture
-  meaning to show a hermeneutics cell pointing *inward* has to give it something other than
+  meaning to show a hermeneutics cell pointing _inward_ has to give it something other than
   the shortest cell, or it lands on the ring and the assertion fails.
 - **A long line reaching inward is real.** One cell in `6ig87tC5GKjQ` draws a long cyan
   line well inside the ring. It is a long hermeneutics cell, not an artifact — the website

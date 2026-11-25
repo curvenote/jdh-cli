@@ -8,10 +8,10 @@ Mark blocks of commentary (prose, code, or mixed) as **hermeneutic** — interpr
 
 ## When used
 
-| Source | How |
-| --- | --- |
-| Pipeline | `improveHermeneuticsBlocks` wraps Jupytext `#region` or fenced cells tagged `hermeneutics` |
-| Hand-authored | Write `:::{hermeneutics}` directly in `article.md` |
+| Source        | How                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Pipeline      | `improveHermeneuticsBlocks` wraps Jupytext `#region` or fenced cells tagged `hermeneutics` |
+| Hand-authored | Write `:::{hermeneutics}` directly in `article.md`                                         |
 
 ## Directive syntax
 
@@ -23,6 +23,7 @@ This passage interprets the preceding evidence…
 # code inside hermeneutics blocks is allowed
 print("excerpt")
 ```
+
 :::
 ````
 
@@ -30,9 +31,9 @@ print("excerpt")
 
 The `hermeneutics` directive has **no options**. The body is parsed as MyST (prose, citations, fenced code, etc.).
 
-| Field | Type | Required | Default |
-| --- | --- | --- | --- |
-| body | MyST content | yes | — |
+| Field | Type         | Required | Default |
+| ----- | ------------ | -------- | ------- |
+| body  | MyST content | yes      | —       |
 
 ## AST behaviour
 

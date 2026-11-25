@@ -20,7 +20,9 @@ describe('updateYamlFile', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-yaml-'));
     const file = path.join(tmpDir, 'myst.yml');
     fs.writeFileSync(file, '# keep me\nversion: 1\nproject:\n  id: x # inline\n  title: Old\n');
-    expect(updateYamlFile(file, (doc) => doc.setIn(['project', 'title'], 'New: with colon'))).toBe(true);
+    expect(updateYamlFile(file, (doc) => doc.setIn(['project', 'title'], 'New: with colon'))).toBe(
+      true,
+    );
     expect(fs.readFileSync(file, 'utf8')).toBe(
       '# keep me\nversion: 1\nproject:\n  id: x # inline\n  title: "New: with colon"\n',
     );
@@ -47,7 +49,9 @@ describe('markdown frontmatter', () => {
   test('adds frontmatter to a file that has none', () => {
     const parsed = parseMarkdownFrontmatter('# Title\n');
     parsed.doc.setIn(['parts', 'abstract'], 'Short.');
-    expect(stringifyMarkdownFrontmatter(parsed)).toBe('---\nparts:\n  abstract: Short.\n---\n# Title\n');
+    expect(stringifyMarkdownFrontmatter(parsed)).toBe(
+      '---\nparts:\n  abstract: Short.\n---\n# Title\n',
+    );
   });
 });
 

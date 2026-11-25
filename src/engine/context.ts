@@ -24,9 +24,7 @@ export function buildRunContext(
 ): RunContext {
   const projectRoot = path.resolve(options.projectRoot ?? path.dirname(inputAbs));
   const workdir = options.workdir ?? DEFAULT_WORKDIR;
-  const workdirAbs = path.isAbsolute(workdir)
-    ? workdir
-    : path.resolve(projectRoot, workdir);
+  const workdirAbs = path.isAbsolute(workdir) ? workdir : path.resolve(projectRoot, workdir);
 
   return {
     rulesetId,

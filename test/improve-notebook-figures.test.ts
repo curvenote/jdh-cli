@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { convertMarkdownFigureRegions, processArticle } from '../src/steps/jupytext/improve-notebook-figures.js';
+import {
+  convertMarkdownFigureRegions,
+  processArticle,
+} from '../src/steps/jupytext/improve-notebook-figures.js';
 import { readTaggedCells } from '../src/steps/shared/notebook-cells.js';
 
 describe('improve notebook figures', () => {
@@ -71,7 +74,15 @@ describe('improve notebook figures', () => {
 
     expect(content).not.toContain('``````');
     expect(content).toBe(
-      ['```{figure} ./media/figure1.png', ':label: fig:1', '', 'A chart.', '```', '', 'Next paragraph.'].join('\n'),
+      [
+        '```{figure} ./media/figure1.png',
+        ':label: fig:1',
+        '',
+        'A chart.',
+        '```',
+        '',
+        'Next paragraph.',
+      ].join('\n'),
     );
   });
 
@@ -87,7 +98,9 @@ describe('improve notebook figures', () => {
 
     const { content, report } = processArticle(input);
 
-    expect(content).toContain('```{figure} media/cartoon.png\n:label: fig:cartoon\n\nA cartoon by citizen scientists\n```');
+    expect(content).toContain(
+      '```{figure} media/cartoon.png\n:label: fig:cartoon\n\nA cartoon by citizen scientists\n```',
+    );
     expect(content).toContain('[this figure](#fig:cartoon)');
     expect(content).toContain('and [](#fig:cartoon).');
     expect(report.converted).toEqual(['fig:cartoon']);
@@ -124,7 +137,11 @@ describe('improve notebook figures', () => {
   });
 
   test('takes the caption from notebook output metadata when it is the only source', () => {
-    const input = ['```python tags=["figure-map-*"]', 'display(Image("media/map.png"))', '```'].join('\n');
+    const input = [
+      '```python tags=["figure-map-*"]',
+      'display(Image("media/map.png"))',
+      '```',
+    ].join('\n');
     const notebookCells = readTaggedCells({
       cells: [
         {
@@ -184,7 +201,9 @@ describe('improve notebook figures', () => {
     const { content, report } = processArticle(input, [], () => null);
 
     expect(content).not.toContain('{figure}');
-    expect(report.skipped).toEqual([{ label: 'fig:1', reason: 'image file waveform.png not found' }]);
+    expect(report.skipped).toEqual([
+      { label: 'fig:1', reason: 'image file waveform.png not found' },
+    ]);
   });
 
   test('uses the notebook image output when the code displays no file (JDH-002)', () => {
@@ -205,7 +224,10 @@ describe('improve notebook figures', () => {
           source: '',
           outputs: [
             { output_type: 'stream' },
-            { output_type: 'display_data', data: { 'image/png': 'iVBOR', 'text/plain': '<Figure>' } },
+            {
+              output_type: 'display_data',
+              data: { 'image/png': 'iVBOR', 'text/plain': '<Figure>' },
+            },
           ],
         },
       ],
@@ -220,7 +242,9 @@ describe('improve notebook figures', () => {
       return { path: p, from: 'output' };
     });
 
-    expect(content).toContain('```{figure} notebook-outputs/fig-plotPCA.png\n:label: fig:plotPCA\n\nPCA of audio features\n```');
+    expect(content).toContain(
+      '```{figure} notebook-outputs/fig-plotPCA.png\n:label: fig:plotPCA\n\nPCA of audio features\n```',
+    );
     expect(content).not.toContain('plt.scatter');
     expect(content).toContain('See [](#fig:plotPCA).');
     expect(report.fromOutput).toEqual(['fig:plotPCA']);
@@ -228,27 +252,41 @@ describe('improve notebook figures', () => {
   });
 
   test('still reports figures whose only output is HTML (JDH-004)', () => {
-    const input = ['```python jdh={"object": {"source": ["Pie"]}} tags=["figure-pie-*"]', 'fig', '```'].join('\n');
+    const input = [
+      '```python jdh={"object": {"source": ["Pie"]}} tags=["figure-pie-*"]',
+      'fig',
+      '```',
+    ].join('\n');
     const cells = readTaggedCells({
       cells: [
         {
           cell_type: 'code',
           metadata: { tags: ['figure-pie-*'] },
           source: 'fig',
-          outputs: [{ output_type: 'display_data', data: { 'text/html': '<div class="plotly-graph-div"></div>' } }],
+          outputs: [
+            {
+              output_type: 'display_data',
+              data: { 'text/html': '<div class="plotly-graph-div"></div>' },
+            },
+          ],
         },
       ],
     });
     const { content, report } = processArticle(input, cells, ({ cell }) =>
-      cell?.outputs.some((o) => o.mime.startsWith('image/')) ? { path: 'x.png', from: 'output' } : null,
+      cell?.outputs.some((o) => o.mime.startsWith('image/'))
+        ? { path: 'x.png', from: 'output' }
+        : null,
     );
     expect(content).toContain('```python');
-    expect(report.skipped).toEqual([{ label: 'fig:pie', reason: 'no image file in code; notebook output text/html' }]);
+    expect(report.skipped).toEqual([
+      { label: 'fig:pie', reason: 'no image file in code; notebook output text/html' },
+    ]);
   });
 });
 
 describe('figures in markdown cells (JDH-016)', () => {
-  const region = (attrs: string, body: string) => `<!-- #region ${attrs} -->\n${body}\n<!-- #endregion -->`;
+  const region = (attrs: string, body: string) =>
+    `<!-- #region ${attrs} -->\n${body}\n<!-- #endregion -->`;
 
   test('an image region becomes a numbered figure with the caption from its metadata', () => {
     const md = region(
@@ -265,9 +303,11 @@ describe('figures in markdown cells (JDH-016)', () => {
   });
 
   test('without metadata, a descriptive alt text is the caption; a generic one is not', () => {
-    expect(convertMarkdownFigureRegions(region('tags=["figure-map-*"]', '![A map of the border](media/map.png)')).content).toContain(
-      ':label: fig:map\n\nA map of the border\n',
-    );
+    expect(
+      convertMarkdownFigureRegions(
+        region('tags=["figure-map-*"]', '![A map of the border](media/map.png)'),
+      ).content,
+    ).toContain(':label: fig:map\n\nA map of the border\n');
     const generic = region('tags=["figure-map-*"]', '![Image](media/map.png)');
     expect(convertMarkdownFigureRegions(generic).content).toBe(generic);
   });

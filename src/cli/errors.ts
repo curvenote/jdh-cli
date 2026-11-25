@@ -37,8 +37,7 @@ export function handleCliFailure(err: unknown): never {
     process.exit(err.exitCode ?? 1);
   }
 
-  const message =
-    err instanceof CliError || err instanceof Error ? err.message : String(err);
+  const message = err instanceof CliError || err instanceof Error ? err.message : String(err);
 
   console.error(`\nerror: ${message}\n`);
 

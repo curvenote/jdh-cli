@@ -50,7 +50,13 @@ export function dateFromPublicationDate(value: unknown): string | null {
 
 /** Extract a JDH article id from a repo name or GitHub URL, or null. */
 export function articleIdFromName(name: string): string | null {
-  const last = name.trim().replace(/\/+$/, '').replace(/\.git$/, '').split('/').pop() ?? '';
+  const last =
+    name
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\.git$/, '')
+      .split('/')
+      .pop() ?? '';
   const m = last.match(ARTICLE_ID_RE);
   return m ? m[1] : null;
 }
@@ -75,7 +81,10 @@ export function doiFromArticleRecord(record: JdhArticleRecord): string | null {
 }
 
 /** DOI from an API record, and where it came from (`converted` is the manuscript-id fallback). */
-function doiLookup(record: JdhArticleRecord): { doi: string | null; from: 'citation' | 'doi' | 'converted' | null } {
+function doiLookup(record: JdhArticleRecord): {
+  doi: string | null;
+  from: 'citation' | 'doi' | 'converted' | null;
+} {
   const url = record.citation?.URL;
   if (typeof url === 'string') {
     const m = url.match(/doi\.org\/(10\.[^?#\s]+)/i);
@@ -112,11 +121,15 @@ async function fetchArticleRecord(
     const reason = err instanceof Error ? err.message : String(err);
     return { warning: `could not reach the JDH API (${reason})` };
   }
-  if (res.status === 404) return { warning: `article ${articleId} is not in the JDH API (HTTP 404)` };
+  if (res.status === 404)
+    return { warning: `article ${articleId} is not in the JDH API (HTTP 404)` };
   if (res.status === 401 || res.status === 403) {
-    return { warning: `article ${articleId} is not public in the JDH API yet (HTTP ${res.status})` };
+    return {
+      warning: `article ${articleId} is not public in the JDH API yet (HTTP ${res.status})`,
+    };
   }
-  if (!res.ok) return { warning: `the JDH API returned HTTP ${res.status} for article ${articleId}` };
+  if (!res.ok)
+    return { warning: `the JDH API returned HTTP ${res.status} for article ${articleId}` };
   try {
     return { record: (await res.json()) as JdhArticleRecord };
   } catch {
@@ -129,7 +142,10 @@ async function fetchArticleRecord(
  * Warns separately for: API unreachable, article not found or not public,
  * and a record with no usable `doi`.
  */
-export async function lookupDoi(articleId: string, fetchImpl: Fetch = fetch): Promise<string | null> {
+export async function lookupDoi(
+  articleId: string,
+  fetchImpl: Fetch = fetch,
+): Promise<string | null> {
   return doiFromLookup(articleId, await fetchArticleRecord(articleId, fetchImpl));
 }
 
@@ -148,7 +164,9 @@ function doiFromLookup(
     const field = result.record.doi;
     warn(
       `the JDH API record for ${articleId} has no usable DOI ` +
-        (typeof field === 'string' && field.trim() ? `(doi field: "${field}")` : '(doi field missing)'),
+        (typeof field === 'string' && field.trim()
+          ? `(doi field: "${field}")`
+          : '(doi field missing)'),
     );
     return null;
   }
@@ -164,7 +182,9 @@ function doiFromLookup(
 /** JDH article id from the git remote's repo name, else the folder name. */
 export function resolveArticleId(projectRoot: string): string | null {
   const github = resolveGithubFromGit(projectRoot);
-  return (github ? articleIdFromName(github) : null) ?? articleIdFromName(path.basename(projectRoot));
+  return (
+    (github ? articleIdFromName(github) : null) ?? articleIdFromName(path.basename(projectRoot))
+  );
 }
 
 interface ProjectMetadata {
@@ -209,12 +229,14 @@ function writeProjectMetadata(configPath: string, meta: ProjectMetadata): void {
   updateYamlFile(configPath, (doc) => {
     if (meta.doi) doc.setIn(['project', 'doi'], meta.doi);
     if (meta.url) {
-      if (doc.hasIn(['project', 'social', 'website'])) doc.deleteIn(['project', 'social', 'website']);
+      if (doc.hasIn(['project', 'social', 'website']))
+        doc.deleteIn(['project', 'social', 'website']);
       doc.setIn(['project', 'social', 'url'], meta.url);
     }
     if (meta.date) doc.setIn(['project', 'date'], meta.date);
     if (meta.license) doc.setIn(['project', 'license'], meta.license);
-    if (meta.issue && !doc.hasIn(['project', 'venue'])) doc.setIn(['project', 'venue', 'title'], meta.issue);
+    if (meta.issue && !doc.hasIn(['project', 'venue']))
+      doc.setIn(['project', 'venue', 'title'], meta.issue);
   });
 }
 
@@ -249,8 +271,10 @@ export async function setJdhArticleMetadata(options: {
     doi: options.doi ? normalizeDoi(options.doi) : existing.doi,
     url: options.url ?? existing.url,
   };
-  if (!options.doi && existing.doi) process.stdout.write(`Kept project.doi from the repo's myst.yml: ${existing.doi}\n`);
-  if (!options.url && existing.url) process.stdout.write(`Kept project.social.url from the repo's myst.yml: ${existing.url}\n`);
+  if (!options.doi && existing.doi)
+    process.stdout.write(`Kept project.doi from the repo's myst.yml: ${existing.doi}\n`);
+  if (!options.url && existing.url)
+    process.stdout.write(`Kept project.social.url from the repo's myst.yml: ${existing.url}\n`);
 
   if (articleId && (!meta.doi || !meta.date || !meta.license || !meta.issue)) {
     const lookup = await fetchArticleRecord(articleId, options.fetch ?? fetch);
@@ -259,9 +283,13 @@ export async function setJdhArticleMetadata(options: {
       const { record } = lookup;
       meta.date ??= dateFromPublicationDate(record.publication_date);
       meta.license ??= licenseFromCopyrightType(record.copyright_type);
-      meta.issue ??= typeof record.issue?.name === 'string' && record.issue.name ? record.issue.name : null;
+      meta.issue ??=
+        typeof record.issue?.name === 'string' && record.issue.name ? record.issue.name : null;
     }
-    if (!meta.date) process.stdout.write('Note: no publication date in the JDH API; the PDF says "Forthcoming".\n');
+    if (!meta.date)
+      process.stdout.write(
+        'Note: no publication date in the JDH API; the PDF says "Forthcoming".\n',
+      );
   }
   meta.license ??= licenseFromArticle(options.cwd);
   if (!meta.url && articleId) meta.url = articleUrl(articleId);

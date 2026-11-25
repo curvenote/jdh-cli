@@ -69,7 +69,8 @@ function resizeLanczos(src: Raster, width: number, height: number): Raster {
       const { start, weights } = xTaps[x];
       for (let c = 0; c < 4; c++) {
         let sum = 0;
-        for (let k = 0; k < weights.length; k++) sum += pre[((y * src.width) + start + k) * 4 + c] * weights[k];
+        for (let k = 0; k < weights.length; k++)
+          sum += pre[(y * src.width + start + k) * 4 + c] * weights[k];
         horizontal[(y * width + x) * 4 + c] = clampByte(sum);
       }
     }
@@ -83,7 +84,8 @@ function resizeLanczos(src: Raster, width: number, height: number): Raster {
       const px = [0, 0, 0, 0];
       for (let c = 0; c < 4; c++) {
         let sum = 0;
-        for (let k = 0; k < weights.length; k++) sum += horizontal[((start + k) * width + x) * 4 + c] * weights[k];
+        for (let k = 0; k < weights.length; k++)
+          sum += horizontal[((start + k) * width + x) * 4 + c] * weights[k];
         px[c] = clampByte(sum);
       }
       const a = px[3] / 255;
@@ -102,7 +104,10 @@ function squareLogo(logo: Raster): Raster {
   const left = Math.floor((side - logo.width) / 2);
   const top = Math.floor((side - logo.height) / 2);
   for (let y = 0; y < logo.height; y++) {
-    data.set(logo.data.subarray(y * logo.width * 4, (y + 1) * logo.width * 4), ((top + y) * side + left) * 4);
+    data.set(
+      logo.data.subarray(y * logo.width * 4, (y + 1) * logo.width * 4),
+      ((top + y) * side + left) * 4,
+    );
   }
   return { width: side, height: side, data };
 }
@@ -114,7 +119,8 @@ function alphaComposite(base: Raster, top: Raster, x0: number, y0: number): void
       const s = (y * top.width + x) * 4;
       const d = ((y0 + y) * base.width + x0 + x) * 4;
       const a = top.data[s + 3] / 255;
-      for (let c = 0; c < 3; c++) base.data[d + c] = clampByte(top.data[s + c] * a + base.data[d + c] * (1 - a));
+      for (let c = 0; c < 3; c++)
+        base.data[d + c] = clampByte(top.data[s + c] * a + base.data[d + c] * (1 - a));
     }
   }
 }
@@ -133,7 +139,11 @@ export function renderQrPng(url: string, logoPng: Buffer, options: QrOptions = {
   const { modules } = QRCode.create(url, { errorCorrectionLevel: 'H' });
   const size = (modules.size + border * 2) * boxSize;
 
-  const img: Raster = { width: size, height: size, data: new Uint8Array(size * size * 4).fill(255) };
+  const img: Raster = {
+    width: size,
+    height: size,
+    data: new Uint8Array(size * size * 4).fill(255),
+  };
   for (let row = 0; row < modules.size; row++) {
     for (let col = 0; col < modules.size; col++) {
       if (!modules.get(row, col)) continue;
@@ -147,9 +157,15 @@ export function renderQrPng(url: string, logoPng: Buffer, options: QrOptions = {
   }
 
   const logoWidthIsh = Math.trunc(size * logoRatio);
-  const offset = Math.trunc((Math.trunc(size / 2) - Math.trunc(logoWidthIsh / 2)) / boxSize) * boxSize;
+  const offset =
+    Math.trunc((Math.trunc(size / 2) - Math.trunc(logoWidthIsh / 2)) / boxSize) * boxSize;
   const logoWidth = size - offset * 2;
-  alphaComposite(img, resizeLanczos(squareLogo(decodePng(logoPng)), logoWidth, logoWidth), offset, offset);
+  alphaComposite(
+    img,
+    resizeLanczos(squareLogo(decodePng(logoPng)), logoWidth, logoWidth),
+    offset,
+    offset,
+  );
 
   const png = new PNG({ width: size, height: size });
   png.data = Buffer.from(img.data);

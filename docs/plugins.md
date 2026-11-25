@@ -19,14 +19,14 @@ Typst/HTML styling for HTML is out of scope for now; PDF (Typst) is the target.
 
 ## Plugin overview
 
-| Plugin | File | When it runs | Purpose |
-| --- | --- | --- | --- |
-| Hermeneutics | `hermeneutics.mjs` | MyST build | `:::{hermeneutics}` → cyan commentary blocks + sidebar code markers |
-| Narrative code | `narrative-code.mjs` | MyST build | Gray full-bleed styling for eligible block code (except hermeneutics / figure) |
-| JDH table | `jdh-table.mjs` | MyST build | `:::{jdh-table}` → row/column truncation + Typst styling |
-| JDH dialogue | `jdh-dialogue.mjs` | MyST build | `` ```{jdh-dialogue} `` → numbered speech-bubble dialogues |
-| Hide figure code | `hide-figure-code.mjs` | MyST build | Removes legacy `code:fig:*` blocks from the AST (PDF safety net) |
-| Full-width figures | `jdh-figures.mjs` | MyST build | Figure images with no width get 100% of the text width |
+| Plugin             | File                   | When it runs | Purpose                                                                        |
+| ------------------ | ---------------------- | ------------ | ------------------------------------------------------------------------------ |
+| Hermeneutics       | `hermeneutics.mjs`     | MyST build   | `:::{hermeneutics}` → cyan commentary blocks + sidebar code markers            |
+| Narrative code     | `narrative-code.mjs`   | MyST build   | Gray full-bleed styling for eligible block code (except hermeneutics / figure) |
+| JDH table          | `jdh-table.mjs`        | MyST build   | `:::{jdh-table}` → row/column truncation + Typst styling                       |
+| JDH dialogue       | `jdh-dialogue.mjs`     | MyST build   | ` ```{jdh-dialogue} ` → numbered speech-bubble dialogues                       |
+| Hide figure code   | `hide-figure-code.mjs` | MyST build   | Removes legacy `code:fig:*` blocks from the AST (PDF safety net)               |
+| Full-width figures | `jdh-figures.mjs`      | MyST build   | Figure images with no width get 100% of the text width                         |
 
 See linked pages above for directive syntax, options tables, and Typst behaviour.
 

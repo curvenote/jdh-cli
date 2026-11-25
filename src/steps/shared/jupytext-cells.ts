@@ -31,11 +31,18 @@ export function findJupytextCells(lines: readonly string[]): JupytextCell[] {
     const region = lines[i].match(/^<!--\s*#(region|raw)/);
     const fence = lines[i].match(/^(`{3,})/);
     if (!region && !fence) continue;
-    const close = region ? new RegExp(`^<!--\\s*#end${region[1]}\\s*-->`) : new RegExp(`^\`{${fence![1].length},}\\s*$`);
+    const close = region
+      ? new RegExp(`^<!--\\s*#end${region[1]}\\s*-->`)
+      : new RegExp(`^\`{${fence![1].length},}\\s*$`);
     let j = i + 1;
     while (j < lines.length && !close.test(lines[j])) j++;
     if (j >= lines.length) break;
-    cells.push({ type: region ? 'markdown' : 'code', start: i, end: j, tags: parseCellTags(lines[i]) });
+    cells.push({
+      type: region ? 'markdown' : 'code',
+      start: i,
+      end: j,
+      tags: parseCellTags(lines[i]),
+    });
     i = j;
   }
   return cells;

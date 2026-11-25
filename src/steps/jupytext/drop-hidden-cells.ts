@@ -32,6 +32,8 @@ export const dropHiddenCellsStep: PipelineStep = {
       return;
     }
     if (!o.dryRun) fs.writeFileSync(articlePath, content, 'utf8');
-    process.stdout.write(`${o.dryRun ? '[dry-run] Would drop' : 'Dropped'} ${dropped} hidden cell(s).\n`);
+    process.stdout.write(
+      `${o.dryRun ? '[dry-run] Would drop' : 'Dropped'} ${dropped} hidden cell(s).\n`,
+    );
   },
 };

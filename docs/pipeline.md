@@ -12,27 +12,27 @@ jdh-cli article.md --list-steps
 
 ## Step sequence
 
-| # | Step | Emits directives / side effects |
-| --- | --- | --- |
-| 1 | Prepare workdir | Wipe workdir; copy input, assets, deploy `plugins/*.mjs` |
-| 2 | Init myst.yml | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins |
-| 3 | Number cells | A `#jdh-cell(n)` marker before each markdown cell: paragraph numbers as on the JDH website (see [Paragraph numbers](#paragraph-numbers)) |
-| 4 | Citations (Zotero, cite2c and author .bib) | `references.bib` from notebook citation metadata — `citation-manager` items and cite2c's `metadata.cite2c.citations` alike; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text. Citations the author grouped in one pair of parentheses are merged into one, so APA prints a single pair; a page locator becomes a citation supplement, `[@key, pp. 50-52]`, with or without the author's comma. A pair of parentheses holding only citations, locators and short connectives is lifted whole into one citation, so `(e.g. <cite/>, <cite/>)` prints `(e.g. Crane, 2018; Mold et al., 2019)` |
-| 5 | Improve citation tags | Author–year citekeys |
-| 6 | Extract jupytext frontmatter | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords (a `Keywords:` label, `;` and `,` all handled); the regions are removed from the article |
-| 7 | Enrich affiliations (ROR) | ROR-backed affiliation objects in `myst.yml` |
-| 8 | Extract jupytext parts | Page-level frontmatter from document parts (abstract, copyright) |
-| 9 | Drop hidden cells | Cells tagged `hidden` are removed |
-| 10 | Improve anchors | `anchor-*` tags → MyST targets, so `[text](#anchor-…)` links resolve |
-| 11 | Improve notebook figures | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet |
-| 12 | Improve notebook tables | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped |
-| 13 | Improve Jupytext tables | `` ```{jdh-table} `` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links |
-| 14 | Improve dialogue regions | `` ```{jdh-dialogue} `` for `dialog-*` regions (speech bubbles, "Dialogue N") |
-| 15 | Improve hermeneutics blocks | `:::{hermeneutics}` for tagged regions/cells |
-| 16 | Image outputs of untagged code cells | An untagged code cell's image output is placed after its code. A cell tagged `cover` shows its image (the file named in `Image(…)`, else the stored output) in place of the code |
-| 17 | Set project.github | `project.github` from git remote |
-| 18 | Set article metadata | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url)) |
-| 19 | Generate QR code and fingerprint | `generated/qr.png` from the article URL and `generated/fingerprint.png` from `article.ipynb`, for each one not given with `--qr-code` / `--fingerprint` or present in the repo's `generated/` (see [CLI](cli.md#qr-code-and-fingerprint)) |
+| #   | Step                                       | Emits directives / side effects                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Prepare workdir                            | Wipe workdir; copy input, assets, deploy `plugins/*.mjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2   | Init myst.yml                              | The repo's `myst.yml` as the base (hand edits kept), else a scaffold; register all bundled plugins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 3   | Number cells                               | A `#jdh-cell(n)` marker before each markdown cell: paragraph numbers as on the JDH website (see [Paragraph numbers](#paragraph-numbers))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 4   | Citations (Zotero, cite2c and author .bib) | `references.bib` from notebook citation metadata — `citation-manager` items and cite2c's `metadata.cite2c.citations` alike; registers the repo's `.bib` files (author entries replace duplicates); rewrite `<cite>` → MyST citations, unresolved ones → plain text. Citations the author grouped in one pair of parentheses are merged into one, so APA prints a single pair; a page locator becomes a citation supplement, `[@key, pp. 50-52]`, with or without the author's comma. A pair of parentheses holding only citations, locators and short connectives is lifted whole into one citation, so `(e.g. <cite/>, <cite/>)` prints `(e.g. Crane, 2018; Mold et al., 2019)` |
+| 5   | Improve citation tags                      | Author–year citekeys                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 6   | Extract jupytext frontmatter               | Every `contributor` cell → `myst.yml` authors (name, ORCID, email, affiliations); title and keywords (a `Keywords:` label, `;` and `,` all handled); the regions are removed from the article                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 7   | Enrich affiliations (ROR)                  | ROR-backed affiliation objects in `myst.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 8   | Extract jupytext parts                     | Page-level frontmatter from document parts (abstract, copyright)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 9   | Drop hidden cells                          | Cells tagged `hidden` are removed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 10  | Improve anchors                            | `anchor-*` tags → MyST targets, so `[text](#anchor-…)` links resolve                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 11  | Improve notebook figures                   | `{figure}` only (no `{code-block}` for figure cells); reads `article.ipynb` for captions and reports figures it can't convert yet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 12  | Improve notebook tables                    | `:::{jdh-table}` from the notebook output of table-tagged code cells (pandas, HTML or markdown tables); the code is dropped                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 13  | Improve Jupytext tables                    | ` ```{jdh-table} ` for every table region (numbered or descriptive tags); `Table N` and `anchor-*` references → label links                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 14  | Improve dialogue regions                   | ` ```{jdh-dialogue} ` for `dialog-*` regions (speech bubbles, "Dialogue N")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 15  | Improve hermeneutics blocks                | `:::{hermeneutics}` for tagged regions/cells                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 16  | Image outputs of untagged code cells       | An untagged code cell's image output is placed after its code. A cell tagged `cover` shows its image (the file named in `Image(…)`, else the stored output) in place of the code                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 17  | Set project.github                         | `project.github` from git remote                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 18  | Set article metadata                       | From the JDH API record: `project.doi`, `project.date` (publication date), `project.license` (`copyright_type`), `project.venue.title` (issue); `project.social.url` = JDH article page; export options `article_url` and `forthcoming` for the PDF sidebar (see [CLI](cli.md#doi-and-url))                                                                                                                                                                                                                                                                                                                                                                                      |
+| 19  | Generate QR code and fingerprint           | `generated/qr.png` from the article URL and `generated/fingerprint.png` from `article.ipynb`, for each one not given with `--qr-code` / `--fingerprint` or present in the repo's `generated/` (see [CLI](cli.md#qr-code-and-fingerprint))                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 Steps 11–16 are the **transform steps** that emit custom directives. See the plugin pages for syntax and options.
 
@@ -51,16 +51,17 @@ The PDF numbers paragraphs as the JDH website does (JDH-042), so "¶40" refers t
   ````
 
   Cells are found by the first 40 characters of their first line, searching forward, so later rewrites of the rest of the line (e.g. citations) don't matter. Cells it can't find are reported and get no number. The template's `jdh-cell(n)` shows `n` on the next block. Without any markers (no `article.ipynb`), the template numbers paragraphs in order, as before.
+
 - Dialogue cells get no marker: they become "Dialogue N" figures.
 
 ## Citations
 
 Two notebook formats, read by step 4 into one `references.bib`:
 
-| | Metadata | In the prose |
-|---|---|---|
+|                    | Metadata                                    | In the prose                                                                                                                                                            |
+| ------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `citation-manager` | `metadata['citation-manager'].items.zotero` | `<cite id="c1"><a href="#zotero%7C…">(Rosenzweig, 2003)</a></cite>` — the id needs the markdown-comment mapping, and the element carries printable text to fall back on |
-| **cite2c** | `metadata.cite2c.citations` | `<cite data-cite="1787664/QEP4R77C"></cite>` — the item id *is* the attribute, and there is no fallback text |
+| **cite2c**         | `metadata.cite2c.citations`                 | `<cite data-cite="1787664/QEP4R77C"></cite>` — the item id _is_ the attribute, and there is no fallback text                                                            |
 
 Both hold CSL-JSON, except that cite2c writes dates as `{year, month, day}` rather than
 `{"date-parts": [[y, m, d]]}`; they are converted on the way in. Without that every entry
@@ -81,14 +82,14 @@ Authors write their own brackets around a citation, which would otherwise print 
 `((Author, 2023))`. A pair holding **nothing but** citations, locators and short
 connectives is lifted whole into a single MyST citation:
 
-| The author wrote | Becomes | Prints |
-|---|---|---|
-| `(<cite/>)` | `[@key]` | `(Milligan, 2019)` |
-| `(<cite/> p. 203)` — comma optional | `[@key, p. 203]` | `(Milligan, 2019, p. 203)` |
-| `(<cite/>, <cite/>)` | `[@a; @b]` | `(Crane, 2018; Mold et al., 2019)` |
-| `(e.g. <cite/>, <cite/>)` | `[e.g. @a; @b]` | `(e.g. Crane, 2018; Mold et al., 2019)` |
-| `(<cite/>, 1085; <cite/>)` | `[@a, 1085; @b]` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
-| `(as argued <cite/> and later)` | unchanged | the author's own parentheses |
+| The author wrote                    | Becomes          | Prints                                           |
+| ----------------------------------- | ---------------- | ------------------------------------------------ |
+| `(<cite/>)`                         | `[@key]`         | `(Milligan, 2019)`                               |
+| `(<cite/> p. 203)` — comma optional | `[@key, p. 203]` | `(Milligan, 2019, p. 203)`                       |
+| `(<cite/>, <cite/>)`                | `[@a; @b]`       | `(Crane, 2018; Mold et al., 2019)`               |
+| `(e.g. <cite/>, <cite/>)`           | `[e.g. @a; @b]`  | `(e.g. Crane, 2018; Mold et al., 2019)`          |
+| `(<cite/>, 1085; <cite/>)`          | `[@a, 1085; @b]` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
+| `(as argued <cite/> and later)`     | unchanged        | the author's own parentheses                     |
 
 How it avoids damaging prose:
 
@@ -96,7 +97,7 @@ How it avoids damaging prose:
   citation's own text — `(Boisvert, 2000)` — can't be read as a separator.
 - A **locator must open** with a page marker (`p.`, `pp.`, `chap.`, `sec.`), a bare
   number, or a roman numeral, so `and others disagree` is not swallowed. Roman numerals
-  are matched as real numerals: `[ivxlcdm]+` would also match *civil*, *mill* and *ill*.
+  are matched as real numerals: `[ivxlcdm]+` would also match _civil_, _mill_ and _ill_.
 - A **lift needs the whole parenthesised span** to be citations and filler. Anything
   longer is left alone.
 - **`and` between two keys becomes `;`.** MyST reads only `;` there; given
@@ -131,18 +132,18 @@ _improved/
 
 ## Source tagging → directives
 
-| Jupytext source | Pipeline step | MyST output |
-| --- | --- | --- |
-| `#region` with `table-*` tags (numbered or descriptive), holding only a table | `improveJupytextTables` | `` ```{jdh-table} `` |
-| Code cell tagged `table-*` | `improveNotebookTables` | `:::{jdh-table}` from its notebook output |
-| Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*` | `improveNotebookFigures` | `` ```{figure} `` (placeholder and online link for video and audio) |
-| Region tagged `dialog-*` | `improveDialogueRegions` | `` ```{jdh-dialogue} `` |
-| Region/cell tagged `hermeneutics` | `improveHermeneuticsBlocks` | `:::{hermeneutics}` |
+| Jupytext source                                                               | Pipeline step               | MyST output                                                       |
+| ----------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `#region` with `table-*` tags (numbered or descriptive), holding only a table | `improveJupytextTables`     | ` ```{jdh-table} `                                                |
+| Code cell tagged `table-*`                                                    | `improveNotebookTables`     | `:::{jdh-table}` from its notebook output                         |
+| Cell tagged `figure-*` (numbered or descriptive), `video-*` or `sound-*`      | `improveNotebookFigures`    | ` ```{figure} ` (placeholder and online link for video and audio) |
+| Region tagged `dialog-*`                                                      | `improveDialogueRegions`    | ` ```{jdh-dialogue} `                                             |
+| Region/cell tagged `hermeneutics`                                             | `improveHermeneuticsBlocks` | `:::{hermeneutics}`                                               |
 
 The `hermeneutics` tag is found wherever `tags=[…]` sits on the fence, so a cell that also
 carries Jupytext's `editable=`, `slideshow=` or `jdh=` attributes is wrapped like any other;
 the other attributes are left as the author wrote them.
-| Untagged fenced code | — (hand-authored) | Plain `` ```lang `` → narrative-code transform |
+| Untagged fenced code | — (hand-authored) | Plain ` ```lang ` → narrative-code transform |
 
 Hand-written `:::{table}` directives in article source are **not** converted to `jdh-table`; only pipeline-produced table regions are.
 

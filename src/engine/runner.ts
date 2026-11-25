@@ -33,11 +33,7 @@ export async function runRuleset(ruleset: Ruleset, ctx: RunContext): Promise<voi
     await step.run(ctx);
     console.log('');
 
-    if (
-      ctx.options.dryRun &&
-      !fileExists(ctx.workdirAbs) &&
-      step.id === 'prepareWorkdir'
-    ) {
+    if (ctx.options.dryRun && !fileExists(ctx.workdirAbs) && step.id === 'prepareWorkdir') {
       console.log(
         '(dry-run: workdir not created, so remaining steps are skipped. Re-run without --dry-run.)\n',
       );

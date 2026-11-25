@@ -69,7 +69,8 @@ export function templateExportOptions(
   if (!['none', 'auto'].includes(placement)) {
     throw new CliError(`--figure-placement must be "none" or "auto" (got "${placement}")`);
   }
-  if (preprintText && !preprint) throw new CliError('--preprint-text only applies with --preprint.');
+  if (preprintText && !preprint)
+    throw new CliError('--preprint-text only applies with --preprint.');
   const options = new Map<string, string | boolean | null>([
     ['figure_placement', placement],
     ['preprint', preprint],
@@ -183,8 +184,11 @@ Examples:
       console.log(`Workdir:  ${workdirAbs}`);
       console.log(`Template: ${templateAbs}`);
       console.log(`Fonts:    ${fontPath}`);
-      console.log(`Figures:  ${placement === 'auto' ? 'float to the top or bottom of a page' : 'stay where they are in the text'}`);
-      if (preprint) console.log(`Preprint: every page watermarked "${opts.preprintText ?? 'PREPRINT'}"`);
+      console.log(
+        `Figures:  ${placement === 'auto' ? 'float to the top or bottom of a page' : 'stay where they are in the text'}`,
+      );
+      if (preprint)
+        console.log(`Preprint: every page watermarked "${opts.preprintText ?? 'PREPRINT'}"`);
       console.log(`Citations: ${cslAbs ?? "Typst's built-in APA 7th"}`);
       console.log(`$ cd ${workdirAbs} && TYPST_FONT_PATHS=${fontPath} ${cmd}\n`);
 
@@ -205,7 +209,9 @@ Examples:
       }
       // myst can exit 0 when Typst fails, so check the PDF was actually written.
       if (!fileExists(pdfPath) || fs.statSync(pdfPath).mtimeMs < startedAt) {
-        throw new CliError(`myst build finished but ${pdfPath} was not written; see the Typst errors above.`);
+        throw new CliError(
+          `myst build finished but ${pdfPath} was not written; see the Typst errors above.`,
+        );
       }
       console.log(`\nPDF: ${pdfPath}`);
     });

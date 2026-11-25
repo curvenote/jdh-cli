@@ -1,9 +1,22 @@
 import { describe, expect, test } from 'bun:test';
-import { cellMarker, markCellNumbers, websiteCellNumbers } from '../src/steps/jupytext/number-cells.js';
+import {
+  cellMarker,
+  markCellNumbers,
+  websiteCellNumbers,
+} from '../src/steps/jupytext/number-cells.js';
 import type { RawNotebook } from '../src/steps/shared/notebook-cells.js';
 
-const md = (source: string, tags?: string[]) => ({ cell_type: 'markdown', source, metadata: tags ? { tags } : {} });
-const code = (source: string, tags?: string[]) => ({ cell_type: 'code', source, metadata: tags ? { tags } : {}, outputs: [] });
+const md = (source: string, tags?: string[]) => ({
+  cell_type: 'markdown',
+  source,
+  metadata: tags ? { tags } : {},
+});
+const code = (source: string, tags?: string[]) => ({
+  cell_type: 'code',
+  source,
+  metadata: tags ? { tags } : {},
+  outputs: [],
+});
 
 describe('websiteCellNumbers (the JDH website rule)', () => {
   test('every cell but metadata takes a number; only markdown cells show it', () => {
@@ -75,17 +88,27 @@ describe('markCellNumbers', () => {
 
   test('cells are found by the start of their first line (citations may have been rewritten)', () => {
     const nb: RawNotebook = {
-      cells: [md('Let us consider the Swedish case; during the 1970s <cite data-cite="1/A"></cite>.')],
+      cells: [
+        md('Let us consider the Swedish case; during the 1970s <cite data-cite="1/A"></cite>.'),
+      ],
     };
-    const { marked } = markCellNumbers('Let us consider the Swedish case; during the 1970s [@a1970].', nb);
+    const { marked } = markCellNumbers(
+      'Let us consider the Swedish case; during the 1970s [@a1970].',
+      nb,
+    );
     expect(marked).toBe(1);
   });
 
   test('dialogue and table cells get no marker (their steps need the region to hold only the table)', () => {
     const nb: RawNotebook = {
-      cells: [md('| A | B |\n|---|---|\n| hi | |', ['dialog-x-*']), md('| a |\n|---|\n| 1 |', ['table-1'])],
+      cells: [
+        md('| A | B |\n|---|---|\n| hi | |', ['dialog-x-*']),
+        md('| a |\n|---|\n| 1 |', ['table-1']),
+      ],
     };
-    expect(markCellNumbers('| A | B |\n|---|---|\n| hi | |\n\n| a |\n|---|\n| 1 |', nb).marked).toBe(0);
+    expect(
+      markCellNumbers('| A | B |\n|---|---|\n| hi | |\n\n| a |\n|---|\n| 1 |', nb).marked,
+    ).toBe(0);
   });
 
   test('cells it cannot find are reported', () => {

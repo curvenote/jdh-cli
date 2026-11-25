@@ -1,6 +1,11 @@
 import type { Command } from 'commander';
 import { CliError } from '../cli/errors.js';
-import { buildRunContext, fileExists, parseConvertOptions, resolveInputPath } from '../engine/context.js';
+import {
+  buildRunContext,
+  fileExists,
+  parseConvertOptions,
+  resolveInputPath,
+} from '../engine/context.js';
 import { listRulesetSteps, runRuleset } from '../engine/runner.js';
 import { getRuleset, inferRulesetId } from '../rulesets/index.js';
 
@@ -15,12 +20,30 @@ export function addConvertCommand(program: Command): void {
     .option('--no-ror-lookup', 'Disable ROR affiliation lookups')
     .option('--ror-min-score <float>', 'ROR match threshold 0..1', '0.8')
     .option('--doi <doi>', 'Set project.doi (default: looked up from the JDH API by repo name)')
-    .option('--url <url>', 'Set the article URL, project.social.url (default: JDH article page from repo name)')
-    .option('--qr-code <path|url>', 'QR code image for the PDF sidebar (default: repo generated/qr.png, else generated from the article URL)')
-    .option('--fingerprint <path|url>', 'Fingerprint image for the PDF sidebar (default: repo generated/fingerprint.png, else rendered from article.ipynb)')
-    .option('--no-generate-images', 'Do not generate the QR code and fingerprint when none is given or in the repo (use placeholders)')
-    .option('--table-max-rows <n>', 'Rows a table shows before it is shortened; 0 shows every row (default 4)')
-    .option('--no-zotero', "Ignore the notebook's Zotero (citation-manager) data; use the repo's .bib files only")
+    .option(
+      '--url <url>',
+      'Set the article URL, project.social.url (default: JDH article page from repo name)',
+    )
+    .option(
+      '--qr-code <path|url>',
+      'QR code image for the PDF sidebar (default: repo generated/qr.png, else generated from the article URL)',
+    )
+    .option(
+      '--fingerprint <path|url>',
+      'Fingerprint image for the PDF sidebar (default: repo generated/fingerprint.png, else rendered from article.ipynb)',
+    )
+    .option(
+      '--no-generate-images',
+      'Do not generate the QR code and fingerprint when none is given or in the repo (use placeholders)',
+    )
+    .option(
+      '--table-max-rows <n>',
+      'Rows a table shows before it is shortened; 0 shows every row (default 4)',
+    )
+    .option(
+      '--no-zotero',
+      "Ignore the notebook's Zotero (citation-manager) data; use the repo's .bib files only",
+    )
     .option('--list-steps', 'Print planned steps for this input and exit')
     .addHelpText(
       'after',

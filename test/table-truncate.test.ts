@@ -85,7 +85,11 @@ describe('table-truncate', () => {
       '| 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |',
       '| 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 |',
     ].join('\n');
-    const { table: out, hiddenRows, hiddenCols } = truncateTable(parseGfmTable(wide), {
+    const {
+      table: out,
+      hiddenRows,
+      hiddenCols,
+    } = truncateTable(parseGfmTable(wide), {
       maxRows: 2,
       maxColumns: 6,
     });

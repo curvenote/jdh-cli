@@ -49,7 +49,9 @@ describe('readImageSource', () => {
   });
 
   test('fails clearly for a missing file', async () => {
-    await expect(readImageSource('/nonexistent/qr.png')).rejects.toThrow('file not found: /nonexistent/qr.png');
+    await expect(readImageSource('/nonexistent/qr.png')).rejects.toThrow(
+      'file not found: /nonexistent/qr.png',
+    );
   });
 
   test('downloads a URL', async () => {
@@ -63,9 +65,9 @@ describe('readImageSource', () => {
   });
 
   test('fails clearly when the download fails', async () => {
-    await expect(readImageSource('https://example.org/x', async () => new Response('', { status: 404 }))).rejects.toThrow(
-      'could not download https://example.org/x: HTTP 404',
-    );
+    await expect(
+      readImageSource('https://example.org/x', async () => new Response('', { status: 404 })),
+    ).rejects.toThrow('could not download https://example.org/x: HTTP 404');
     await expect(
       readImageSource('https://example.org/x', async () => {
         throw new TypeError('fetch failed');
@@ -95,21 +97,29 @@ describe('installSuppliedSidebarImages', () => {
   test('replaces the copy from the article repo', async () => {
     const dir = mkTmp();
     write(dir, 'wd/generated/qr.png', PNG);
-    await installSuppliedSidebarImages(path.join(dir, 'wd'), { qrCode: write(dir, 'qr.jpg', JPEG) }, false);
+    await installSuppliedSidebarImages(
+      path.join(dir, 'wd'),
+      { qrCode: write(dir, 'qr.jpg', JPEG) },
+      false,
+    );
     expect(fs.readdirSync(path.join(dir, 'wd/generated'))).toEqual(['qr.jpg']);
   });
 
   test('rejects anything that is not PNG, JPEG, GIF or SVG', async () => {
     const dir = mkTmp();
     const webp = write(dir, 'fp.png', WEBP);
-    await expect(installSuppliedSidebarImages(path.join(dir, 'wd'), { fingerprint: webp }, false)).rejects.toThrow(
-      `--fingerprint: ${webp} is not a PNG, JPEG, GIF or SVG image`,
-    );
+    await expect(
+      installSuppliedSidebarImages(path.join(dir, 'wd'), { fingerprint: webp }, false),
+    ).rejects.toThrow(`--fingerprint: ${webp} is not a PNG, JPEG, GIF or SVG image`);
   });
 
   test('dry run validates but writes nothing', async () => {
     const dir = mkTmp();
-    const supplied = await installSuppliedSidebarImages(path.join(dir, 'wd'), { qrCode: write(dir, 'qr.png', PNG) }, true);
+    const supplied = await installSuppliedSidebarImages(
+      path.join(dir, 'wd'),
+      { qrCode: write(dir, 'qr.png', PNG) },
+      true,
+    );
     expect(supplied.get('qr_code')).toBe('./generated/qr.png');
     expect(fs.existsSync(path.join(dir, 'wd'))).toBe(false);
   });
@@ -134,7 +144,11 @@ describe('prepareWorkdir sidebar images', () => {
     flags: { qrCode?: string; fingerprint?: string; generateImages?: boolean } = {},
   ): Promise<string> {
     const input = write(root, 'article.md', '# A\n');
-    const ctx = buildRunContext('jupytext', input, parseConvertOptions({ projectRoot: root, generateImages: false, ...flags }));
+    const ctx = buildRunContext(
+      'jupytext',
+      input,
+      parseConvertOptions({ projectRoot: root, generateImages: false, ...flags }),
+    );
     const log = spyOn(console, 'log').mockImplementation(() => {});
     try {
       await prepareWorkdir(ctx);
@@ -153,8 +167,13 @@ describe('prepareWorkdir sidebar images', () => {
     expect(out).toContain('Fingerprint: generated/fingerprint.png from the article repo');
     expect(out).not.toContain('PLACEHOLDER');
     const wd = path.join(root, '_improved');
-    expect(fs.readdirSync(path.join(wd, 'generated')).sort()).toEqual(['fingerprint.png', 'qr.jpg']);
-    const meta = readYaml<{ project: { exports: Record<string, string>[] } }>(path.join(wd, 'meta-jdh.yml'));
+    expect(fs.readdirSync(path.join(wd, 'generated')).sort()).toEqual([
+      'fingerprint.png',
+      'qr.jpg',
+    ]);
+    const meta = readYaml<{ project: { exports: Record<string, string>[] } }>(
+      path.join(wd, 'meta-jdh.yml'),
+    );
     expect(meta.project.exports[0].qr_code).toBe('./generated/qr.jpg');
     expect(meta.project.exports[0].fingerprint).toBe('./generated/fingerprint.png');
   });

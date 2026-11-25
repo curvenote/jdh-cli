@@ -1,17 +1,17 @@
-import fs from "node:fs";
-import path from "node:path";
-import { isSeq } from "yaml";
-import { stepOpts } from "../../engine/step-context.js";
-import type { PipelineStep } from "../../engine/types.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { isSeq } from 'yaml';
+import { stepOpts } from '../../engine/step-context.js';
+import type { PipelineStep } from '../../engine/types.js';
 import {
   findAuthorEntry,
   listProjectBibFiles,
   listWorkdirAuthorBibFiles,
   loadAuthorBibEntries,
-} from "../shared/author-bib.js";
-import { resolveProjectConfigPath } from "../shared/myst-config.js";
-import { whenNotebook } from "../shared/when.js";
-import { updateYamlFile } from "../shared/yaml-doc.js";
+} from '../shared/author-bib.js';
+import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { whenNotebook } from '../shared/when.js';
+import { updateYamlFile } from '../shared/yaml-doc.js';
 
 interface CitationManagerRef {
   source: string;
@@ -34,12 +34,12 @@ interface CslItem {
   page?: string;
   number?: string;
   ISBN?: string;
-  "container-title"?: string;
-  "publisher-place"?: string;
-  "event-place"?: string;
+  'container-title'?: string;
+  'publisher-place'?: string;
+  'event-place'?: string;
   event?: string;
-  "number-of-pages"?: number | string;
-  issued?: { "date-parts"?: Array<Array<number | string>> };
+  'number-of-pages'?: number | string;
+  issued?: { 'date-parts'?: Array<Array<number | string>> };
   author?: Array<{ family?: string; given?: string; literal?: string }>;
   editor?: Array<{ family?: string; given?: string; literal?: string }>;
 }
@@ -59,7 +59,7 @@ export interface JupyterZoteroOptions {
 }
 
 function readUtf8(p: string): string {
-  return fs.readFileSync(p, "utf8");
+  return fs.readFileSync(p, 'utf8');
 }
 
 function fileExists(p: string): boolean {
@@ -73,11 +73,11 @@ function fileExists(p: string): boolean {
 
 function writeUtf8(p: string, content: string, dryRun: boolean): void {
   if (dryRun) return;
-  fs.writeFileSync(p, content, "utf8");
+  fs.writeFileSync(p, content, 'utf8');
 }
 
 function stripTrailingPunctuation(s: string): string {
-  return s.replace(/[)\].,;:]+$/g, "");
+  return s.replace(/[)\].,;:]+$/g, '');
 }
 
 function parseDoiFromNote(note: string): string | null {
@@ -95,15 +95,15 @@ function extractDoi(item: CslItem): string | null {
   const raw =
     item?.DOI ??
     item?.doi ??
-    (typeof item?.note === "string" ? parseDoiFromNote(item.note) : null) ??
-    (typeof item?.URL === "string" ? parseDoiFromUrl(item.URL) : null) ??
-    (typeof item?.url === "string" ? parseDoiFromUrl(item.url) : null);
+    (typeof item?.note === 'string' ? parseDoiFromNote(item.note) : null) ??
+    (typeof item?.URL === 'string' ? parseDoiFromUrl(item.URL) : null) ??
+    (typeof item?.url === 'string' ? parseDoiFromUrl(item.url) : null);
 
   if (!raw) return null;
 
   const doi = stripTrailingPunctuation(String(raw).trim())
-    .replace(/^doi:\s*/i, "")
-    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, "")
+    .replace(/^doi:\s*/i, '')
+    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
     .trim();
 
   return doi || null;
@@ -112,14 +112,14 @@ function extractDoi(item: CslItem): string | null {
 function doiToCitekey(doi: string): string | null {
   const safe = `doi${doi}`
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
   return safe || null;
 }
 
 function zoteroIdToCitekey(zoteroId: string): string {
-  return `zotero_${String(zoteroId).replace(/[^A-Za-z0-9]+/g, "_")}`;
+  return `zotero_${String(zoteroId).replace(/[^A-Za-z0-9]+/g, '_')}`;
 }
 
 function getIssuedDateParts(item: CslItem): {
@@ -127,44 +127,33 @@ function getIssuedDateParts(item: CslItem): {
   month: string | null;
   day: string | null;
 } {
-  const dp = item?.issued?.["date-parts"];
+  const dp = item?.issued?.['date-parts'];
   const first = Array.isArray(dp) && Array.isArray(dp[0]) ? dp[0] : null;
   if (!first || !first.length) return { year: null, month: null, day: null };
   const [year, month, day] = first;
   return {
-    year: typeof year === "number" ? String(year) : year ? String(year) : null,
+    year: typeof year === 'number' ? String(year) : year ? String(year) : null,
     month:
-      typeof month === "number"
-        ? String(month).padStart(2, "0")
-        : month
-          ? String(month)
-          : null,
-    day:
-      typeof day === "number"
-        ? String(day).padStart(2, "0")
-        : day
-          ? String(day)
-          : null,
+      typeof month === 'number' ? String(month).padStart(2, '0') : month ? String(month) : null,
+    day: typeof day === 'number' ? String(day).padStart(2, '0') : day ? String(day) : null,
   };
 }
 
-function normalizePages(
-  pages: string | number | null | undefined,
-): string | null {
+function normalizePages(pages: string | number | null | undefined): string | null {
   if (!pages) return null;
-  return String(pages).replace(/–/g, "--");
+  return String(pages).replace(/–/g, '--');
 }
 
 function escapeBibtexValue(v: unknown): string {
   return String(v)
-    .replace(/\\/g, "\\\\")
-    .replace(/{/g, "\\{")
-    .replace(/}/g, "\\}")
-    .replace(/%/g, "\\%")
-    .replace(/&/g, "\\&")
-    .replace(/_/g, "\\_")
-    .replace(/\$/g, "\\$")
-    .replace(/#/g, "\\#");
+    .replace(/\\/g, '\\\\')
+    .replace(/{/g, '\\{')
+    .replace(/}/g, '\\}')
+    .replace(/%/g, '\\%')
+    .replace(/&/g, '\\&')
+    .replace(/_/g, '\\_')
+    .replace(/\$/g, '\\$')
+    .replace(/#/g, '\\#');
 }
 
 /**
@@ -174,59 +163,47 @@ function escapeBibtexValue(v: unknown): string {
  * reading it as a person (JDH-048).
  */
 export function formatNameList(
-  list:
-    | Array<{ family?: string; given?: string; literal?: string }>
-    | null
-    | undefined,
+  list: Array<{ family?: string; given?: string; literal?: string }> | null | undefined,
 ): string | null {
   if (!Array.isArray(list) || list.length === 0) return null;
   const names = list
     .map((n) => {
-      const family = n?.family ? String(n.family).trim() : "";
-      const given = n?.given ? String(n.given).trim() : "";
-      const literal = n?.literal ? String(n.literal).trim() : "";
-      if (family && given)
-        return `${escapeBibtexValue(family)}, ${escapeBibtexValue(given)}`;
+      const family = n?.family ? String(n.family).trim() : '';
+      const given = n?.given ? String(n.given).trim() : '';
+      const literal = n?.literal ? String(n.literal).trim() : '';
+      if (family && given) return `${escapeBibtexValue(family)}, ${escapeBibtexValue(given)}`;
       if (family || literal) return `{${escapeBibtexValue(family || literal)}}`;
       if (given) return `{${escapeBibtexValue(given)}}`;
       return null;
     })
     .filter(Boolean);
-  return names.length ? names.join(" and ") : null;
+  return names.length ? names.join(' and ') : null;
 }
 
 /** Fields whose values are already escaped BibTeX (name lists). */
-const PRE_ESCAPED_FIELDS = new Set(["author", "editor"]);
+const PRE_ESCAPED_FIELDS = new Set(['author', 'editor']);
 /** Fields read literally: escaping would print "8944\\_2012" in the reference list. */
-const VERBATIM_FIELDS = new Set(["doi", "url"]);
+const VERBATIM_FIELDS = new Set(['doi', 'url']);
 
 function bibtexFieldValue(key: string, value: string): string {
   if (PRE_ESCAPED_FIELDS.has(key)) return value;
-  if (VERBATIM_FIELDS.has(key)) return value.replace(/[{}]/g, "");
+  if (VERBATIM_FIELDS.has(key)) return value.replace(/[{}]/g, '');
   return escapeBibtexValue(value);
 }
 
-type BibtexType =
-  | "article"
-  | "inproceedings"
-  | "incollection"
-  | "book"
-  | "misc";
+type BibtexType = 'article' | 'inproceedings' | 'incollection' | 'book' | 'misc';
 
 function pickBibtexType(item: CslItem): BibtexType {
-  const t = String(item?.type ?? "").toLowerCase();
-  if (t === "article-journal") return "article";
-  if (t === "paper-conference") return "inproceedings";
-  if (t === "chapter") return "incollection";
-  if (t === "book") return "book";
-  if (t === "article") return item?.["container-title"] ? "article" : "misc";
-  return "misc";
+  const t = String(item?.type ?? '').toLowerCase();
+  if (t === 'article-journal') return 'article';
+  if (t === 'paper-conference') return 'inproceedings';
+  if (t === 'chapter') return 'incollection';
+  if (t === 'book') return 'book';
+  if (t === 'article') return item?.['container-title'] ? 'article' : 'misc';
+  return 'misc';
 }
 
-function buildBibtexFields(
-  item: CslItem,
-  _citekey: string,
-): Record<string, string> {
+function buildBibtexFields(item: CslItem, _citekey: string): Record<string, string> {
   const fields: Record<string, string> = {};
 
   const authors = formatNameList(item.author);
@@ -240,42 +217,42 @@ function buildBibtexFields(
   if (month) fields.month = month;
 
   const bibType = pickBibtexType(item);
-  if (bibType === "article") {
-    if (item["container-title"]) fields.journal = item["container-title"];
+  if (bibType === 'article') {
+    if (item['container-title']) fields.journal = item['container-title'];
     if (item.volume) fields.volume = item.volume;
     if (item.issue) fields.number = item.issue;
     if (item.page) {
       const pages = normalizePages(item.page);
       if (pages) fields.pages = pages;
     }
-  } else if (bibType === "inproceedings") {
-    if (item["container-title"]) fields.booktitle = item["container-title"];
+  } else if (bibType === 'inproceedings') {
+    if (item['container-title']) fields.booktitle = item['container-title'];
     if (editors) fields.editor = editors;
     if (item.page) {
       const pages = normalizePages(item.page);
       if (pages) fields.pages = pages;
     }
     if (item.publisher) fields.publisher = item.publisher;
-    if (item["publisher-place"] || item["event-place"])
-      fields.address = item["publisher-place"] ?? item["event-place"] ?? "";
+    if (item['publisher-place'] || item['event-place'])
+      fields.address = item['publisher-place'] ?? item['event-place'] ?? '';
     if (item.event) fields.note = item.event;
-  } else if (bibType === "incollection") {
-    if (item["container-title"]) fields.booktitle = item["container-title"];
+  } else if (bibType === 'incollection') {
+    if (item['container-title']) fields.booktitle = item['container-title'];
     if (editors) fields.editor = editors;
     if (item.page) {
       const pages = normalizePages(item.page);
       if (pages) fields.pages = pages;
     }
     if (item.publisher) fields.publisher = item.publisher;
-    if (item["publisher-place"] || item["event-place"])
-      fields.address = item["publisher-place"] ?? item["event-place"] ?? "";
+    if (item['publisher-place'] || item['event-place'])
+      fields.address = item['publisher-place'] ?? item['event-place'] ?? '';
     if (item.ISBN) fields.isbn = item.ISBN;
-  } else if (bibType === "book") {
+  } else if (bibType === 'book') {
     if (item.publisher) fields.publisher = item.publisher;
-    if (item["publisher-place"] || item["event-place"])
-      fields.address = item["publisher-place"] ?? item["event-place"] ?? "";
+    if (item['publisher-place'] || item['event-place'])
+      fields.address = item['publisher-place'] ?? item['event-place'] ?? '';
     if (item.ISBN) fields.isbn = item.ISBN;
-    if (item["number-of-pages"]) fields.pages = String(item["number-of-pages"]);
+    if (item['number-of-pages']) fields.pages = String(item['number-of-pages']);
   } else {
     if (item.publisher) fields.publisher = item.publisher;
     if (item.URL) fields.url = item.URL;
@@ -287,11 +264,8 @@ function buildBibtexFields(
   if (!fields.url && item.URL) fields.url = item.URL;
 
   if (item.system_id)
-    fields.note = fields.note
-      ? `${fields.note}; ${item.system_id}`
-      : item.system_id;
-  else if (item.id)
-    fields.note = fields.note ? `${fields.note}; ${item.id}` : item.id;
+    fields.note = fields.note ? `${fields.note}; ${item.system_id}` : item.system_id;
+  else if (item.id) fields.note = fields.note ? `${fields.note}; ${item.id}` : item.id;
 
   return fields;
 }
@@ -302,22 +276,22 @@ function renderBibtexEntry(
   fields: Record<string, string>,
 ): string {
   const orderedKeys = [
-    "author",
-    "editor",
-    "title",
-    "journal",
-    "booktitle",
-    "year",
-    "month",
-    "volume",
-    "number",
-    "pages",
-    "publisher",
-    "address",
-    "doi",
-    "url",
-    "isbn",
-    "note",
+    'author',
+    'editor',
+    'title',
+    'journal',
+    'booktitle',
+    'year',
+    'month',
+    'volume',
+    'number',
+    'pages',
+    'publisher',
+    'address',
+    'doi',
+    'url',
+    'isbn',
+    'note',
   ];
 
   const restKeys = Object.keys(fields)
@@ -325,19 +299,15 @@ function renderBibtexEntry(
     .sort();
   const keys = [...orderedKeys.filter((k) => fields[k]), ...restKeys];
 
-  const lines = keys.map(
-    (k) => `  ${k} = {${bibtexFieldValue(k, fields[k])}},`,
-  );
+  const lines = keys.map((k) => `  ${k} = {${bibtexFieldValue(k, fields[k])}},`);
   if (lines.length) {
-    lines[lines.length - 1] = lines[lines.length - 1].replace(/},$/, "}");
+    lines[lines.length - 1] = lines[lines.length - 1].replace(/},$/, '}');
   }
 
-  return `@${bibType}{${citekey},\n${lines.join("\n")}\n}\n`;
+  return `@${bibType}{${citekey},\n${lines.join('\n')}\n}\n`;
 }
 
-function buildCitekeyMap(
-  itemsById: Record<string, CslItem>,
-): Map<string, string> {
+function buildCitekeyMap(itemsById: Record<string, CslItem>): Map<string, string> {
   const citekeyById = new Map<string, string>();
   const used = new Map<string, number>();
 
@@ -348,10 +318,7 @@ function buildCitekeyMap(
     const base = (doi && doiToCitekey(doi)) || zoteroIdToCitekey(id);
     const count = used.get(base) ?? 0;
     used.set(base, count + 1);
-    const citekey =
-      count === 0
-        ? base
-        : `${base}${String.fromCharCode("a".charCodeAt(0) + count)}`;
+    const citekey = count === 0 ? base : `${base}${String.fromCharCode('a'.charCodeAt(0) + count)}`;
     citekeyById.set(id, citekey);
   }
 
@@ -362,16 +329,13 @@ function buildCitekeyMap(
  * cite2c writes dates as `{year, month, day}`; the rest of this file, and CSL-JSON,
  * expect `{"date-parts": [[y, m, d]]}`. Without this every entry loses its year.
  */
-function cite2cDateToCsl(
-  d: unknown,
-): { "date-parts"?: Array<Array<number | string>> } | undefined {
-  if (!d || typeof d !== "object") return undefined;
+function cite2cDateToCsl(d: unknown): { 'date-parts'?: Array<Array<number | string>> } | undefined {
+  if (!d || typeof d !== 'object') return undefined;
   const o = d as Record<string, unknown>;
-  if (o["date-parts"])
-    return o as { "date-parts": Array<Array<number | string>> };
+  if (o['date-parts']) return o as { 'date-parts': Array<Array<number | string>> };
   if (o.year == null) return undefined;
   const parts = [o.year, o.month, o.day].filter((x) => x != null).map(Number);
-  return { "date-parts": [parts] };
+  return { 'date-parts': [parts] };
 }
 
 /**
@@ -379,22 +343,18 @@ function cite2cDateToCsl(
  * `metadata.cite2c.citations`, keyed by Zotero id, and leaves only an empty
  * `<cite data-cite="…"></cite>` marker in the prose (JDH-080).
  */
-function loadCite2cItemsFromNotebook(
-  notebookPath: string,
-): Record<string, CslItem> {
+function loadCite2cItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
   if (!fileExists(notebookPath)) return {};
   const nb = JSON.parse(readUtf8(notebookPath)) as {
     metadata?: Record<string, unknown>;
   };
   const cite2c = nb?.metadata?.cite2c as Record<string, unknown> | undefined;
   const citations = cite2c?.citations;
-  if (!citations || typeof citations !== "object") return {};
+  if (!citations || typeof citations !== 'object') return {};
 
   const out: Record<string, CslItem> = {};
-  for (const [id, raw] of Object.entries(
-    citations as Record<string, unknown>,
-  )) {
-    if (!raw || typeof raw !== "object") continue;
+  for (const [id, raw] of Object.entries(citations as Record<string, unknown>)) {
+    if (!raw || typeof raw !== 'object') continue;
     const item = { ...(raw as CslItem) };
     const issued = cite2cDateToCsl((raw as Record<string, unknown>).issued);
     if (issued) item.issued = issued;
@@ -403,26 +363,21 @@ function loadCite2cItemsFromNotebook(
   return out;
 }
 
-function loadZoteroItemsFromNotebook(
-  notebookPath: string,
-): Record<string, CslItem> {
+function loadZoteroItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
   if (!fileExists(notebookPath)) return {};
   const nb = JSON.parse(readUtf8(notebookPath)) as {
     metadata?: Record<string, unknown>;
   };
   const cm =
-    (nb?.metadata?.["citation-manager"] as
-      | Record<string, unknown>
-      | undefined) ??
+    (nb?.metadata?.['citation-manager'] as Record<string, unknown> | undefined) ??
     (nb?.metadata?.citation_manager as Record<string, unknown> | undefined) ??
     null;
   const items = cm?.items as Record<string, unknown> | null;
 
-  if (items?.zotero && typeof items.zotero === "object")
+  if (items?.zotero && typeof items.zotero === 'object')
     return items.zotero as Record<string, CslItem>;
 
-  if (items && typeof items === "object")
-    return items as Record<string, CslItem>;
+  if (items && typeof items === 'object') return items as Record<string, CslItem>;
 
   return {};
 }
@@ -440,7 +395,7 @@ function extractBalancedJsonObject(s: string, startIdx: number): string | null {
         escape = false;
         continue;
       }
-      if (ch === "\\") {
+      if (ch === '\\') {
         escape = true;
         continue;
       }
@@ -455,8 +410,8 @@ function extractBalancedJsonObject(s: string, startIdx: number): string | null {
       continue;
     }
 
-    if (ch === "{") depth++;
-    else if (ch === "}") depth--;
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
 
     if (depth === 0) {
       return s.slice(startIdx, i + 1);
@@ -466,17 +421,15 @@ function extractBalancedJsonObject(s: string, startIdx: number): string | null {
   return null;
 }
 
-function extractCitationManagerMappingsFromMd(
-  md: string,
-): Map<string, CitationManagerRef[]> {
+function extractCitationManagerMappingsFromMd(md: string): Map<string, CitationManagerRef[]> {
   const map = new Map<string, CitationManagerRef[]>();
   const re = /<!--\s*#region[\s\S]*?-->/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(md)) !== null) {
     const comment = m[0];
-    const idx = comment.indexOf("citation-manager=");
+    const idx = comment.indexOf('citation-manager=');
     if (idx === -1) continue;
-    const start = comment.indexOf("{", idx);
+    const start = comment.indexOf('{', idx);
     if (start === -1) continue;
 
     const jsonText = extractBalancedJsonObject(comment, start);
@@ -495,7 +448,7 @@ function extractCitationManagerMappingsFromMd(
       );
     }
     const citations = parsed?.citations;
-    if (!citations || typeof citations !== "object") continue;
+    if (!citations || typeof citations !== 'object') continue;
     for (const [citeId, refs] of Object.entries(citations)) {
       if (!Array.isArray(refs)) continue;
       map.set(citeId, refs);
@@ -507,11 +460,11 @@ function extractCitationManagerMappingsFromMd(
 function stripCitationManagerFromComment(comment: string): string {
   let out = comment;
   while (true) {
-    const idx = out.indexOf("citation-manager=");
+    const idx = out.indexOf('citation-manager=');
     if (idx === -1) break;
-    const start = out.indexOf("{", idx);
+    const start = out.indexOf('{', idx);
     if (start === -1) {
-      out = out.slice(0, idx) + out.slice(idx + "citation-manager=".length);
+      out = out.slice(0, idx) + out.slice(idx + 'citation-manager='.length);
       continue;
     }
     const jsonText = extractBalancedJsonObject(out, start);
@@ -519,27 +472,23 @@ function stripCitationManagerFromComment(comment: string): string {
     const end = start + jsonText.length;
 
     let removeStart = idx;
-    while (removeStart > 0 && out[removeStart - 1] === " ") removeStart--;
+    while (removeStart > 0 && out[removeStart - 1] === ' ') removeStart--;
 
     let removeEnd = end;
-    while (removeEnd < out.length && out[removeEnd] === " ") removeEnd++;
+    while (removeEnd < out.length && out[removeEnd] === ' ') removeEnd++;
 
     out = out.slice(0, removeStart) + out.slice(removeEnd);
   }
 
-  out = out.replace(/\s{2,}/g, " ");
-  out = out.replace(/(#region)\s+-->/g, "$1 -->");
+  out = out.replace(/\s{2,}/g, ' ');
+  out = out.replace(/(#region)\s+-->/g, '$1 -->');
   return out;
 }
 
 function stripCitationManagerFromAllComments(md: string): string {
   return md.replace(/<!--[\s\S]*?-->/g, (comment) => {
-    if (!comment.includes("citation-manager="))
-      return comment.replace(/(\S)-->/g, "$1 -->");
-    return stripCitationManagerFromComment(comment).replace(
-      /(\S)-->/g,
-      "$1 -->",
-    );
+    if (!comment.includes('citation-manager=')) return comment.replace(/(\S)-->/g, '$1 -->');
+    return stripCitationManagerFromComment(comment).replace(/(\S)-->/g, '$1 -->');
   });
 }
 
@@ -553,23 +502,20 @@ export function zoteroIdsFromCiteHtml(html: string): string[] {
 }
 
 const HTML_ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
+  amp: '&',
+  lt: '<',
+  gt: '>',
   quot: '"',
   apos: "'",
-  nbsp: " ",
+  nbsp: ' ',
 };
 
 /** Visible text of a `<cite>` element, e.g. "(Meadows & Sternfeld, 2023)". */
 export function citeVisibleText(html: string): string {
   return html
-    .replace(/<[^>]+>/g, "")
+    .replace(/<[^>]+>/g, '')
     .replace(/&#(\d+);/g, (_m, n: string) => String.fromCharCode(Number(n)))
-    .replace(
-      /&([a-z]+);/gi,
-      (m, name: string) => HTML_ENTITIES[name.toLowerCase()] ?? m,
-    )
+    .replace(/&([a-z]+);/gi, (m, name: string) => HTML_ENTITIES[name.toLowerCase()] ?? m)
     .trim();
 }
 
@@ -578,20 +524,17 @@ export function citeVisibleText(html: string): string {
  * id needs the markdown-comment mapping, and cite2c's empty `<cite data-cite="…"></cite>`,
  * whose attribute is the item id itself (JDH-080).
  */
-const CITE_PATTERN =
-  '<cite\\s+(id|data-cite)="([^"]+)"[^>]*>([\\s\\S]*?)<\\/cite>';
+const CITE_PATTERN = '<cite\\s+(id|data-cite)="([^"]+)"[^>]*>([\\s\\S]*?)<\\/cite>';
 
 /** A character markdown won't contain, standing in for a blanked-out `<cite>` element. */
-const CITE_MASK = "";
+const CITE_MASK = '';
 
 /**
  * `md` with every `<cite>` element blanked out, keeping its length, so a scan for the
  * author's own parentheses isn't thrown off by parentheses in the citation's own text.
  */
 function maskCites(md: string): string {
-  return md.replace(new RegExp(CITE_PATTERN, "g"), (m) =>
-    CITE_MASK.repeat(m.length),
-  );
+  return md.replace(new RegExp(CITE_PATTERN, 'g'), (m) => CITE_MASK.repeat(m.length));
 }
 
 /**
@@ -602,21 +545,19 @@ function maskCites(md: string): string {
  */
 function normalizeCiteGroupSeparators(md: string): string {
   const masked = maskCites(md);
-  const re = new RegExp(`\\(([${CITE_MASK}\\s,;]*)\\)`, "g");
+  const re = new RegExp(`\\(([${CITE_MASK}\\s,;]*)\\)`, 'g');
   let out = md;
   let m: RegExpExecArray | null;
   while ((m = re.exec(masked)) !== null) {
     const inside = m[1];
-    if (!inside.includes(CITE_MASK) || !inside.includes(",")) continue;
+    if (!inside.includes(CITE_MASK) || !inside.includes(',')) continue;
     // Only the separators, which are the commas the mask left visible — a comma inside a
     // citation's own text ("(Boisvert, 2000)") sits under the mask and must stay.
     const start = m.index + 1;
     // split('') not [...], so the indices stay UTF-16 code units, as `inside`'s are.
-    const chars = out.slice(start, start + inside.length).split("");
-    for (let i = 0; i < inside.length; i++)
-      if (inside[i] === ",") chars[i] = ";";
-    out =
-      out.slice(0, start) + chars.join("") + out.slice(start + inside.length);
+    const chars = out.slice(start, start + inside.length).split('');
+    for (let i = 0; i < inside.length; i++) if (inside[i] === ',') chars[i] = ';';
+    out = out.slice(0, start) + chars.join('') + out.slice(start + inside.length);
   }
   return out;
 }
@@ -628,7 +569,7 @@ function normalizeCiteGroupSeparators(md: string): string {
  * swallowed; from there it runs to the closing bracket (JDH-080).
  */
 const LOCATOR_PATTERN =
-  "(?:esp\\.|cf\\.|see)?\\s*(?:(?:pp?\\.|chap\\.|sec\\.)\\s*[\\divxlcIVXLC]+|\\d+|(?:(?=[ivxlcdm])m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))|(?:(?=[IVXLCDM])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})))[^()\\[\\]]*";
+  '(?:esp\\.|cf\\.|see)?\\s*(?:(?:pp?\\.|chap\\.|sec\\.)\\s*[\\divxlcIVXLC]+|\\d+|(?:(?=[ivxlcdm])m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))|(?:(?=[IVXLCDM])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})))[^()\\[\\]]*';
 
 /**
  * True if the cite at `[start, end)` sits inside a pair of the author's own parentheses
@@ -637,13 +578,9 @@ const LOCATOR_PATTERN =
  * humans) (Compagno, 2025)" — is not such a group and keeps its brackets, and neither is
  * a citation inside a longer parenthesised sentence.
  */
-function inParenthesisedCiteGroup(
-  masked: string,
-  start: number,
-  end: number,
-): boolean {
-  const open = masked.lastIndexOf("(", start);
-  const close = masked.indexOf(")", end);
+function inParenthesisedCiteGroup(masked: string, start: number, end: number): boolean {
+  const open = masked.lastIndexOf('(', start);
+  const close = masked.indexOf(')', end);
   if (open === -1 || close === -1) return false;
   const inside = new RegExp(`^(?:[${CITE_MASK}\\s,;]|${LOCATOR_PATTERN})*$`);
   return inside.test(masked.slice(open + 1, close));
@@ -675,34 +612,24 @@ export function rewriteMdCitationsToMyst(
   const masked = maskCites(source);
 
   let out = source.replace(
-    new RegExp(CITE_PATTERN, "g"),
-    (
-      _full: string,
-      attr: string,
-      citeId: string,
-      inner: string,
-      offset: number,
-    ) => {
+    new RegExp(CITE_PATTERN, 'g'),
+    (_full: string, attr: string, citeId: string, inner: string, offset: number) => {
       // cite2c puts the item id in the attribute; citation-manager's id needs the mapping.
       let ids: string[];
-      if (attr === "data-cite") {
+      if (attr === 'data-cite') {
         ids = [citeId];
       } else {
         const mapped = (citeIdToRefs.get(citeId) ?? [])
-          .filter((r) => r && r.source === "zotero" && r.id)
+          .filter((r) => r && r.source === 'zotero' && r.id)
           .map((r) => r.id);
         ids = mapped.length ? mapped : zoteroIdsFromCiteHtml(inner);
       }
-      const keys = [
-        ...new Set(
-          ids.map(keyForZoteroId).filter((k): k is string => Boolean(k)),
-        ),
-      ];
-      if (keys.length) return `[${keys.map((k) => `@${k}`).join("; ")}]`;
+      const keys = [...new Set(ids.map(keyForZoteroId).filter((k): k is string => Boolean(k)))];
+      if (keys.length) return `[${keys.map((k) => `@${k}`).join('; ')}]`;
 
       // A cite2c marker carries no text, so there is nothing to fall back to. Leave the
       // element alone rather than deleting it: an empty "()" would hide the problem.
-      if (attr === "data-cite") {
+      if (attr === 'data-cite') {
         unresolved.push(citeId);
         return _full;
       }
@@ -711,11 +638,7 @@ export function rewriteMdCitationsToMyst(
       unresolved.push(text || citeId);
       // Avoid "((Author, 2023))" when the article already wraps the citation — or the
       // whole group of citations — in parentheses.
-      const wrapped = inParenthesisedCiteGroup(
-        masked,
-        offset,
-        offset + _full.length,
-      );
+      const wrapped = inParenthesisedCiteGroup(masked, offset, offset + _full.length);
       if (wrapped && /^\(.*\)$/.test(text)) text = text.slice(1, -1);
       return text;
     },
@@ -728,20 +651,17 @@ export function rewriteMdCitationsToMyst(
     let m: RegExpExecArray | null;
     while ((m = re.exec(chunk)) !== null) keys.push(m[1].trim());
     if (keys.length <= 1) return chunk;
-    return `[@${keys.join("; @")}]`.replace(/@{2,}/g, "@");
+    return `[@${keys.join('; @')}]`.replace(/@{2,}/g, '@');
   });
 
-  out = out.replace(/\(\s*(\[@[^\]]+?\])\s*\)/g, "$1");
+  out = out.replace(/\(\s*(\[@[^\]]+?\])\s*\)/g, '$1');
 
   // "([@key], pp. 50-52)" → "[@key, pp. 50-52]". MyST reads the tail as a citation
   // supplement, so the locator prints inside the citation's own parentheses instead of
   // leaving the author's wrapped around them (JDH-076). The comma is optional: cite2c
   // authors write "(<cite/> p. 203)" with none (JDH-080).
   out = out.replace(
-    new RegExp(
-      `\\(\\s*\\[@([^\\]]+?)\\]\\s*,?\\s*(${LOCATOR_PATTERN})\\s*\\)`,
-      "g",
-    ),
+    new RegExp(`\\(\\s*\\[@([^\\]]+?)\\]\\s*,?\\s*(${LOCATOR_PATTERN})\\s*\\)`, 'g'),
     (_m, keys: string, locator: string) => `[@${keys}, ${locator.trim()}]`,
   );
 
@@ -750,12 +670,12 @@ export function rewriteMdCitationsToMyst(
   // Lift the whole lot into a single MyST citation, so only its own parentheses print and
   // the author's are not left wrapped around them (JDH-080).
   out = out.replace(/\(([^()]*\[@[^()]*)\)/g, (full: string, inner: string) => {
-    const betweenCitations = inner.replace(/\[@[^\]]*\]/g, " ");
+    const betweenCitations = inner.replace(/\[@[^\]]*\]/g, ' ');
     if (!CITE_GROUP_FILLER.test(betweenCitations)) return full;
     // MyST reads only ";" between the keys of one citation: "@a and @b" makes it look for
     // a label that is not there, and Typst then refuses to build at all.
-    const joined = inner.replace(/\]\s+and\s+\[@/g, "]; [@");
-    return `[${joined.replace(/\[@([^\]]*)\]/g, "@$1")}]`;
+    const joined = inner.replace(/\]\s+and\s+\[@/g, ']; [@');
+    return `[${joined.replace(/\[@([^\]]*)\]/g, '@$1')}]`;
   });
 
   // "(e.g. [@a; @b])" → "[e.g. @a; @b]". MyST prints the prefix inside the citation's own
@@ -764,8 +684,7 @@ export function rewriteMdCitationsToMyst(
   // longer parenthesised aside is left alone (JDH-080).
   out = out.replace(
     /\(\s*([A-Za-z][^()[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
-    (_full: string, prefix: string, cite: string) =>
-      `[${prefix} ${cite.slice(1)}`,
+    (_full: string, prefix: string, cite: string) => `[${prefix} ${cite.slice(1)}`,
   );
 
   out = stripCitationManagerFromAllComments(out);
@@ -774,51 +693,40 @@ export function rewriteMdCitationsToMyst(
 }
 
 /** Add `bibPath` to `project.bibliography` in myst.yml, keeping existing entries. */
-function ensureMystBibliography(
-  mystPath: string,
-  bibPath: string,
-  dryRun: boolean,
-): void {
+function ensureMystBibliography(mystPath: string, bibPath: string, dryRun: boolean): void {
   updateYamlFile(
     mystPath,
     (doc) => {
-      if (!doc.has("project")) return;
-      const current = doc.getIn(["project", "bibliography"]);
+      if (!doc.has('project')) return;
+      const current = doc.getIn(['project', 'bibliography']);
       const list: unknown[] = isSeq(current) ? current.toJSON() : [];
-      if (!list.includes(bibPath))
-        doc.setIn(["project", "bibliography"], [...list, bibPath]);
+      if (!list.includes(bibPath)) doc.setIn(['project', 'bibliography'], [...list, bibPath]);
     },
     dryRun,
   );
 }
 
 /** Export Zotero metadata from a Jupyter notebook into BibTeX and rewrite markdown citations. */
-export async function jupyterZotero(
-  options: JupyterZoteroOptions,
-): Promise<void> {
+export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void> {
   const cwd = options.cwd ?? process.cwd();
 
   const articlePath = path.resolve(cwd, options.article);
   const notebookPath = path.resolve(cwd, options.notebook);
   const bibPath = path.resolve(cwd, options.bib);
   const mystPath = resolveProjectConfigPath(cwd, options.myst);
-  const log: string[] = ["Done."];
+  const log: string[] = ['Done.'];
 
   // Both notebook citation formats. No article carries both, but merging costs nothing
   // and keeps one code path for author-.bib matching (JDH-080).
-  const zoteroItems =
-    options.zotero === false ? {} : loadZoteroItemsFromNotebook(notebookPath);
-  const cite2cItems =
-    options.zotero === false ? {} : loadCite2cItemsFromNotebook(notebookPath);
+  const zoteroItems = options.zotero === false ? {} : loadZoteroItemsFromNotebook(notebookPath);
+  const cite2cItems = options.zotero === false ? {} : loadCite2cItemsFromNotebook(notebookPath);
   const notebookItems: Record<string, CslItem> = {
     ...zoteroItems,
     ...cite2cItems,
   };
-  if (options.zotero === false) log.push("- Zotero:   skipped (--no-zotero)");
+  if (options.zotero === false) log.push('- Zotero:   skipped (--no-zotero)');
   if (Object.keys(cite2cItems).length)
-    log.push(
-      `- cite2c:   ${Object.keys(cite2cItems).length} items from notebook metadata`,
-    );
+    log.push(`- cite2c:   ${Object.keys(cite2cItems).length} items from notebook metadata`);
 
   const authorBibs = loadAuthorBibEntries(cwd, listWorkdirAuthorBibFiles(cwd));
   for (const file of authorBibs.emptyFiles) {
@@ -838,16 +746,12 @@ export async function jupyterZotero(
     );
     if (match) {
       authorKeyByZoteroId.set(id, match.key);
-      process.stdout.write(
-        `Using ${match.file} entry ${match.key} for Zotero item ${id}.\n`,
-      );
+      process.stdout.write(`Using ${match.file} entry ${match.key} for Zotero item ${id}.\n`);
     }
   }
 
   const ownItems = Object.fromEntries(
-    Object.entries(notebookItems).filter(
-      ([id]) => !authorKeyByZoteroId.has(id),
-    ),
+    Object.entries(notebookItems).filter(([id]) => !authorKeyByZoteroId.has(id)),
   );
   // These are machine keys; the next step ("Improve citekeys to author–year") turns them
   // into Allen2020 / BambraSmith2010 / BrownEtAl2020, the same for both formats.
@@ -869,24 +773,20 @@ export async function jupyterZotero(
     writeUtf8(
       bibPath,
       `% Generated from ${path.basename(notebookPath)} notebook metadata ` +
-        `(${[Object.keys(zoteroItems).length ? "citation-manager" : null, Object.keys(cite2cItems).length ? "cite2c" : null].filter(Boolean).join(" + ")})\n` +
+        `(${[Object.keys(zoteroItems).length ? 'citation-manager' : null, Object.keys(cite2cItems).length ? 'cite2c' : null].filter(Boolean).join(' + ')})\n` +
         `% Entries: ${bibEntries.length}\n\n` +
-        bibEntries.join("\n"),
+        bibEntries.join('\n'),
       options.dryRun,
     );
     bibliography.push(path.basename(bibPath));
-    log.push(
-      `- BibTeX:   ${path.relative(cwd, bibPath)} (${bibEntries.length} entries)`,
-    );
+    log.push(`- BibTeX:   ${path.relative(cwd, bibPath)} (${bibEntries.length} entries)`);
   } else if (!authorBibs.usableFiles.length) {
-    log.push(
-      "- BibTeX:   no notebook citation items; references.bib not written",
-    );
+    log.push('- BibTeX:   no notebook citation items; references.bib not written');
   }
   bibliography.push(...authorBibs.usableFiles);
   if (authorBibs.usableFiles.length) {
     log.push(
-      `- Author:   ${authorBibs.usableFiles.join(", ")} (${authorBibs.entries.length} entries; ${authorKeyByZoteroId.size} replace Zotero items)`,
+      `- Author:   ${authorBibs.usableFiles.join(', ')} (${authorBibs.entries.length} entries; ${authorKeyByZoteroId.size} replace Zotero items)`,
     );
   }
 
@@ -904,21 +804,20 @@ export async function jupyterZotero(
     if (unresolved.length) {
       process.stdout.write(
         `Warning: ${unresolved.length} citation(s) not found in any bibliography; kept as plain text: ` +
-          `${unresolved.slice(0, 5).join("; ")}${unresolved.length > 5 ? "; …" : ""}\n`,
+          `${unresolved.slice(0, 5).join('; ')}${unresolved.length > 5 ? '; …' : ''}\n`,
       );
     }
   }
 
   if (options.updateMyst && bibliography.length && fileExists(mystPath)) {
-    for (const bib of bibliography)
-      ensureMystBibliography(mystPath, bib, options.dryRun);
+    for (const bib of bibliography) ensureMystBibliography(mystPath, bib, options.dryRun);
     log.push(
-      `- Updated:  ${path.relative(cwd, mystPath)} (bibliography: ${bibliography.join(", ")})`,
+      `- Updated:  ${path.relative(cwd, mystPath)} (bibliography: ${bibliography.join(', ')})`,
     );
   }
 
-  if (options.dryRun) log.push("(dry-run: no files written)");
-  console.log(log.join("\n"));
+  if (options.dryRun) log.push('(dry-run: no files written)');
+  console.log(log.join('\n'));
 }
 
 /**
@@ -926,20 +825,18 @@ export async function jupyterZotero(
  * rewrite `<cite>` tags in markdown to MyST citations, and link the bib in myst.yml.
  */
 export const citationsJupyterZoteroStep: PipelineStep = {
-  id: "citationsJupyterZotero",
-  label:
-    "Extract citations + BibTeX + rewrite markdown (Zotero and author .bib)",
-  inputs: ["ipynb", "markdown", "myst", "bibtex"],
+  id: 'citationsJupyterZotero',
+  label: 'Extract citations + BibTeX + rewrite markdown (Zotero and author .bib)',
+  inputs: ['ipynb', 'markdown', 'myst', 'bibtex'],
   // Run for notebooks (Zotero items) and for repos that bring their own .bib.
-  when: (ctx) =>
-    listProjectBibFiles(ctx.projectRoot).length ? "run" : whenNotebook(ctx),
+  when: (ctx) => (listProjectBibFiles(ctx.projectRoot).length ? 'run' : whenNotebook(ctx)),
   run: async (ctx) => {
     const o = stepOpts(ctx);
     await jupyterZotero({
-      article: "article.md",
-      notebook: "article.ipynb",
-      bib: "references.bib",
-      myst: "myst.yml",
+      article: 'article.md',
+      notebook: 'article.ipynb',
+      bib: 'references.bib',
+      myst: 'myst.yml',
       dryRun: o.dryRun,
       rewriteMd: true,
       updateMyst: true,

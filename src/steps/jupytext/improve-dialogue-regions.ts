@@ -28,23 +28,26 @@ function parseTags(regionLine: string): string[] {
 export function processArticle(content: string): { content: string; converted: string[] } {
   const converted: string[] = [];
   const regionRe = /^(<!--\s*#region\b([^\n]*?)-->[ \t]*\n)([\s\S]*?)(^<!--\s*#endregion\s*-->)/gm;
-  const out = content.replace(regionRe, (whole, open: string, attrs: string, body: string, close: string) => {
-    const tag = parseTags(attrs).find((t) => DIALOG_TAG.test(t));
-    const table = body.trim();
-    if (!tag || !table.includes('|')) return whole;
-    const label = dialogueLabelFromTag(tag);
-    const caption = captionFromJdh(parseFenceMetadata(attrs, 'jdh'));
-    converted.push(label);
-    return [
-      open.trimEnd(),
-      '```{jdh-dialogue}' + (caption ? ` ${caption.replace(/\s+/g, ' ')}` : ''),
-      `:label: ${label}`,
-      '',
-      table,
-      '```',
-      close,
-    ].join('\n');
-  });
+  const out = content.replace(
+    regionRe,
+    (whole, open: string, attrs: string, body: string, close: string) => {
+      const tag = parseTags(attrs).find((t) => DIALOG_TAG.test(t));
+      const table = body.trim();
+      if (!tag || !table.includes('|')) return whole;
+      const label = dialogueLabelFromTag(tag);
+      const caption = captionFromJdh(parseFenceMetadata(attrs, 'jdh'));
+      converted.push(label);
+      return [
+        open.trimEnd(),
+        '```{jdh-dialogue}' + (caption ? ` ${caption.replace(/\s+/g, ' ')}` : ''),
+        `:label: ${label}`,
+        '',
+        table,
+        '```',
+        close,
+      ].join('\n');
+    },
+  );
   return { content: out, converted };
 }
 

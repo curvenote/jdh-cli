@@ -23,10 +23,10 @@ JDH notebooks mark a dialogue as a markdown cell tagged `dialog-*`, containing a
 ```
 ````
 
-| Option | Description |
-| --- | --- |
-| argument | Optional caption, from the cell's `jdh.object.source` |
-| `label` | `dlg:<slug>` from the tag (`dialog-worldcup-*` → `dlg:worldcup`) |
+| Option   | Description                                                      |
+| -------- | ---------------------------------------------------------------- |
+| argument | Optional caption, from the cell's `jdh.object.source`            |
+| `label`  | `dlg:<slug>` from the tag (`dialog-worldcup-*` → `dlg:worldcup`) |
 
 ## Output
 

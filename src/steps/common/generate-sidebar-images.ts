@@ -1,22 +1,18 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileExists } from "../../engine/context.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileExists } from '../../engine/context.js';
 import {
   placeholderWarning,
   pointExportsAtSidebarImages,
   SIDEBAR_IMAGES,
-} from "../../engine/sidebar-images.js";
-import type { PipelineStep, RunContext } from "../../engine/types.js";
-import {
-  GENERATED_DIR,
-  META_JDH_FILE,
-  resolveBundledLogo,
-} from "../../init/bundled-assets.js";
-import { fingerprintFromNotebook } from "../shared/fingerprint-draw/index.js";
-import { resolveProjectConfigPath } from "../shared/myst-config.js";
-import { renderQrPng } from "../shared/qr-code.js";
-import { readYamlDocument } from "../shared/yaml-doc.js";
-import { articleUrl, resolveArticleId } from "./set-jdh-article-metadata.js";
+} from '../../engine/sidebar-images.js';
+import type { PipelineStep, RunContext } from '../../engine/types.js';
+import { GENERATED_DIR, META_JDH_FILE, resolveBundledLogo } from '../../init/bundled-assets.js';
+import { fingerprintFromNotebook } from '../shared/fingerprint-draw/index.js';
+import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import { renderQrPng } from '../shared/qr-code.js';
+import { readYamlDocument } from '../shared/yaml-doc.js';
+import { articleUrl, resolveArticleId } from './set-jdh-article-metadata.js';
 
 type SidebarImage = (typeof SIDEBAR_IMAGES)[number];
 
@@ -37,10 +33,12 @@ const FINGERPRINT_SIZE = 400;
 function resolveQrUrl(ctx: RunContext): string | null {
   if (ctx.options.url) return ctx.options.url;
   try {
-    const url = readYamlDocument(
-      resolveProjectConfigPath(ctx.workdirAbs),
-    ).getIn(["project", "social", "url"]);
-    if (typeof url === "string" && url) return url;
+    const url = readYamlDocument(resolveProjectConfigPath(ctx.workdirAbs)).getIn([
+      'project',
+      'social',
+      'url',
+    ]);
+    if (typeof url === 'string' && url) return url;
   } catch {
     // No readable myst.yml: fall back to the article id.
   }
@@ -53,26 +51,25 @@ async function generate(
   img: SidebarImage,
   ctx: RunContext,
 ): Promise<{ bytes: Buffer; from: string; ext: string }> {
-  if (img.file === "qr.png") {
+  if (img.file === 'qr.png') {
     const url = resolveQrUrl(ctx);
     if (!url)
       throw new Error(
-        "no article URL: the JDH article id is not in the git remote or folder name; pass --url",
+        'no article URL: the JDH article id is not in the git remote or folder name; pass --url',
       );
 
     return {
       bytes: renderQrPng(url, fs.readFileSync(resolveBundledLogo())),
       from: url,
-      ext: "png",
+      ext: 'png',
     };
   }
-  if (!fileExists(ctx.articleIpynb))
-    throw new Error("no article.ipynb in the article repo");
-  const svg = fingerprintFromNotebook(fs.readFileSync(ctx.articleIpynb, "utf8"), {
+  if (!fileExists(ctx.articleIpynb)) throw new Error('no article.ipynb in the article repo');
+  const svg = fingerprintFromNotebook(fs.readFileSync(ctx.articleIpynb, 'utf8'), {
     size: FINGERPRINT_SIZE,
   });
 
-  return { bytes: Buffer.from(svg, "utf8"), from: "article.ipynb", ext: "svg" };
+  return { bytes: Buffer.from(svg, 'utf8'), from: 'article.ipynb', ext: 'svg' };
 }
 
 /**
@@ -83,10 +80,10 @@ async function generate(
  * placeholder stays, with a warning.
  */
 export const generateSidebarImagesStep: PipelineStep = {
-  id: "generateSidebarImages",
-  label: "Generate QR code and fingerprint images",
-  inputs: ["ipynb", "git", "project"],
-  when: (ctx) => (ctx.options.generateImages ? "run" : "skip"),
+  id: 'generateSidebarImages',
+  label: 'Generate QR code and fingerprint images',
+  inputs: ['ipynb', 'git', 'project'],
+  when: (ctx) => (ctx.options.generateImages ? 'run' : 'skip'),
   run: async (ctx) => {
     const missing = SIDEBAR_IMAGES.filter(
       (img) =>
@@ -95,9 +92,7 @@ export const generateSidebarImagesStep: PipelineStep = {
     );
 
     if (!missing.length) {
-      console.log(
-        "QR code and fingerprint were given or are in the repo; nothing to generate.",
-      );
+      console.log('QR code and fingerprint were given or are in the repo; nothing to generate.');
       return;
     }
     const written = new Map<string, string>();
@@ -121,18 +116,13 @@ export const generateSidebarImagesStep: PipelineStep = {
 
         console.log(`${img.label}: generated ${dest} (from ${from})`);
       } catch (err) {
-        console.log(
-          placeholderWarning(
-            img,
-            err instanceof Error ? err.message : String(err),
-          ),
-        );
+        console.log(placeholderWarning(img, err instanceof Error ? err.message : String(err)));
       }
     }
 
     // The bundled meta-jdh.yml names the placeholders by their own extension, so an
     // image generated under a different one has to be pointed at explicitly.
-    for (const config of [META_JDH_FILE, "myst.yml"]) {
+    for (const config of [META_JDH_FILE, 'myst.yml']) {
       pointExportsAtSidebarImages(path.join(ctx.workdirAbs, config), written);
     }
   },

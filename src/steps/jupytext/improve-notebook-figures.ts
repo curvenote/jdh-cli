@@ -33,7 +33,8 @@ function jdhArticleUrl(projectRoot: string): string | null {
 /** Workdir folder for figure images decoded from notebook outputs. */
 const OUTPUTS_DIR = 'notebook-outputs';
 /** Outputs that only work in a browser; shown in the PDF as a placeholder. */
-const INTERACTIVE_MIME = /^(text\/html|application\/(javascript|vnd\.plotly|vnd\.bokehjs|vnd\.jupyter\.widget))/;
+const INTERACTIVE_MIME =
+  /^(text\/html|application\/(javascript|vnd\.plotly|vnd\.bokehjs|vnd\.jupyter\.widget))/;
 const IMAGE_EXTENSIONS: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -147,25 +148,39 @@ function normalizeFigureTags(content: string): string {
  * the region's `jdh` metadata (else the alt text). Region markers are kept, so a
  * `hermeneutics` tag still wraps it. Remote images are fetched by MyST at build.
  */
-export function convertMarkdownFigureRegions(content: string): { content: string; converted: string[] } {
+export function convertMarkdownFigureRegions(content: string): {
+  content: string;
+  converted: string[];
+} {
   const converted: string[] = [];
-  const regionRe = /^(<!--\s*#region\b([^\n]*?)-->)[ \t]*\n([\s\S]*?)\n?(^<!--\s*#endregion\s*-->)/gm;
-  const out = content.replace(regionRe, (whole, open: string, attrs: string, body: string, close: string) => {
-    const tags = parseTagsFromFenceLine(attrs);
-    const found = kindFromTags(tags);
-    if (found?.kind !== 'figure') return whole;
-    const image = body.trim().match(/^!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)$/);
-    if (!image) return whole;
-    const alt = image[1].trim();
-    const caption =
-      captionFromJdh(parseFenceMetadata(attrs, 'jdh')) ?? (alt && !/^(image|figure|img)$/i.test(alt) ? alt : null);
-    if (!caption) return whole;
-    const label = figureLabelFromTag(found.tag);
-    converted.push(label);
-    return [open, '```{figure} ' + image[2], `:label: ${label}`, '', escapeCaption(stripFigureNumberPrefix(caption)), '```', close].join(
-      '\n',
-    );
-  });
+  const regionRe =
+    /^(<!--\s*#region\b([^\n]*?)-->)[ \t]*\n([\s\S]*?)\n?(^<!--\s*#endregion\s*-->)/gm;
+  const out = content.replace(
+    regionRe,
+    (whole, open: string, attrs: string, body: string, close: string) => {
+      const tags = parseTagsFromFenceLine(attrs);
+      const found = kindFromTags(tags);
+      if (found?.kind !== 'figure') return whole;
+      const image = body.trim().match(/^!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)$/);
+      if (!image) return whole;
+      const alt = image[1].trim();
+      const caption =
+        captionFromJdh(parseFenceMetadata(attrs, 'jdh')) ??
+        (alt && !/^(image|figure|img)$/i.test(alt) ? alt : null);
+      if (!caption) return whole;
+      const label = figureLabelFromTag(found.tag);
+      converted.push(label);
+      return [
+        open,
+        '```{figure} ' + image[2],
+        `:label: ${label}`,
+        '',
+        escapeCaption(stripFigureNumberPrefix(caption)),
+        '```',
+        close,
+      ].join('\n');
+    },
+  );
   return { content: out, converted };
 }
 
@@ -217,7 +232,13 @@ export function processArticle(
     imagePath ? { path: imagePath, from: 'file' } : null,
 ): { content: string; figureNumToLabel: Map<number, string>; report: FigureReport } {
   const figureNumToLabel = new Map<number, string>();
-  const report: FigureReport = { converted: [], fromOutput: [], placeholders: [], skipped: [], captionConflicts: [] };
+  const report: FigureReport = {
+    converted: [],
+    fromOutput: [],
+    placeholders: [],
+    skipped: [],
+    captionConflicts: [],
+  };
   const notebookFigures = indexFiguresByLabel(notebookCells);
   const captionFor = new Map<number, string>();
   const imageFor = new Map<number, string>();
@@ -266,7 +287,11 @@ export function processArticle(
           cell: captionFromJdh(parseFenceMetadata(tagLine, 'jdh')) ?? nbCell?.captions.cell ?? null,
           output: nbCell?.captions.output ?? null,
         };
-        const kind = figureTag.startsWith('vid:') ? 'video' : figureTag.startsWith('aud:') ? 'audio' : 'figure';
+        const kind = figureTag.startsWith('vid:')
+          ? 'video'
+          : figureTag.startsWith('aud:')
+            ? 'audio'
+            : 'figure';
         const resolved = resolveCaption(captions);
         // Audio cells often have no caption; they still get a numbered entry and a link.
         if (resolved.text == null && kind === 'audio') resolved.text = AUDIO_FALLBACK_CAPTION;
@@ -274,12 +299,18 @@ export function processArticle(
           report.captionConflicts.push({
             label: figureTag,
             used: resolved.from!,
-            others: (['code', 'cell', 'output'] as const).filter((k) => k !== resolved.from && captions[k]),
+            others: (['code', 'cell', 'output'] as const).filter(
+              (k) => k !== resolved.from && captions[k],
+            ),
           });
         }
         const imagePath = extractImagePath(body);
         const mimes = nbCell?.outputs.map((o) => o.mime) ?? [];
-        const outputNote = mimes.length ? `; notebook output ${mimes.join(', ')}` : nbCell ? '; no notebook output' : '';
+        const outputNote = mimes.length
+          ? `; notebook output ${mimes.join(', ')}`
+          : nbCell
+            ? '; no notebook output'
+            : '';
         const image =
           resolved.text == null
             ? null
@@ -384,10 +415,13 @@ export function processArticle(
       return '[](#' + label + ')';
     });
     const refLiteral = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(new RegExp('\\{ref\\}`' + refLiteral + '`', 'g'), (match: string, offset: number) => {
-      if (inSkip(offset)) return match;
-      return '[](#' + label + ')';
-    });
+    result = result.replace(
+      new RegExp('\\{ref\\}`' + refLiteral + '`', 'g'),
+      (match: string, offset: number) => {
+        if (inSkip(offset)) return match;
+        return '[](#' + label + ')';
+      },
+    );
     const oldStyleRef = new RegExp('\\{ref\\}`figure-' + num + '-\\*`', 'g');
     result = result.replace(oldStyleRef, (match: string, offset: number) => {
       if (inSkip(offset)) return match;
@@ -434,9 +468,7 @@ export function processArticle(
  * directives (figure source code is omitted from the workdir — see hide-figure-code
  * plugin and docs/plugins.md), and updates figure references in the article.
  */
-async function improveNotebookFigures(
-  options: RunImproveNotebookFiguresOptions,
-): Promise<void> {
+async function improveNotebookFigures(options: RunImproveNotebookFiguresOptions): Promise<void> {
   const articlePath = path.resolve(options.cwd, options.article || DEFAULT_ARTICLE);
   if (!fs.existsSync(articlePath)) {
     throw new Error(`Article not found: ${articlePath}`);
@@ -467,8 +499,14 @@ async function improveNotebookFigures(
   // Link wording from JDH's styling update (JDH-059).
   const LISTEN = 'Listen to the audio online';
 
-  const placeholder = (variant: 'interactive' | 'video' | 'sound' | 'figure', cell?: TaggedCell): ResolvedImage => {
-    const rel = variant === 'sound' ? `${OUTPUTS_DIR}/sound.svg` : `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
+  const placeholder = (
+    variant: 'interactive' | 'video' | 'sound' | 'figure',
+    cell?: TaggedCell,
+  ): ResolvedImage => {
+    const rel =
+      variant === 'sound'
+        ? `${OUTPUTS_DIR}/sound.svg`
+        : `${OUTPUTS_DIR}/placeholder-${variant}.svg`;
     if (!options.dryRun) {
       const dest = path.resolve(options.cwd, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -478,10 +516,26 @@ async function improveNotebookFigures(
     // Every placeholder is one style at the full text width (JDH-023); only the icon changes.
     const width = '100%';
     // Sound (JDH-069): numbered "Sound N", as in JDH's guideline.
-    if (variant === 'sound') return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width };
+    if (variant === 'sound')
+      return { path: rel, from: 'placeholder', link, linkText: LISTEN, figureKind: 'sound', width };
     // Video (JDH-035): numbered "Video N".
-    if (variant === 'video') return { path: rel, from: 'placeholder', link, linkText: 'Watch the video online', figureKind: 'video', width };
-    if (variant === 'interactive') return { path: rel, from: 'placeholder', link, linkText: 'Look at the interactive figure online', width };
+    if (variant === 'video')
+      return {
+        path: rel,
+        from: 'placeholder',
+        link,
+        linkText: 'Watch the video online',
+        figureKind: 'video',
+        width,
+      };
+    if (variant === 'interactive')
+      return {
+        path: rel,
+        from: 'placeholder',
+        link,
+        linkText: 'Look at the interactive figure online',
+        width,
+      };
     return { path: rel, from: 'placeholder', link, width };
   };
 
@@ -494,7 +548,12 @@ async function improveNotebookFigures(
     return image;
   };
 
-  function resolveFigureImage({ label, kind, imagePath, cell }: ImageRequest): ResolvedImage | null {
+  function resolveFigureImage({
+    label,
+    kind,
+    imagePath,
+    cell,
+  }: ImageRequest): ResolvedImage | null {
     if (kind === 'audio') return placeholder('sound', cell);
     if (imagePath && ensureFile(imagePath)) return { path: imagePath, from: 'file' };
     const images = cell?.outputs.filter((o) => o.mime in IMAGE_EXTENSIONS) ?? [];
@@ -503,19 +562,27 @@ async function improveNotebookFigures(
       const outputs = cell?.outputs ?? [];
       // Dataframe tables are left for the table step (JDH-003), not hidden behind a placeholder.
       if (outputs.some((o) => o.mime === 'text/html' && /<table/i.test(o.data))) return null;
-      if (outputs.some((o) => INTERACTIVE_MIME.test(o.mime))) return placeholder('interactive', cell);
+      if (outputs.some((o) => INTERACTIVE_MIME.test(o.mime)))
+        return placeholder('interactive', cell);
       return null;
     }
     if (images.length > 1) {
-      process.stdout.write(`Note: ${label} has ${images.length} image outputs; using the first usable one.\n`);
+      process.stdout.write(
+        `Note: ${label} has ${images.length} image outputs; using the first usable one.\n`,
+      );
     }
     for (const { mime, data } of images) {
       // SVG outputs are text; the others are base64 (possibly split over lines).
-      const bytes = mime === 'image/svg+xml' ? Buffer.from(data) : Buffer.from(data.replace(/\s+/g, ''), 'base64');
+      const bytes =
+        mime === 'image/svg+xml'
+          ? Buffer.from(data)
+          : Buffer.from(data.replace(/\s+/g, ''), 'base64');
       // Trust the bytes, not the MIME label: some "image/png" outputs are WebP, which Typst can't read.
       const ext = mime === 'image/svg+xml' ? 'svg' : imageFormat(bytes);
       if (!ext) {
-        process.stdout.write(`Note: ${label} ${mime} output isn't PNG, JPEG or GIF data; skipping it.\n`);
+        process.stdout.write(
+          `Note: ${label} ${mime} output isn't PNG, JPEG or GIF data; skipping it.\n`,
+        );
         continue;
       }
       const rel = `${OUTPUTS_DIR}/${label.replace(/[^A-Za-z0-9_-]+/g, '-')}.${ext}`;
@@ -558,7 +625,9 @@ async function improveNotebookFigures(
       (report.converted.length ? `: ${report.converted.join(', ')}` : '') +
       ' and updated refs.' +
       (report.fromOutput.length ? ` From notebook output: ${report.fromOutput.join(', ')}.` : '') +
-      (report.placeholders.length ? ` Placeholder (view online): ${report.placeholders.join(', ')}.` : '') +
+      (report.placeholders.length
+        ? ` Placeholder (view online): ${report.placeholders.join(', ')}.`
+        : '') +
       '\n',
   );
 }

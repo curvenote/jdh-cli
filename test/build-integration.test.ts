@@ -1,29 +1,26 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { spawnSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { fileExists } from "../src/engine/context.js";
+import { afterEach, describe, expect, test } from 'bun:test';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileExists } from '../src/engine/context.js';
 
-const JDH_ROOT = path.resolve(import.meta.dir, "../..");
-const ARTICLE_REPO = path.join(JDH_ROOT, "art-unpub", "BHmHNQKJaSWT");
-const CLI = path.resolve(import.meta.dir, "../dist/jdh-cli.cjs");
-const TYPST_TEMPLATE = path.join(JDH_ROOT, "jdh-typst-template");
-const WORKDIR = path.join(ARTICLE_REPO, "_improved");
-const PDF_PATH = path.join(WORKDIR, "article.pdf");
+const JDH_ROOT = path.resolve(import.meta.dir, '../..');
+const ARTICLE_REPO = path.join(JDH_ROOT, 'art-unpub', 'BHmHNQKJaSWT');
+const CLI = path.resolve(import.meta.dir, '../dist/jdh-cli.cjs');
+const TYPST_TEMPLATE = path.join(JDH_ROOT, 'jdh-typst-template');
+const WORKDIR = path.join(ARTICLE_REPO, '_improved');
+const PDF_PATH = path.join(WORKDIR, 'article.pdf');
 
 function mystAvailable(): boolean {
-  return spawnSync("myst", ["--version"], { encoding: "utf8" }).status === 0;
+  return spawnSync('myst', ['--version'], { encoding: 'utf8' }).status === 0;
 }
 
-function runCli(
-  args: string[],
-  cwd: string,
-): { status: number; stdout: string; stderr: string } {
-  const proc = Bun.spawnSync(["node", CLI, ...args], {
+function runCli(args: string[], cwd: string): { status: number; stdout: string; stderr: string } {
+  const proc = Bun.spawnSync(['node', CLI, ...args], {
     cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env, NO_COLOR: "1" },
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: { ...process.env, NO_COLOR: '1' },
   });
   return {
     status: proc.exitCode ?? 1,
@@ -32,68 +29,61 @@ function runCli(
   };
 }
 
-describe("build integration (meta-jdh extends)", () => {
+describe('build integration (meta-jdh extends)', () => {
   const canRun =
     fileExists(CLI) &&
-    fileExists(path.join(ARTICLE_REPO, "article.md")) &&
+    fileExists(path.join(ARTICLE_REPO, 'article.md')) &&
     fileExists(TYPST_TEMPLATE) &&
     mystAvailable();
 
   afterEach(() => {
     if (fileExists(WORKDIR)) {
-      runCli(["clean"], ARTICLE_REPO);
+      runCli(['clean'], ARTICLE_REPO);
     }
   });
 
   test.skipIf(!canRun)(
-    "myst build --pdf succeeds when license and exports live only in meta-jdh.yml",
+    'myst build --pdf succeeds when license and exports live only in meta-jdh.yml',
     () => {
-      runCli(["clean"], ARTICLE_REPO);
+      runCli(['clean'], ARTICLE_REPO);
 
       const improve = runCli(
         [
-          "article.md",
-          "--project-root",
-          ".",
-          "--workdir",
-          "_improved",
-          "--no-ror-lookup",
-          "--no-generate-images",
+          'article.md',
+          '--project-root',
+          '.',
+          '--workdir',
+          '_improved',
+          '--no-ror-lookup',
+          '--no-generate-images',
         ],
         ARTICLE_REPO,
       );
       expect(improve.status).toBe(0);
 
-      const myst = fs.readFileSync(path.join(WORKDIR, "myst.yml"), "utf8");
-      const meta = fs.readFileSync(path.join(WORKDIR, "meta-jdh.yml"), "utf8");
+      const myst = fs.readFileSync(path.join(WORKDIR, 'myst.yml'), 'utf8');
+      const meta = fs.readFileSync(path.join(WORKDIR, 'meta-jdh.yml'), 'utf8');
 
-      expect(myst).toContain("extends:");
-      expect(myst).toContain("meta-jdh.yml");
-      expect(myst).not.toContain("exports:");
-      expect(meta).toContain("exports:");
-      expect(meta).toContain("license: CC-BY-NC-ND-4.0");
+      expect(myst).toContain('extends:');
+      expect(myst).toContain('meta-jdh.yml');
+      expect(myst).not.toContain('exports:');
+      expect(meta).toContain('exports:');
+      expect(meta).toContain('license: CC-BY-NC-ND-4.0');
 
-      const build = runCli(["build"], ARTICLE_REPO);
+      const build = runCli(['build'], ARTICLE_REPO);
       expect(build.status).toBe(0);
-      expect(build.stderr + build.stdout).toMatch(
-        /article\.pdf|Performing exports/i,
-      );
+      expect(build.stderr + build.stdout).toMatch(/article\.pdf|Performing exports/i);
 
       expect(fileExists(PDF_PATH)).toBe(true);
       expect(fs.statSync(PDF_PATH).size).toBeGreaterThan(0);
 
-      const typDir = path.join(WORKDIR, "_build", "temp");
+      const typDir = path.join(WORKDIR, '_build', 'temp');
       expect(fileExists(typDir)).toBe(true);
       const typFiles = fs.readdirSync(typDir, { recursive: true }) as string[];
-      const articleTyp = typFiles.find((f) =>
-        String(f).endsWith("article.typ"),
-      );
+      const articleTyp = typFiles.find((f) => String(f).endsWith('article.typ'));
       expect(articleTyp).toBeDefined();
-      const typ = fs.readFileSync(
-        path.join(typDir, String(articleTyp)),
-        "utf8",
-      );
-      expect(typ).not.toContain("display(Image");
+      const typ = fs.readFileSync(path.join(typDir, String(articleTyp)), 'utf8');
+      expect(typ).not.toContain('display(Image');
     },
     120_000,
   );

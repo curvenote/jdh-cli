@@ -129,9 +129,7 @@ function tableNodeToGfm(tableNode) {
 
   function addRow(row, asHeader) {
     if (row?.type !== 'tableRow') return;
-    const cells = (row.children ?? [])
-      .filter((cell) => cell.type === 'tableCell')
-      .map(childText);
+    const cells = (row.children ?? []).filter((cell) => cell.type === 'tableCell').map(childText);
     if (asHeader) headerRows.push(cells);
     else dataRows.push(cells);
   }
@@ -243,7 +241,12 @@ const CELL_PADDING_CHARS = 3;
 
 /** Longest run of non-space characters in a cell. */
 function longestWord(text) {
-  return Math.max(0, ...String(text ?? '').split(/\s+/).map((w) => w.length));
+  return Math.max(
+    0,
+    ...String(text ?? '')
+      .split(/\s+/)
+      .map((w) => w.length),
+  );
 }
 
 /**
@@ -297,9 +300,13 @@ function tableNodeToTypst(tableNode, hiddenRows = 0, size = null) {
   const headerRows = countHeaderRows(tableNode);
   const rows = (tableNode.children ?? []).filter((child) => child.type === 'tableRow');
   const dataRowCount = rows.filter((row) => !isHeaderRow(row)).length;
-  const cellTexts = rows.map((row) => (row.children ?? []).filter((child) => child.type === 'tableCell').map(childText));
+  const cellTexts = rows.map((row) =>
+    (row.children ?? []).filter((child) => child.type === 'tableCell').map(childText),
+  );
   const widths = columnWidths(cellTexts, headerRows);
-  const colSpec = (widths.length === columns ? widths : Array.from({ length: columns }, () => '1fr')).join(', ');
+  const colSpec = (
+    widths.length === columns ? widths : Array.from({ length: columns }, () => '1fr')
+  ).join(', ');
   let out = `#let jdh-ts = jdh-table-style(header-rows: ${headerRows}, hidden-rows: ${hiddenRows}, data-rows: ${dataRowCount})\n#tablex(columns: (${colSpec}), header-rows: ${headerRows}, repeat-header: true, ..jdh-ts,\n`;
   for (const row of rows) {
     for (const cell of (row.children ?? []).filter((child) => child.type === 'tableCell')) {
@@ -356,15 +363,18 @@ function processJdhTableContainer(node) {
   const maxRowsOpt = opts['max-rows'] ?? opts.maxRows;
   const maxRows = maxRowsOpt === undefined ? DEFAULT_MAX_ROWS : Number(maxRowsOpt);
   const maxColumnsOpt = opts['max-columns'] ?? opts.maxColumns;
-  const maxColumns =
-    maxColumnsOpt === undefined ? DEFAULT_MAX_COLUMNS : Number(maxColumnsOpt);
+  const maxColumns = maxColumnsOpt === undefined ? DEFAULT_MAX_COLUMNS : Number(maxColumnsOpt);
   const headerRowsOpt = opts['header-rows'] ?? opts.headerRows;
   const align = opts.align ?? 'center';
 
   const parsed = resolveTableGfm(node.children, headerRowsOpt);
   if (!parsed) return;
 
-  const { table: truncated, hiddenRows: cutRows, hiddenCols } = truncateTable(parsed, {
+  const {
+    table: truncated,
+    hiddenRows: cutRows,
+    hiddenCols,
+  } = truncateTable(parsed, {
     maxRows,
     maxColumns,
   });

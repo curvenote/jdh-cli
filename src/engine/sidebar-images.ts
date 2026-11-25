@@ -21,8 +21,22 @@ export interface SidebarImageFlags {
 }
 
 export const SIDEBAR_IMAGES = [
-  { file: 'qr.png', option: 'qrCode', flag: '--qr-code', exportKey: 'qr_code', label: 'QR code', noun: 'QR code' },
-  { file: 'fingerprint.png', option: 'fingerprint', flag: '--fingerprint', exportKey: 'fingerprint', label: 'Fingerprint', noun: 'fingerprint' },
+  {
+    file: 'qr.png',
+    option: 'qrCode',
+    flag: '--qr-code',
+    exportKey: 'qr_code',
+    label: 'QR code',
+    noun: 'QR code',
+  },
+  {
+    file: 'fingerprint.png',
+    option: 'fingerprint',
+    flag: '--fingerprint',
+    exportKey: 'fingerprint',
+    label: 'Fingerprint',
+    noun: 'fingerprint',
+  },
 ] as const;
 
 const DOWNLOAD_TIMEOUT_MS = 30_000;
@@ -34,7 +48,10 @@ export async function readImageSource(spec: string, fetchImpl: Fetch = fetch): P
     try {
       res = await fetchImpl(spec, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
     } catch (err) {
-      throw new Error(`could not download ${spec}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+      throw new Error(
+        `could not download ${spec}: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
+      );
     }
     if (!res.ok) throw new Error(`could not download ${spec}: HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
@@ -63,7 +80,9 @@ export async function installSuppliedSidebarImages(
     try {
       bytes = await readImageSource(spec, fetchImpl);
     } catch (err) {
-      throw new Error(`${img.flag}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+      throw new Error(`${img.flag}: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
+      });
     }
     const ext = isSvg(bytes) ? 'svg' : imageFormat(bytes);
     if (!ext) throw new Error(`${img.flag}: ${spec} is not a PNG, JPEG, GIF or SVG image`);

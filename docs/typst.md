@@ -36,13 +36,13 @@ has not been compared against the corpus.
 The whole JDH corpus was rebuilt and compared page by page on 0.15.1 (JDH-050). 0.14.2
 builds the same documents, but renders references worse:
 
-| On 0.14.2 | On 0.15.1 |
-| --- | --- |
+| On 0.14.2                                                        | On 0.15.1             |
+| ---------------------------------------------------------------- | --------------------- |
 | name particles dropped — `Lange, M. v.`, `Rio-Chanona, R. M. d.` | `van`, `del` restored |
-| diacritics mis-sorted — Åberg, Šabec, Řehůřek out of place | sorted correctly |
-| a journal title lost (*Semiotica*) | present |
-| issue numbers corrupted — `jdh002` printed as `jdh2` | `(jdh002)` intact |
-| an edition statement lost ("Third Edition") | present |
+| diacritics mis-sorted — Åberg, Šabec, Řehůřek out of place       | sorted correctly      |
+| a journal title lost (_Semiotica_)                               | present               |
+| issue numbers corrupted — `jdh002` printed as `jdh2`             | `(jdh002)` intact     |
+| an edition statement lost ("Third Edition")                      | present               |
 
 0.15.1 introduced one regression of its own: 22 references across the corpus print an
 incomplete `Retrieved <url>` clause, missing the date and the word "from". It is an APA
@@ -63,10 +63,10 @@ above came from, not from the template. Before adopting a new Typst:
 Two APA punctuation faults remain, both in Typst's built-in style rather than our template,
 and neither is worked around in the pipeline:
 
-| Fault | Scope | Upstream |
-| --- | --- | --- |
+| Fault                                             | Scope                     | Upstream                                                                                               |
+| ------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
 | stray comma — `Internet Archive Forums. (2014,).` | 15 references, 6 articles | fixed by [hayagriva#503](https://github.com/typst/hayagriva/pull/503), merged but not yet in a release |
-| doubled stop — `…capturing duplicates?.` | 13 references, 6 articles | reported as [hayagriva#552](https://github.com/typst/hayagriva/issues/552) |
+| doubled stop — `…capturing duplicates?.`          | 13 references, 6 articles | reported as [hayagriva#552](https://github.com/typst/hayagriva/issues/552)                             |
 
 The comma clears itself on whatever Typst release first carries a newer hayagriva. Recount
 both after any upgrade.
@@ -75,11 +75,11 @@ both after any upgrade.
 
 The template is a separate repo; jdh-cli doesn't bundle it. `jdh-cli build --template` picks it:
 
-| `--template` | Template | `TYPST_FONT_PATHS` | MyST command |
-| --- | --- | --- | --- |
-| omitted | `../jdh-typst-template` next to jdh-cli | `<template>/fonts/fira_code` | `myst build --pdf` |
-| a path | that folder (absolute, or relative to the workdir) | `<template>/fonts/fira_code` | `myst build --pdf` |
-| a zip URL | downloaded by MyST to `_build/templates/typst/<sha256 of URL>/` | that folder's `fonts/fira_code` | `myst build --typst` |
+| `--template` | Template                                                        | `TYPST_FONT_PATHS`              | MyST command         |
+| ------------ | --------------------------------------------------------------- | ------------------------------- | -------------------- |
+| omitted      | `../jdh-typst-template` next to jdh-cli                         | `<template>/fonts/fira_code`    | `myst build --pdf`   |
+| a path       | that folder (absolute, or relative to the workdir)              | `<template>/fonts/fira_code`    | `myst build --pdf`   |
+| a zip URL    | downloaded by MyST to `_build/templates/typst/<sha256 of URL>/` | that folder's `fonts/fira_code` | `myst build --typst` |
 
 Every `exports[].template` in the workdir config is rewritten to the chosen template, so article repos never reference it. A missing local template fails the build with `Typst template not found`.
 
@@ -100,12 +100,12 @@ The other form MyST accepts is a name from the public MyST template registry (e.
 
 ## Plugin → Typst mapping
 
-| Plugin | Typst function | Theme token |
-| --- | --- | --- |
-| Hermeneutics | `#hermeneutics-block[...]` | `jdh-theme.hermeneutics` |
-| Narrative code | `#narrative-code-block[...]` | `jdh-theme.narrative-code`, `jdh-theme.code` |
-| JDH table | `#jdh-table-enter` / `#tablex` / `#jdh-table-leave` | `jdh-theme.table` |
-| Hide figure code | (node removal — no Typst output) | — |
+| Plugin           | Typst function                                      | Theme token                                  |
+| ---------------- | --------------------------------------------------- | -------------------------------------------- |
+| Hermeneutics     | `#hermeneutics-block[...]`                          | `jdh-theme.hermeneutics`                     |
+| Narrative code   | `#narrative-code-block[...]`                        | `jdh-theme.narrative-code`, `jdh-theme.code` |
+| JDH table        | `#jdh-table-enter` / `#tablex` / `#jdh-table-leave` | `jdh-theme.table`                            |
+| Hide figure code | (node removal — no Typst output)                    | —                                            |
 
 Plugins insert `raw` nodes whose `typst` field `myst-to-typst` writes verbatim.
 
@@ -113,19 +113,19 @@ Plugins insert `raw` nodes whose `typst` field `myst-to-typst` writes verbatim.
 
 Shared code truncation — `jdh-theme.code` in `jdh.typ`:
 
-| Token | Purpose |
-| --- | --- |
-| `font`, `size`, `line-height` | Monospace typography |
-| `max-lines`, `fade-lines` | Truncation before fade |
-| `more-text-size` | "N lines more" label size |
+| Token                         | Purpose                   |
+| ----------------------------- | ------------------------- |
+| `font`, `size`, `line-height` | Monospace typography      |
+| `max-lines`, `fade-lines`     | Truncation before fade    |
+| `more-text-size`              | "N lines more" label size |
 
 Container fills (independent):
 
-| Token | Purpose |
-| --- | --- |
-| `jdh-theme.hermeneutics` | Cyan blocks + code-marker sidebar |
-| `jdh-theme.narrative-code` | Gray narrative code blocks |
-| `jdh-theme.table` | `max-rows`, `max-columns`, zebra striping, "K rows more" footer |
+| Token                      | Purpose                                                         |
+| -------------------------- | --------------------------------------------------------------- |
+| `jdh-theme.hermeneutics`   | Cyan blocks + code-marker sidebar                               |
+| `jdh-theme.narrative-code` | Gray narrative code blocks                                      |
+| `jdh-theme.table`          | `max-rows`, `max-columns`, zebra striping, "K rows more" footer |
 
 Table truncation defaults in the plugin (`max-rows: 4`, `max-columns: 6`) align with `jdh-theme.table` unless overridden per directive.
 

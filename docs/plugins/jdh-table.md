@@ -10,9 +10,9 @@ Hand-written `:::{table}` directives in article source keep default MyST styling
 
 ## When used
 
-| Source | How |
-| --- | --- |
-| Pipeline | `improveJupytextTables` converts every `#region` with `table-*` tags |
+| Source        | How                                                                          |
+| ------------- | ---------------------------------------------------------------------------- |
+| Pipeline      | `improveJupytextTables` converts every `#region` with `table-*` tags         |
 | Hand-authored | Write `:::{jdh-table}` directly (uncommon; pipeline handles notebook tables) |
 
 ## Directive syntax
@@ -26,27 +26,27 @@ Hand-written `:::{table}` directives in article source keep default MyST styling
 :align: center
 
 | Header A | Header B |
-| --- | --- |
-| … | … |
-:::
+| -------- | -------- |
+| …        | …        |
+| :::      |
 ```
 
 Caption is the directive argument (no "Table N:" prefix — numbering is automatic).
 
 ## Options
 
-| Option | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | string | **yes** | — | Cross-reference anchor (e.g. `table:1`) |
-| `name` | string | no | — | Alias for `label` |
-| `max-rows` | number | no | `4` | Data rows shown before "K rows more"; `0` disables truncation |
-| `max-columns` | number | no | `6` | Data columns shown before ellipsis truncation; ellipsis is extra |
-| `header-rows` | number | no | auto | Rows treated as headers; pipeline sets when > 1 detected |
-| `total-rows` | number | no | — | Data rows in the full table when the body is already cut short (a pandas output with an `N rows × M columns` footer); "K rows more" counts from it |
-| `align` | string | no | `center` | Table alignment |
-| `class` | string | no | — | CSS class (HTML) |
-| `enumerated` | boolean | no | — | Table numbering; alias `numbered` |
-| `enumerator` | string | no | — | Custom enumerator; alias `number` |
+| Option        | Type    | Required | Default  | Description                                                                                                                                        |
+| ------------- | ------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`       | string  | **yes**  | —        | Cross-reference anchor (e.g. `table:1`)                                                                                                            |
+| `name`        | string  | no       | —        | Alias for `label`                                                                                                                                  |
+| `max-rows`    | number  | no       | `4`      | Data rows shown before "K rows more"; `0` disables truncation                                                                                      |
+| `max-columns` | number  | no       | `6`      | Data columns shown before ellipsis truncation; ellipsis is extra                                                                                   |
+| `header-rows` | number  | no       | auto     | Rows treated as headers; pipeline sets when > 1 detected                                                                                           |
+| `total-rows`  | number  | no       | —        | Data rows in the full table when the body is already cut short (a pandas output with an `N rows × M columns` footer); "K rows more" counts from it |
+| `align`       | string  | no       | `center` | Table alignment                                                                                                                                    |
+| `class`       | string  | no       | —        | CSS class (HTML)                                                                                                                                   |
+| `enumerated`  | boolean | no       | —        | Table numbering; alias `numbered`                                                                                                                  |
+| `enumerator`  | string  | no       | —        | Custom enumerator; alias `number`                                                                                                                  |
 
 Pipeline output always includes `:label:`, `:align: center`, `:header-rows:` when multiple header rows are detected, and `:total-rows:` for truncated pandas outputs. It emits `:max-rows:` only when `jdh-cli --table-max-rows <n>` is given; otherwise, and for `:max-columns:`, the plugin defaults apply.
 
@@ -54,10 +54,10 @@ Pipeline output always includes `:label:`, `:align: center`, `:header-rows:` whe
 
 From `plugins/lib/table-truncate.mjs` (overridable via `jdh-theme.table` in Typst):
 
-| Constant | Value | Meaning |
-| --- | --- | --- |
-| `DEFAULT_MAX_ROWS` | `4` | Data rows before summary row |
-| `DEFAULT_MAX_COLUMNS` | `6` | Data columns shown before ellipsis truncation |
+| Constant              | Value | Meaning                                       |
+| --------------------- | ----- | --------------------------------------------- |
+| `DEFAULT_MAX_ROWS`    | `4`   | Data rows before summary row                  |
+| `DEFAULT_MAX_COLUMNS` | `6`   | Data columns shown before ellipsis truncation |
 
 **Column truncation:** when source columns exceed `max-columns`, shows `ceil(n/2)` from the start, an ellipsis column (`…`), and `floor(n/2)` from the end — **6 data columns plus ellipsis** when `max-columns: 6`.
 

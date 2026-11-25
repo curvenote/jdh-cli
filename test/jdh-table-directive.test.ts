@@ -53,7 +53,12 @@ describe('jdh-table total-rows', () => {
   function build(options: Record<string, unknown>) {
     const [container] = jdhTable.run({
       arg: [{ type: 'text', value: 'Caption.' }],
-      body: [{ type: 'table', children: [row(['h'], true), ...['1', '2', '3', '4', '5', '6'].map((v) => row([v]))] }],
+      body: [
+        {
+          type: 'table',
+          children: [row(['h'], true), ...['1', '2', '3', '4', '5', '6'].map((v) => row([v]))],
+        },
+      ],
       options: { label: 'table:9', ...options },
     });
     const tree = { type: 'root', children: [container] };
