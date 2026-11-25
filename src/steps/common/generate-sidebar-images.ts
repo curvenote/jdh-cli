@@ -12,13 +12,26 @@ import {
   META_JDH_FILE,
   resolveBundledLogo,
 } from "../../init/bundled-assets.js";
-import { renderFingerprint } from "../shared/fingerprint.js";
+import { fingerprintFromNotebook } from "../shared/fingerprint-draw/index.js";
 import { resolveProjectConfigPath } from "../shared/myst-config.js";
 import { renderQrPng } from "../shared/qr-code.js";
 import { readYamlDocument } from "../shared/yaml-doc.js";
 import { articleUrl, resolveArticleId } from "./set-jdh-article-metadata.js";
 
 type SidebarImage = (typeof SIDEBAR_IMAGES)[number];
+
+/**
+ * Coordinate space the fingerprint is drawn in, which decides how heavy its strokes
+ * look once the sidebar scales it to ~38mm.
+ *
+ * The website's component holds its stroke widths and marker radii near-constant and
+ * lets the radius grow with `size`, so a larger size means relatively finer lines: at
+ * the viewer page's 616 the 1.2pt stroke lands at 0.21pt on the page, under the ~0.25pt
+ * hairline threshold renderers start dropping — which is the whole of JDH-101. Drawing
+ * at 400 puts it at 0.32pt. Smaller still is heavier, but by 260 the dots swamp the
+ * lines and it stops looking like the website's fingerprint.
+ */
+const FINGERPRINT_SIZE = 400;
 
 /** The article URL the QR code points to: `--url`, else the one set in myst.yml, else the JDH page for the repo's article id. */
 function resolveQrUrl(ctx: RunContext): string | null {
@@ -55,7 +68,9 @@ async function generate(
   }
   if (!fileExists(ctx.articleIpynb))
     throw new Error("no article.ipynb in the article repo");
-  const { svg } = await renderFingerprint(ctx.articleIpynb);
+  const svg = fingerprintFromNotebook(fs.readFileSync(ctx.articleIpynb, "utf8"), {
+    size: FINGERPRINT_SIZE,
+  });
 
   return { bytes: Buffer.from(svg, "utf8"), from: "article.ipynb", ext: "svg" };
 }
