@@ -1,0 +1,5 @@
+dist/
+docs/_build/
+node_modules/
+bun.lock
+templates/generated/
