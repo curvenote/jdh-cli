@@ -35,10 +35,12 @@ test('skips references.bib when the notebook has no citation-manager items', asy
 
 test('organisation authors are braced so BibTeX keeps them whole (JDH-048)', () => {
   // 6EWgjJtoiW6R: APA printed "(Sound Archives, 1975)" before this.
-  expect(formatNameList([{ family: 'International Association of Sound Archives', given: '' }])).toBe(
-    '{International Association of Sound Archives}',
+  expect(
+    formatNameList([{ family: 'International Association of Sound Archives', given: '' }]),
+  ).toBe('{International Association of Sound Archives}');
+  expect(formatNameList([{ literal: 'OpenAI' }, { family: 'Hellman', given: 'Heikki' }])).toBe(
+    '{OpenAI} and Hellman, Heikki',
   );
-  expect(formatNameList([{ literal: 'OpenAI' }, { family: 'Hellman', given: 'Heikki' }])).toBe('{OpenAI} and Hellman, Heikki');
   expect(formatNameList([{ family: 'Ernst & Co', given: '' }])).toBe('{Ernst \\& Co}');
 });
 
@@ -50,13 +52,32 @@ test('DOIs and URLs are written verbatim, without escaped underscores', async ()
     JSON.stringify({
       metadata: {
         'citation-manager': {
-          items: { zotero: { 'g/K': { type: 'article-journal', title: 'Roundtable', DOI: '10.17104/1611-8944_2012_1_98', URL: 'https://example.org/a_b%20c' } } },
+          items: {
+            zotero: {
+              'g/K': {
+                type: 'article-journal',
+                title: 'Roundtable',
+                DOI: '10.17104/1611-8944_2012_1_98',
+                URL: 'https://example.org/a_b%20c',
+              },
+            },
+          },
         },
       },
       cells: [],
     }),
   );
-  await jupyterZotero({ article: 'article.md', notebook: 'nb.ipynb', bib: 'refs.bib', myst: 'myst.yml', dryRun: false, rewriteMd: false, updateMyst: false, stripCitationManagerComments: false, cwd: dir });
+  await jupyterZotero({
+    article: 'article.md',
+    notebook: 'nb.ipynb',
+    bib: 'refs.bib',
+    myst: 'myst.yml',
+    dryRun: false,
+    rewriteMd: false,
+    updateMyst: false,
+    stripCitationManagerComments: false,
+    cwd: dir,
+  });
   const bib = fs.readFileSync(path.join(dir, 'refs.bib'), 'utf8');
   expect(bib).toContain('doi = {10.17104/1611-8944_2012_1_98}');
   expect(bib).toContain('url = {https://example.org/a_b%20c}');

@@ -38,8 +38,14 @@ export function parseGfmTable(markdown) {
     throw new Error('GFM table separator row not found');
   }
 
-  const headerRows = lines.slice(0, sepIdx).map(splitGfmRow).filter((row) => row.length > 0);
-  const dataRows = lines.slice(sepIdx + 1).map(splitGfmRow).filter((row) => row.length > 0);
+  const headerRows = lines
+    .slice(0, sepIdx)
+    .map(splitGfmRow)
+    .filter((row) => row.length > 0);
+  const dataRows = lines
+    .slice(sepIdx + 1)
+    .map(splitGfmRow)
+    .filter((row) => row.length > 0);
 
   return { headerRows, dataRows };
 }

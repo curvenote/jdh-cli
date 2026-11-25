@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import plugin, { dialogueToTypst, parseDialogue } from '../templates/plugins/jdh-dialogue.mjs';
-import { dialogueLabelFromTag, processArticle } from '../src/steps/jupytext/improve-dialogue-regions.js';
+import {
+  dialogueLabelFromTag,
+  processArticle,
+} from '../src/steps/jupytext/improve-dialogue-regions.js';
 import { processArticle as wrapHermeneutics } from '../src/steps/jupytext/improve-hermeneutics-blocks.js';
 
 // Shapes from Chronoferencing (6ig87tC5GKjQ): no leading pipes, &nbsp; for silence, a ragged row.
@@ -12,7 +15,12 @@ const WORLDCUP = [
   '| This is very bad | Because England... |',
 ].join('\n');
 
-const LENGTH = ['Termine | Aura', '------ | ---', 'And euhm, what can I say? | &nbsp;', '&nbsp; | Okay.'].join('\n');
+const LENGTH = [
+  'Termine | Aura',
+  '------ | ---',
+  'And euhm, what can I say? | &nbsp;',
+  '&nbsp; | Okay.',
+].join('\n');
 
 describe('parseDialogue', () => {
   test('speakers from the header, one slot per speaker per turn', () => {
@@ -34,12 +42,18 @@ describe('parseDialogue', () => {
   });
 
   test('<br> segments are kept as lines (Chronoferencing transcripts)', () => {
-    const md = '| Termine |\n|---|\n| from Italy to Slovenia<br> like on the regular basis daily<br> so to me |';
-    expect(parseDialogue(md).rows).toEqual([['from Italy to Slovenia\nlike on the regular basis daily\nso to me']]);
+    const md =
+      '| Termine |\n|---|\n| from Italy to Slovenia<br> like on the regular basis daily<br> so to me |';
+    expect(parseDialogue(md).rows).toEqual([
+      ['from Italy to Slovenia\nlike on the regular basis daily\nso to me'],
+    ]);
   });
 
   test('a single speaker', () => {
-    expect(parseDialogue('| Termime |\n|---|\n| A monologue. |')).toEqual({ speakers: ['Termime'], rows: [['A monologue.']] });
+    expect(parseDialogue('| Termime |\n|---|\n| A monologue. |')).toEqual({
+      speakers: ['Termime'],
+      rows: [['A monologue.']],
+    });
   });
 });
 
@@ -50,9 +64,15 @@ test('dialogueToTypst breaks lines between <br> segments', () => {
 });
 
 test('dialogueToTypst writes Typst arrays and escapes text', () => {
-  expect(dialogueToTypst({ speakers: ['A', 'B'], rows: [['Hi #1', null], [null, 'a_b']] })).toBe(
-    '#jdh-dialogue(speakers: ([A], [B],), rows: (([Hi \\#1], none,), (none, [a\\_b],),))\n',
-  );
+  expect(
+    dialogueToTypst({
+      speakers: ['A', 'B'],
+      rows: [
+        ['Hi #1', null],
+        [null, 'a_b'],
+      ],
+    }),
+  ).toBe('#jdh-dialogue(speakers: ([A], [B],), rows: (([Hi \\#1], none,), (none, [a\\_b],),))\n');
 });
 
 test('the directive makes a numbered "dialogue" container; the transform attaches the Typst body', () => {
@@ -67,7 +87,9 @@ test('the directive makes a numbered "dialogue" container; the transform attache
   plugin.transforms[0].plugin({}, { selectAll: () => [node] })({ type: 'root', children: [node] });
   expect(node.children.map((c: { type: string }) => c.type)).toEqual(['caption', 'div']);
   expect(node.children[0].children.map((c: { type: string }) => c.type)).toEqual(['paragraph']);
-  expect(node.children[1].children[0].typst).toStartWith('#jdh-dialogue(speakers: ([Priestar], [Aspect],)');
+  expect(node.children[1].children[0].typst).toStartWith(
+    '#jdh-dialogue(speakers: ([Priestar], [Aspect],)',
+  );
 });
 
 describe('improveDialogueRegions', () => {
@@ -94,7 +116,9 @@ describe('improveDialogueRegions', () => {
     const md = `<!-- #region tags=["hermeneutics", "dialog-conversation-length-*"] -->\n${LENGTH}\n<!-- #endregion -->`;
     const wrapped = wrapHermeneutics(processArticle(md).content).content;
     expect(wrapped).toStartWith(':::{hermeneutics}');
-    expect(wrapped).toContain('```{jdh-dialogue}\n:label: dlg:conversation-length\n\nTermine | Aura');
+    expect(wrapped).toContain(
+      '```{jdh-dialogue}\n:label: dlg:conversation-length\n\nTermine | Aura',
+    );
     expect(wrapped.trimEnd()).toEndWith('```\n:::');
   });
 });

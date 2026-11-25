@@ -90,6 +90,8 @@ describe('init project config', () => {
 
   test('normalizeGithubUrl handles ssh and https remotes', () => {
     expect(normalizeGithubUrl('git@github.com:org/repo.git')).toBe('https://github.com/org/repo');
-    expect(normalizeGithubUrl('https://github.com/org/repo.git')).toBe('https://github.com/org/repo');
+    expect(normalizeGithubUrl('https://github.com/org/repo.git')).toBe(
+      'https://github.com/org/repo',
+    );
   });
 });

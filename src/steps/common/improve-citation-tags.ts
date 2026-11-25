@@ -5,7 +5,6 @@ import { stepOpts } from '../../engine/step-context.js';
 import { listWorkdirAuthorBibFiles, loadAuthorBibEntries } from '../shared/author-bib.js';
 import { whenReferencesBib } from '../shared/when.js';
 
-
 interface RunImproveCitationTagsOptions {
   bib?: string;
   article?: string;
@@ -130,7 +129,10 @@ function normalizeKeyToken(s: string): string {
 
 function extractFamilyNames(authorField: string | undefined): string[] {
   if (!authorField) return [];
-  const parts = authorField.split(/\s+and\s+/i).map((p) => p.trim()).filter(Boolean);
+  const parts = authorField
+    .split(/\s+and\s+/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const families: string[] = [];
   for (const p of parts) {
     if (p.includes(',')) {
@@ -264,9 +266,7 @@ function rewriteMarkdownCitations(articleMd: string, keyMap: Map<string, string>
  * Improve BibTeX citation keys to human-friendly author–year keys,
  * and rewrite the article's MyST/pandoc citations to match.
  */
-async function improveCitationTags(
-  options: RunImproveCitationTagsOptions,
-): Promise<void> {
+async function improveCitationTags(options: RunImproveCitationTagsOptions): Promise<void> {
   const bibPath = path.resolve(options.cwd, options.bib ?? 'references.bib');
   const articlePath = path.resolve(options.cwd, options.article ?? 'article.md');
 
@@ -277,7 +277,9 @@ async function improveCitationTags(
   const citationPositions = getCitationFirstUsePositions(articleMd);
 
   const authorKeys = new Set(
-    loadAuthorBibEntries(options.cwd, listWorkdirAuthorBibFiles(options.cwd)).entries.map((e) => e.key),
+    loadAuthorBibEntries(options.cwd, listWorkdirAuthorBibFiles(options.cwd)).entries.map(
+      (e) => e.key,
+    ),
   );
   const keyMap = buildImprovedKeyMap(entries, citationPositions, authorKeys);
 

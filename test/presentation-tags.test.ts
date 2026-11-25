@@ -1,11 +1,24 @@
 import { describe, expect, test } from 'bun:test';
 import { processArticle as dropHidden } from '../src/steps/jupytext/drop-hidden-cells.js';
-import { anchorLabel, processArticle as linkAnchors } from '../src/steps/jupytext/improve-jupytext-anchors.js';
+import {
+  anchorLabel,
+  processArticle as linkAnchors,
+} from '../src/steps/jupytext/improve-jupytext-anchors.js';
 import { findJupytextCells } from '../src/steps/shared/jupytext-cells.js';
 
 describe('findJupytextCells', () => {
   test('a fence inside a region belongs to the region', () => {
-    const lines = ['<!-- #region tags=["a"] -->', '```python', 'x', '```', '<!-- #endregion -->', '', '```python tags=["b"]', 'y', '```'];
+    const lines = [
+      '<!-- #region tags=["a"] -->',
+      '```python',
+      'x',
+      '```',
+      '<!-- #endregion -->',
+      '',
+      '```python tags=["b"]',
+      'y',
+      '```',
+    ];
     expect(findJupytextCells(lines)).toEqual([
       { type: 'markdown', start: 0, end: 4, tags: ['a'] },
       { type: 'code', start: 6, end: 8, tags: ['b'] },
@@ -37,16 +50,31 @@ describe('dropHiddenCells', () => {
     ].join('\n');
     const { content, dropped } = dropHidden(md);
     expect(dropped).toBe(3);
-    expect(content).toBe(['Last paragraph.', '', '<!-- #region tags=["hermeneutics"] -->', 'Kept.', '<!-- #endregion -->'].join('\n'));
+    expect(content).toBe(
+      [
+        'Last paragraph.',
+        '',
+        '<!-- #region tags=["hermeneutics"] -->',
+        'Kept.',
+        '<!-- #endregion -->',
+      ].join('\n'),
+    );
   });
 
   test('a region marker with no space before its metadata (DQnMN3c5JU95)', () => {
-    const md = ['<!-- #regioneditable=true tags=["hidden"] -->', 'Not for the PDF.', '<!-- #endregion -->', '', 'Kept.'].join('\n');
+    const md = [
+      '<!-- #regioneditable=true tags=["hidden"] -->',
+      'Not for the PDF.',
+      '<!-- #endregion -->',
+      '',
+      'Kept.',
+    ].join('\n');
     expect(dropHidden(md).content).toBe('Kept.');
   });
 
   test('no hidden cells: unchanged', () => {
-    const md = '<!-- #region tags=["hermeneutics"] -->\nText with the word hidden.\n<!-- #endregion -->';
+    const md =
+      '<!-- #region tags=["hermeneutics"] -->\nText with the word hidden.\n<!-- #endregion -->';
     expect(dropHidden(md)).toEqual({ content: md, dropped: 0 });
   });
 });
@@ -79,20 +107,47 @@ describe('improveJupytextAnchors', () => {
   });
 
   test('wildcard anchors: target and links use the clean label', () => {
-    const md = ['<!-- #region tags=["anchor-section-2-*"] -->', '## Two', '<!-- #endregion -->', '', 'See [section 2](#anchor-section-2-*).'].join('\n');
+    const md = [
+      '<!-- #region tags=["anchor-section-2-*"] -->',
+      '## Two',
+      '<!-- #endregion -->',
+      '',
+      'See [section 2](#anchor-section-2-*).',
+    ].join('\n');
     const { content } = linkAnchors(md);
     expect(content).toContain('(anchor-section-2)=\n## Two');
     expect(content).toContain('See [section 2](#anchor-section-2).');
   });
 
   test('a link with a trailing wildcard reaches a tag without one (boXXEPfnFTRe)', () => {
-    const md = ['<!-- #region tags=["anchor-section-3"] -->', '## Three', '<!-- #endregion -->', '', 'See [section 3](#anchor-section-3-*).'].join('\n');
+    const md = [
+      '<!-- #region tags=["anchor-section-3"] -->',
+      '## Three',
+      '<!-- #endregion -->',
+      '',
+      'See [section 3](#anchor-section-3-*).',
+    ].join('\n');
     expect(linkAnchors(md).content).toContain('See [section 3](#anchor-section-3).');
   });
 
   test('code cells get a target in front of the fence', () => {
-    const md = ['```python tags=["anchor-code"]', 'x = 1', '```', '', '[the code](#anchor-code)'].join('\n');
-    expect(linkAnchors(md).content).toBe(['(anchor-code)=', '```python tags=["anchor-code"]', 'x = 1', '```', '', '[the code](#anchor-code)'].join('\n'));
+    const md = [
+      '```python tags=["anchor-code"]',
+      'x = 1',
+      '```',
+      '',
+      '[the code](#anchor-code)',
+    ].join('\n');
+    expect(linkAnchors(md).content).toBe(
+      [
+        '(anchor-code)=',
+        '```python tags=["anchor-code"]',
+        'x = 1',
+        '```',
+        '',
+        '[the code](#anchor-code)',
+      ].join('\n'),
+    );
   });
 
   test('figure cells are linked through their figure label, with no extra target', () => {
@@ -110,7 +165,15 @@ describe('improveJupytextAnchors', () => {
   });
 
   test('table cells are left to the table step', () => {
-    const md = ['<!-- #region tags=["table-1-*", "anchor-table-1"] -->', '| a |', '|---|', '| 1 |', '<!-- #endregion -->', '', '[table 1](#anchor-table-1)'].join('\n');
+    const md = [
+      '<!-- #region tags=["table-1-*", "anchor-table-1"] -->',
+      '| a |',
+      '|---|',
+      '| 1 |',
+      '<!-- #endregion -->',
+      '',
+      '[table 1](#anchor-table-1)',
+    ].join('\n');
     expect(linkAnchors(md)).toEqual({ content: md, anchors: [] });
   });
 

@@ -69,7 +69,10 @@ describe('pointExportsAtTemplate', () => {
   test('a URL template also sets format: typst', () => {
     const dir = mkTmp();
     const cfg = path.join(dir, 'myst.yml');
-    fs.writeFileSync(cfg, 'version: 1\nproject:\n  exports:\n    - format: pdf\n      template: ../../jdh-typst-template\n');
+    fs.writeFileSync(
+      cfg,
+      'version: 1\nproject:\n  exports:\n    - format: pdf\n      template: ../../jdh-typst-template\n',
+    );
     const url = 'https://github.com/curvenote/jdh-typst-template/archive/refs/tags/v0.1.0.zip';
     expect(pointExportsAtTemplate(cfg, url)).toBe(true);
     const out = fs.readFileSync(cfg, 'utf8');

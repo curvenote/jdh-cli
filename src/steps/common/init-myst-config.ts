@@ -71,7 +71,12 @@ function buildScaffold(projectId: string, extendMetadata: boolean): string {
 }
 
 /** Fill in what the pipeline needs on a hand-written myst.yml, keeping everything else. */
-export function completeConfig(doc: Document, projectId: string, extendMetadata: boolean, added: string[]): void {
+export function completeConfig(
+  doc: Document,
+  projectId: string,
+  extendMetadata: boolean,
+  added: string[],
+): void {
   if (!doc.has('version')) doc.set('version', 1);
   if (extendMetadata) {
     const ext = doc.get('extends');
@@ -135,7 +140,11 @@ async function initMystConfig(options: {
   // hand edits are kept and only what the pipeline needs is filled in.
   if (existedBefore) {
     const added: string[] = [];
-    updateYamlFile(configPath, (doc) => completeConfig(doc, projectId, extendMetadata, added), options.dryRun);
+    updateYamlFile(
+      configPath,
+      (doc) => completeConfig(doc, projectId, extendMetadata, added),
+      options.dryRun,
+    );
     process.stdout.write(
       `${options.dryRun ? '[dry-run] would use' : 'Using'} the repo's myst.yml as the base (id ${idSource}: ${projectId})` +
         (added.length ? `; added ${added.join(', ')}` : '') +

@@ -37,7 +37,10 @@ describe('hermeneutics blocks', () => {
   });
 
   test('consecutive prose cells share one block (JDH-061)', () => {
-    const tree = run({ type: 'root', children: [prose(), cellMarker(), prose(), cellMarker(), prose()] });
+    const tree = run({
+      type: 'root',
+      children: [prose(), cellMarker(), prose(), cellMarker(), prose()],
+    });
     const blocks = tree.children.filter((n: Node) => n.kind === 'hermeneutics');
     expect(blocks.map(wrappers)).toEqual([
       { opens: true, closes: false },
@@ -68,7 +71,9 @@ describe('hermeneutics blocks', () => {
     const nested = {
       type: 'block',
       kind: 'hermeneutics',
-      children: [{ type: 'container', children: [{ type: 'code', lang: 'python', value: 'x = 1' }] }],
+      children: [
+        { type: 'container', children: [{ type: 'code', lang: 'python', value: 'x = 1' }] },
+      ],
     };
     const tree = run({ type: 'root', children: [prose(), cellMarker(), nested] });
     const blocks = tree.children.filter((n: Node) => n.kind === 'hermeneutics');
@@ -94,7 +99,11 @@ describe('hermeneutics blocks', () => {
   test('content between two cells keeps them apart', () => {
     const tree = run({
       type: 'root',
-      children: [prose(), { type: 'paragraph', children: [{ type: 'text', value: 'main text' }] }, prose()],
+      children: [
+        prose(),
+        { type: 'paragraph', children: [{ type: 'text', value: 'main text' }] },
+        prose(),
+      ],
     });
     const blocks = tree.children.filter((n: Node) => n.kind === 'hermeneutics');
     expect(blocks.map(wrappers)).toEqual([
@@ -114,19 +123,25 @@ describe('wrapping tagged cells in :::{hermeneutics} (JDH-066)', () => {
   });
 
   test('tags= after the attributes Jupytext writes for a figure cell', () => {
-    const fence = '```python jdh={"module": "object", "object": {"source": ["PCA"], "type": "image"}} tags=["hermeneutics", "narrative"]';
+    const fence =
+      '```python jdh={"module": "object", "object": {"source": ["PCA"], "type": "image"}} tags=["hermeneutics", "narrative"]';
     const { content, codeBlocksWrapped } = wrapTaggedCells(cell(fence));
     expect(codeBlocksWrapped).toBe(1);
     expect(content).toContain(':::{hermeneutics}');
     // The redundant hermeneutics tag goes; every other attribute survives.
-    expect(content).toContain('```python jdh={"module": "object", "object": {"source": ["PCA"], "type": "image"}} tags=["narrative"]');
+    expect(content).toContain(
+      '```python jdh={"module": "object", "object": {"source": ["PCA"], "type": "image"}} tags=["narrative"]',
+    );
   });
 
   test('tags= after editable/slideshow attributes', () => {
-    const fence = '```python editable=true slideshow={"slide_type": ""} tags=["hermeneutics", "narrative"]';
+    const fence =
+      '```python editable=true slideshow={"slide_type": ""} tags=["hermeneutics", "narrative"]';
     const { content, codeBlocksWrapped } = wrapTaggedCells(cell(fence));
     expect(codeBlocksWrapped).toBe(1);
-    expect(content).toContain('```python editable=true slideshow={"slide_type": ""} tags=["narrative"]');
+    expect(content).toContain(
+      '```python editable=true slideshow={"slide_type": ""} tags=["narrative"]',
+    );
   });
 
   test('a cell without the tag is left alone', () => {

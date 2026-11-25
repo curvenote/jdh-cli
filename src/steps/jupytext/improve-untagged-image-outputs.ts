@@ -36,10 +36,15 @@ function cellCode(cell: { source?: string | string[] }): string {
 }
 
 /** First image output in a format Typst reads. */
-function firstImage(outputs: Parameters<typeof selectOutputs>[0]): { bytes: Buffer; ext: UntaggedImage['ext'] } | null {
+function firstImage(
+  outputs: Parameters<typeof selectOutputs>[0],
+): { bytes: Buffer; ext: UntaggedImage['ext'] } | null {
   for (const { mime, data } of selectOutputs(outputs).outputs) {
     if (!IMAGE_MIMES.includes(mime)) continue;
-    const bytes = mime === 'image/svg+xml' ? Buffer.from(data) : Buffer.from(data.replace(/\s+/g, ''), 'base64');
+    const bytes =
+      mime === 'image/svg+xml'
+        ? Buffer.from(data)
+        : Buffer.from(data.replace(/\s+/g, ''), 'base64');
     // Trust the bytes, not the MIME label (some "image/png" outputs are WebP).
     const ext = mime === 'image/svg+xml' ? 'svg' : imageFormat(bytes);
     if (ext) return { bytes, ext };
@@ -57,7 +62,8 @@ export function untaggedImageOutputs(nb: RawNotebook): UntaggedImage[] {
   (nb.cells ?? []).forEach((cell, index) => {
     if (cell.cell_type !== 'code') return;
     const tags = cellTags(cell);
-    if (kindFromTags(tags) || tags.includes('hidden') || tags.some((t) => t.startsWith('cover'))) return;
+    if (kindFromTags(tags) || tags.includes('hidden') || tags.some((t) => t.startsWith('cover')))
+      return;
     const code = cellCode(cell);
     if (!code) return;
     const image = firstImage(cell.outputs ?? []);
@@ -75,7 +81,8 @@ export function coverCells(nb: RawNotebook): CoverImage[] {
     if (cell.cell_type !== 'code' || !cellTags(cell).some((t) => t.startsWith('cover'))) return [];
     const code = cellCode(cell);
     if (!code) return [];
-    const imagePath = code.match(/\bImage\s*\(\s*(?:filename\s*=\s*)?["']([^"']+)["']/)?.[1] ?? null;
+    const imagePath =
+      code.match(/\bImage\s*\(\s*(?:filename\s*=\s*)?["']([^"']+)["']/)?.[1] ?? null;
     return [{ index, code, imagePath, output: firstImage(cell.outputs ?? []) }];
   });
 }
@@ -103,7 +110,14 @@ export function placeUntaggedImages(
   const missing: number[] = [];
   let next = 0;
   for (const img of [...images].sort((a, b) => a.index - b.index)) {
-    const at = fences.findIndex((f, i) => i >= next && lines.slice(f.start + 1, f.end).join('\n').trim() === img.code);
+    const at = fences.findIndex(
+      (f, i) =>
+        i >= next &&
+        lines
+          .slice(f.start + 1, f.end)
+          .join('\n')
+          .trim() === img.code,
+    );
     if (at < 0) {
       missing.push(img.index);
       continue;
@@ -133,24 +147,42 @@ export const improveUntaggedImageOutputsStep: PipelineStep = {
     if (!fs.existsSync(notebookPath)) return;
     const nb = JSON.parse(fs.readFileSync(notebookPath, 'utf8')) as RawNotebook;
     const images = untaggedImageOutputs(nb);
-    const withPaths: { index: number; code: string; rel: string; bytes?: Buffer; replace?: boolean }[] = images.map((img) => ({
+    const withPaths: {
+      index: number;
+      code: string;
+      rel: string;
+      bytes?: Buffer;
+      replace?: boolean;
+    }[] = images.map((img) => ({
       ...img,
       rel: `${OUTPUTS_DIR}/cell-${img.index}.${img.ext}`,
     }));
     // The cover (JDH-055): the file its code displays, else its stored image; never its code.
     for (const cover of coverCells(nb)) {
       const file = cover.imagePath?.replace(/^\.\//, '');
-      if (file && fs.existsSync(path.resolve(o.cwd, file))) withPaths.push({ ...cover, rel: file, replace: true });
+      if (file && fs.existsSync(path.resolve(o.cwd, file)))
+        withPaths.push({ ...cover, rel: file, replace: true });
       else if (cover.output)
-        withPaths.push({ ...cover, rel: `${OUTPUTS_DIR}/cover.${cover.output.ext}`, bytes: cover.output.bytes, replace: true });
-      else process.stdout.write(`Warning: cover cell ${cover.index} has no image file or stored image; left as code.\n`);
+        withPaths.push({
+          ...cover,
+          rel: `${OUTPUTS_DIR}/cover.${cover.output.ext}`,
+          bytes: cover.output.bytes,
+          replace: true,
+        });
+      else
+        process.stdout.write(
+          `Warning: cover cell ${cover.index} has no image file or stored image; left as code.\n`,
+        );
     }
     if (!withPaths.length) {
       process.stdout.write('No image outputs in untagged code cells.\n');
       return;
     }
     const articlePath = path.resolve(o.cwd, 'article.md');
-    const { content, placed, missing } = placeUntaggedImages(fs.readFileSync(articlePath, 'utf8'), withPaths);
+    const { content, placed, missing } = placeUntaggedImages(
+      fs.readFileSync(articlePath, 'utf8'),
+      withPaths,
+    );
     if (!o.dryRun) {
       for (const img of withPaths.filter((w) => w.bytes && placed.includes(w.index))) {
         const dest = path.resolve(o.cwd, img.rel);
@@ -159,7 +191,12 @@ export const improveUntaggedImageOutputsStep: PipelineStep = {
       }
       fs.writeFileSync(articlePath, content, 'utf8');
     }
-    process.stdout.write(`Placed ${placed.length} image(s) from code cells (cells ${placed.join(', ')}).\n`);
-    if (missing.length) process.stdout.write(`Warning: code for cell(s) ${missing.join(', ')} not found in article.md; images left out.\n`);
+    process.stdout.write(
+      `Placed ${placed.length} image(s) from code cells (cells ${placed.join(', ')}).\n`,
+    );
+    if (missing.length)
+      process.stdout.write(
+        `Warning: code for cell(s) ${missing.join(', ')} not found in article.md; images left out.\n`,
+      );
   },
 };

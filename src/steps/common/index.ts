@@ -7,3 +7,4 @@ export { improveCitationTagsStep } from './improve-citation-tags.js';
 export { enrichAffiliationsRorStep } from './enrich-affiliations-ror.js';
 export { extractGithubRemoteStep } from './extract-github-remote.js';
 export { setJdhArticleMetadataStep } from './set-jdh-article-metadata.js';
+export { generateSidebarImagesStep } from './generate-sidebar-images.js';

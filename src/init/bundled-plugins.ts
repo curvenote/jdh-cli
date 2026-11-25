@@ -27,9 +27,7 @@ export function resolveBundledPluginsDir(): string {
     if (fileExists(candidate)) return candidate;
   }
 
-  throw new Error(
-    `Bundled ${PLUGINS_DIR}/ directory not found. Rebuild jdh-cli: bun run build`,
-  );
+  throw new Error(`Bundled ${PLUGINS_DIR}/ directory not found. Rebuild jdh-cli: bun run build`);
 }
 
 /** Basenames of every bundled `*.mjs` plugin (sorted). */

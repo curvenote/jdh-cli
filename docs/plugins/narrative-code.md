@@ -10,10 +10,10 @@ This plugin has **no directive**. It is a document transform applied to eligible
 
 ## When used
 
-| Source | How |
-| --- | --- |
-| Pipeline | Does not emit anything; untagged fenced blocks from Jupytext pass through |
-| Hand-authored | Any `` ```lang `` fence, or `` ```lang tags=["narrative"] `` for explicit intent |
+| Source        | How                                                                          |
+| ------------- | ---------------------------------------------------------------------------- |
+| Pipeline      | Does not emit anything; untagged fenced blocks from Jupytext pass through    |
+| Hand-authored | Any ` ```lang ` fence, or ` ```lang tags=["narrative"] ` for explicit intent |
 
 ## Eligible code
 
@@ -24,10 +24,10 @@ Scope includes code inside admonitions, tab sets, tables, etc.
 
 ## Excluded code
 
-| Exclusion | Reason |
-| --- | --- |
-| Code inside `:::{hermeneutics}` | Handled by [hermeneutics](hermeneutics.md) plugin + template |
-| `{code-block}` labelled `code:fig:*` | Removed by [hide-figure-code](hide-figure-code.md) |
+| Exclusion                            | Reason                                                       |
+| ------------------------------------ | ------------------------------------------------------------ |
+| Code inside `:::{hermeneutics}`      | Handled by [hermeneutics](hermeneutics.md) plugin + template |
+| `{code-block}` labelled `code:fig:*` | Removed by [hide-figure-code](hide-figure-code.md)           |
 
 ## Syntax examples
 

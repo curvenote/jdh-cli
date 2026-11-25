@@ -13,7 +13,10 @@ import { captionFromJdh } from '../src/steps/shared/notebook-cells.js';
 
 describe('kindFromTags', () => {
   test('recognises numbered and descriptive tags of each kind', () => {
-    expect(kindFromTags(['hermeneutics', 'figure-1-*'])).toEqual({ kind: 'figure', tag: 'figure-1-*' });
+    expect(kindFromTags(['hermeneutics', 'figure-1-*'])).toEqual({
+      kind: 'figure',
+      tag: 'figure-1-*',
+    });
     expect(kindFromTags(['figure-pie-chart-citizen-scientists-country-*'])?.kind).toBe('figure');
     expect(kindFromTags(['fig:2'])?.kind).toBe('figure');
     expect(kindFromTags(['table-2', 'data-table'])).toEqual({ kind: 'table', tag: 'table-2' });
@@ -89,7 +92,10 @@ describe('selectOutputs', () => {
     const { outputs, dropped } = selectOutputs([
       { output_type: 'stream', data: undefined },
       { output_type: 'display_data', data: { 'text/plain': ['<Image>'], 'image/png': 'iVBOR' } },
-      { output_type: 'execute_result', data: { 'text/plain': 'df', 'text/html': ['<table>', '</table>'] } },
+      {
+        output_type: 'execute_result',
+        data: { 'text/plain': 'df', 'text/html': ['<table>', '</table>'] },
+      },
       { output_type: 'error' },
     ]);
     expect(dropped).toBe(2);
@@ -117,7 +123,12 @@ describe('readTaggedCells', () => {
             { output_type: 'stream' },
           ],
         },
-        { cell_type: 'code', metadata: { tags: ['hermeneutics'] }, source: 'print(1)', outputs: [] },
+        {
+          cell_type: 'code',
+          metadata: { tags: ['hermeneutics'] },
+          source: 'print(1)',
+          outputs: [],
+        },
       ],
     });
     expect(cells).toHaveLength(1);
@@ -135,10 +146,14 @@ describe('readTaggedCells', () => {
 describe('captionFromJdh', () => {
   test('joins caption pieces with a space when they lack one', () => {
     // 7XSDVCtnbXva: a URL piece followed by "(Copyright …)" must not run together.
-    expect(captionFromJdh({ object: { source: ['UNData (2016), https://data.un.org/x?a=1&b=2', '(Copyright UNData.)'] } })).toBe(
-      'UNData (2016), https://data.un.org/x?a=1&b=2 (Copyright UNData.)',
+    expect(
+      captionFromJdh({
+        object: { source: ['UNData (2016), https://data.un.org/x?a=1&b=2', '(Copyright UNData.)'] },
+      }),
+    ).toBe('UNData (2016), https://data.un.org/x?a=1&b=2 (Copyright UNData.)');
+    expect(captionFromJdh({ object: { source: ['Line one\n', 'line two'] } })).toBe(
+      'Line one\nline two',
     );
-    expect(captionFromJdh({ object: { source: ['Line one\n', 'line two'] } })).toBe('Line one\nline two');
   });
 });
 
@@ -150,10 +165,17 @@ describe('audio helpers', () => {
   });
 
   test('hasAudioOutput', () => {
-    const out = (mime: string, html?: string) => ({ mime, data: '', text: html ? { 'text/html': html } : {}, metadata: {} });
+    const out = (mime: string, html?: string) => ({
+      mime,
+      data: '',
+      text: html ? { 'text/html': html } : {},
+      metadata: {},
+    });
     expect(hasAudioOutput({ outputs: [out('text/html', '<audio controls></audio>')] })).toBe(true);
     expect(hasAudioOutput({ outputs: [out('audio/mpeg')] })).toBe(true);
-    expect(hasAudioOutput({ outputs: [out('image/png'), out('text/html', '<div></div>')] })).toBe(false);
+    expect(hasAudioOutput({ outputs: [out('image/png'), out('text/html', '<div></div>')] })).toBe(
+      false,
+    );
     expect(hasAudioOutput(undefined)).toBe(false);
   });
 });

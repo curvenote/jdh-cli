@@ -54,7 +54,15 @@ describe.skipIf(!hasArticle)('jupytext pipeline', () => {
 
     const workdir = '_improved';
     const res = runCli(
-      ['article.md', '--project-root', '.', '--workdir', workdir, '--no-ror-lookup'],
+      [
+        'article.md',
+        '--project-root',
+        '.',
+        '--workdir',
+        workdir,
+        '--no-ror-lookup',
+        '--no-generate-images',
+      ],
       tmpDir,
     );
 
@@ -70,12 +78,15 @@ describe.skipIf(!hasArticle)('jupytext pipeline', () => {
     expect(myst).toContain('plugins/narrative-code.mjs');
     expect(myst).toContain('plugins/hide-figure-code.mjs');
     expect(myst).not.toContain('[![orcid]');
-    expect(readYaml<{ project: { authors: { name: string }[] } }>(path.join(improved, 'myst.yml')).project.authors[0].name).toBe(
-      'Maximilian C. Teich',
-    );
+    expect(
+      readYaml<{ project: { authors: { name: string }[] } }>(path.join(improved, 'myst.yml'))
+        .project.authors[0].name,
+    ).toBe('Maximilian C. Teich');
     expect(fileExists(path.join(improved, 'plugins', 'hermeneutics.mjs'))).toBe(true);
     // The article's own licence, from the JDH API or its copyright cell (JDH-041).
-    expect(readYaml<{ project: { license: string } }>(path.join(improved, 'myst.yml')).project.license).toBe('CC-BY-NC-ND-4.0');
+    expect(
+      readYaml<{ project: { license: string } }>(path.join(improved, 'myst.yml')).project.license,
+    ).toBe('CC-BY-NC-ND-4.0');
     expect(fileExists(path.join(improved, 'meta-jdh.yml'))).toBe(true);
     const meta = fs.readFileSync(path.join(improved, 'meta-jdh.yml'), 'utf8');
     expect(meta).toContain('license: CC-BY-NC-ND-4.0');

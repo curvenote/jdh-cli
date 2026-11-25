@@ -50,7 +50,7 @@ improveNotebookFigures · src/steps/jupytext/improve-notebook-figures.ts
 
 Today a Python cell becomes a `{figure}` only if all four checks pass. If any fails, the cell stays a code block and the narrative-code plugin prints it in the PDF.
 
-check 1**Python fence**The cell is a ```` ```python ```` block
+check 1**Python fence**The cell is a ` ```python ` block
 
 check 2**Numbered tag**`figure-1-*`, `figure_1` or `fig:1`. Descriptive names fail
 
@@ -58,18 +58,18 @@ check 3**Image file call**`display(Image("path"…))` in the code
 
 check 4**Caption in the code**A `"source": ["…"]` literal inside the code itself
 
-| Cell · tag | Numbered tag | Image file | Caption in code | Caption elsewhere | Output in notebook | Today |
-| --- | --- | --- | --- | --- | --- | --- |
-| BHmHNQKJaSWT: 4 of 4 figures render |  |  |  |  |  |  |
-| 42 · figure-1-\* | yes | media/figure1.png | yes | output metadata | `image/png` (same bytes as the file) | figure |
-| 55 · figure-2-\* | yes | media/figure2.png | yes | output metadata | `image/png` (same) | figure |
-| 57 · figure-3-\* | yes | media/figure3.png | yes | output metadata, **stale** | `image/png` (same) | figure |
-| 60 · figure-4-\* | yes | media/figure4.png | yes | output metadata, **stale** | `image/png` (same) | figure |
-| Chronoferencing: 0 of 7 figures render |  |  |  |  |  |  |
-| 21 · figure-digital-history-practices-\* | descriptive | media/alternative_graph.png | no | cell metadata | `image/png` | code block |
-| 30 · figure-pie-chart-citizen-scientists-country-\* | descriptive | computed (Plotly) | no | cell metadata | `text/html` ×2 only | code block |
-| 33 · figure-cartoon-\* | descriptive | media/cartoon.png | no | cell metadata | `image/png` | code block |
-| 135, 138, 140, 142 · figure-upload-…, figure-dig-cafe-…, figure-post-comments-…, figure-average-no-comments-… | descriptive | media/\*.png | yes | – | `image/png` | code block |
+| Cell · tag                                                                                                    | Numbered tag | Image file                  | Caption in code | Caption elsewhere          | Output in notebook                   | Today      |
+| ------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------- | --------------- | -------------------------- | ------------------------------------ | ---------- |
+| BHmHNQKJaSWT: 4 of 4 figures render                                                                           |              |                             |                 |                            |                                      |            |
+| 42 · figure-1-\*                                                                                              | yes          | media/figure1.png           | yes             | output metadata            | `image/png` (same bytes as the file) | figure     |
+| 55 · figure-2-\*                                                                                              | yes          | media/figure2.png           | yes             | output metadata            | `image/png` (same)                   | figure     |
+| 57 · figure-3-\*                                                                                              | yes          | media/figure3.png           | yes             | output metadata, **stale** | `image/png` (same)                   | figure     |
+| 60 · figure-4-\*                                                                                              | yes          | media/figure4.png           | yes             | output metadata, **stale** | `image/png` (same)                   | figure     |
+| Chronoferencing: 0 of 7 figures render                                                                        |              |                             |                 |                            |                                      |            |
+| 21 · figure-digital-history-practices-\*                                                                      | descriptive  | media/alternative_graph.png | no              | cell metadata              | `image/png`                          | code block |
+| 30 · figure-pie-chart-citizen-scientists-country-\*                                                           | descriptive  | computed (Plotly)           | no              | cell metadata              | `text/html` ×2 only                  | code block |
+| 33 · figure-cartoon-\*                                                                                        | descriptive  | media/cartoon.png           | no              | cell metadata              | `image/png`                          | code block |
+| 135, 138, 140, 142 · figure-upload-…, figure-dig-cafe-…, figure-post-comments-…, figure-average-no-comments-… | descriptive  | media/\*.png                | yes             | –                          | `image/png`                          | code block |
 
 So BHmHNQKJaSWT isn't a representative test. Every figure is a file on disk with a numbered tag and a caption in the code, and the notebook adds nothing the pipeline needs. Chronoferencing fails for mixed reasons, and only one of them (cell 30) involves an output that exists nowhere but the notebook. Side effects in its PDF: 98 pages, and broken "see Figure" links (`No target for internal reference "#figure-average-no-comments-per-post-*"`).
 
@@ -86,7 +86,7 @@ article.md already has it
 The information is in the markdown; jdh-cli just doesn't recognise it.
 
 - Descriptive tags like `figure-cartoon-*`: 162 tags in 16 of 40 articles
-- Captions in cell metadata, which Jupytext writes into the fence line: ```` ```python jdh={"object":{"source":["…"]}} tags=[…] ````
+- Captions in cell metadata, which Jupytext writes into the fence line: ` ```python jdh={"object":{"source":["…"]}} tags=[…] `
 - Tables, video and audio tags beyond `table-1`
 
 only article.ipynb has it

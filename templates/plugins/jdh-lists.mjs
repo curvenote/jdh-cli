@@ -10,7 +10,8 @@
  */
 
 const BOX = '#box(width: 0.65em, height: 0.65em, stroke: 0.5pt, baseline: 0.05em)';
-const TICKED = '#box(width: 0.65em, height: 0.65em, stroke: 0.5pt, baseline: 0.05em, align(center + horizon, text(size: 0.6em, sym.checkmark)))';
+const TICKED =
+  '#box(width: 0.65em, height: 0.65em, stroke: 0.5pt, baseline: 0.05em, align(center + horizon, text(size: 0.6em, sym.checkmark)))';
 
 const listsForTypst = {
   name: 'jdh-lists-for-typst',

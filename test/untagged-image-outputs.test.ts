@@ -1,14 +1,22 @@
 import { describe, expect, test } from 'bun:test';
-import { coverCells, imageBlock, placeUntaggedImages, untaggedImageOutputs } from '../src/steps/jupytext/improve-untagged-image-outputs.js';
+import {
+  coverCells,
+  imageBlock,
+  placeUntaggedImages,
+  untaggedImageOutputs,
+} from '../src/steps/jupytext/improve-untagged-image-outputs.js';
 import type { RawNotebook } from '../src/steps/shared/notebook-cells.js';
 
 // 1×1 PNG.
-const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 const codeCell = (source: string, tags: string[] = [], png = true) => ({
   cell_type: 'code',
   source,
   metadata: { tags },
-  outputs: png ? [{ output_type: 'display_data', data: { 'image/png': PNG, 'text/plain': '<Figure>' } }] : [],
+  outputs: png
+    ? [{ output_type: 'display_data', data: { 'image/png': PNG, 'text/plain': '<Figure>' } }]
+    : [],
 });
 
 describe('untaggedImageOutputs (JDH-046)', () => {
@@ -45,14 +53,21 @@ describe('placeUntaggedImages', () => {
       '```',
     ].join('\n');
     const { content, placed } = placeUntaggedImages(md, [
-      { index: 7, code: 'from IPython.display import Image\nplot_result(a)', rel: 'notebook-outputs/cell-7.png' },
+      {
+        index: 7,
+        code: 'from IPython.display import Image\nplot_result(a)',
+        rel: 'notebook-outputs/cell-7.png',
+      },
     ]);
     expect(placed).toEqual([7]);
     expect(content).toBe(md + '\n' + imageBlock('notebook-outputs/cell-7.png'));
   });
 
   test('a cell whose code is not in article.md is reported', () => {
-    expect(placeUntaggedImages('```python\nx = 1\n```', [{ index: 3, code: 'y = 2', rel: 'r.png' }]).missing).toEqual([3]);
+    expect(
+      placeUntaggedImages('```python\nx = 1\n```', [{ index: 3, code: 'y = 2', rel: 'r.png' }])
+        .missing,
+    ).toEqual([3]);
   });
 });
 
@@ -60,7 +75,10 @@ describe('cover (JDH-055)', () => {
   test('a cover cell gives the file its code displays and its stored image', () => {
     const nb: RawNotebook = {
       cells: [
-        codeCell('from IPython.display import Image, display\n\ndisplay(Image("./media/cover.png"))', ['cover']),
+        codeCell(
+          'from IPython.display import Image, display\n\ndisplay(Image("./media/cover.png"))',
+          ['cover'],
+        ),
         codeCell('display(Image("x.png"))', []),
         codeCell('make_cover()', ['cover'], false),
       ],
@@ -85,12 +103,26 @@ describe('cover (JDH-055)', () => {
     ].join('\n');
     const { content, placed } = placeUntaggedImages(md, [
       { index: 5, code: 'plot(a)', rel: 'notebook-outputs/cell-5.png' },
-      { index: 3, code: 'display(Image("media/cover.jpg"))', rel: 'media/cover.jpg', replace: true },
+      {
+        index: 3,
+        code: 'display(Image("media/cover.jpg"))',
+        rel: 'media/cover.jpg',
+        replace: true,
+      },
     ]);
     expect(placed).toEqual([3, 5]);
     expect(content).not.toContain('display(Image("media/cover.jpg"))');
     expect(content).toBe(
-      ['# Title', '', imageBlock('media/cover.jpg'), '', '```python', 'plot(a)', '```', imageBlock('notebook-outputs/cell-5.png')].join('\n'),
+      [
+        '# Title',
+        '',
+        imageBlock('media/cover.jpg'),
+        '',
+        '```python',
+        'plot(a)',
+        '```',
+        imageBlock('notebook-outputs/cell-5.png'),
+      ].join('\n'),
     );
   });
 });

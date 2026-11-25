@@ -5,6 +5,7 @@ Turns a Journal of Digital History article repo (Jupytext `article.md` + `articl
 ## Getting started
 
 **Prerequisites:**
+
 - [Bun](https://bun.sh).
 - The [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template): either checked out next to `jdh-cli`, or fetched from a release with `jdh-cli build --template <zip URL>` (see [The Typst template](#the-typst-template)).
 - For PDF builds, two tools on the PATH, which jdh-cli doesn't bundle:
@@ -28,31 +29,32 @@ jdh-cli build             # → _improved/article.pdf
 
 ### Commands
 
-| Command | What it does | Common options |
-| --- | --- | --- |
-| `jdh-cli article.md` | Convert the article: runs the 18-step pipeline into `_improved/` | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--table-max-rows`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
-| `jdh-cli build` | Build the PDF from `_improved/` with `myst build --pdf` | `--template <path or zip URL>`, `--figure-placement` |
-| `jdh-cli clean` | Delete `_improved/` | `--dry-run` |
-| `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place; hand edits there win over derived values ([details](docs/cli.md#iterate-in-place)) | |
-| `jdh-cli --help` | Help for any command (`jdh-cli build --help`) | `--version` |
+| Command              | What it does                                                                                                                                                                              | Common options                                                                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `jdh-cli article.md` | Convert the article: runs the 19-step pipeline into `_improved/`                                                                                                                          | `--doi`, `--url`, `--qr-code`, `--fingerprint`, `--no-generate-images`, `--table-max-rows`, `--no-ror-lookup`, `--list-steps`, `--dry-run` |
+| `jdh-cli build`      | Build the PDF from `_improved/` with `myst build --pdf`                                                                                                                                   | `--template <path or zip URL>`, `--figure-placement`                                                                                       |
+| `jdh-cli clean`      | Delete `_improved/`                                                                                                                                                                       | `--dry-run`                                                                                                                                |
+| `jdh-cli init [dir]` | Optional: write `myst.yml` and `meta-jdh.yml` into the article repo, to customise or iterate in place; hand edits there win over derived values ([details](docs/cli.md#iterate-in-place)) |                                                                                                                                            |
+| `jdh-cli --help`     | Help for any command (`jdh-cli build --help`)                                                                                                                                             | `--version`                                                                                                                                |
 
 Convert, `build` and `clean` also accept `--project-root <path>` (default: the input file's folder for convert, the current folder for `build` and `clean`) and `--workdir <path>` (default `_improved`).
 
 ### Convert options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--doi <doi>` | Looked up from the JDH API | Set the article DOI (`project.doi`). Accepts `10.…`, `doi:10.…` or a doi.org URL |
-| `--url <url>` | JDH article page from the repo name | Set the article URL (`project.social.url`) |
-| `--qr-code <path\|url>` | Repo's `generated/qr.png`, else a placeholder | QR code image for the PDF sidebar: a local file or an http(s) URL. PNG, JPEG, GIF or SVG (checked by its bytes) |
-| `--fingerprint <path\|url>` | Repo's `generated/fingerprint.png`, else a placeholder | Fingerprint image for the PDF sidebar, as for `--qr-code` |
-| `--table-max-rows <n>` | `4` | Rows a table shows before "K rows more"; `0` shows every row. Applies to every table in the run; a table's own `:max-rows:` wins |
-| `--no-zotero` | notebook metadata used | Ignore the notebook's citation metadata (both `citation-manager` and cite2c) and rely on the repo's `.bib` files. For articles that cite `[@key]` directly; `<cite>` tags then become plain text |
-| `--no-ror-lookup` | ROR lookups on | Skip resolving affiliations via the ROR API (faster, offline) |
-| `--ror-min-score <0..1>` | `0.8` | ROR match threshold |
-| `--orcid-lookup` | off | Enrich authors via ORCID |
-| `--list-steps` | | Print the pipeline steps and exit |
-| `-d, --dry-run` | | Show what would happen without writing files |
+| Option                      | Default                                                                | Description                                                                                                                                           |
+| --------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--doi <doi>`               | Looked up from the JDH API                                             | Set the article DOI (`project.doi`). Accepts `10.…`, `doi:10.…` or a doi.org URL                                                                      |
+| `--url <url>`               | JDH article page from the repo name                                    | Set the article URL (`project.social.url`)                                                                                                            |
+| `--qr-code <path\|url>`     | Repo's `generated/qr.png`, else generated from the article URL         | QR code image for the PDF sidebar: a local file or an http(s) URL. PNG, JPEG, GIF or SVG (checked by its bytes)                                       |
+| `--fingerprint <path\|url>` | Repo's `generated/fingerprint.png`, else rendered from `article.ipynb` | Fingerprint image for the PDF sidebar, as for `--qr-code`                                                                                             |
+| `--no-generate-images`      | Images generated                                                       | Don't generate the QR code and fingerprint; use placeholders when none is given or in the repo                                                        |
+| `--table-max-rows <n>`      | `4`                                                                    | Rows a table shows before "K rows more"; `0` shows every row. Applies to every table in the run; a table's own `:max-rows:` wins                      |
+| `--no-zotero`               | Zotero data used                                                       | Ignore the notebook's Zotero data and rely on the repo's `.bib` files. For articles that cite `[@key]` directly; `<cite>` tags then become plain text |
+| `--no-ror-lookup`           | ROR lookups on                                                         | Skip resolving affiliations via the ROR API (faster, offline)                                                                                         |
+| `--ror-min-score <0..1>`    | `0.8`                                                                  | ROR match threshold                                                                                                                                   |
+| `--orcid-lookup`            | off                                                                    | Enrich authors via ORCID                                                                                                                              |
+| `--list-steps`              |                                                                        | Print the pipeline steps and exit                                                                                                                     |
+| `-d, --dry-run`             |                                                                        | Show what would happen without writing files                                                                                                          |
 
 The DOI comes from the JDH API (`/api/articles/<id>/?format=json`) using the article ID in the repo name (e.g. `jdh-observer/BHmHNQKJaSWT`); the URL is the article's JDH page. When the API can't supply a DOI (unreachable, article not found or not yet public, no usable `doi` field), jdh-cli prints a warning saying which and builds without one. `--doi` always wins, with no lookup. During production, before an article is published, pass `--doi` (and `--url`) explicitly:
 
@@ -65,7 +67,7 @@ jdh-cli article.md --doi 10.1515/jdh-2025-0002 --url https://journalofdigitalhis
 A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 - the bundled `meta-jdh.yml` (licence, PDF export), unless the repo has its own
-- the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else clearly marked placeholders (with a warning, since a real article needs the real images)
+- the QR code and fingerprint images: from `--qr-code` / `--fingerprint`, else the repo's own `generated/qr.png` / `fingerprint.png`, else generated: the QR code from the article URL, the fingerprint drawn from `article.ipynb` with no browser and no network call. If generation fails, clearly marked placeholders with a warning
 - `myst.yml` with authors, affiliations, DOI, URL and GitHub link
 - the MyST plugins for hermeneutics blocks, narrative code, JDH tables, dialogue and lists
 - `references.bib` from the notebook's citation metadata — `citation-manager` items or cite2c's `metadata.cite2c.citations` — plus any `.bib` files in the article repo (e.g. `direct.bib`)
@@ -75,11 +77,11 @@ A plain JDH article repo is enough. In `_improved/`, jdh-cli adds:
 
 [`jdh-typst-template`](https://github.com/curvenote/jdh-typst-template) is a separate repo; jdh-cli doesn't bundle it. `jdh-cli build` uses it in one of two ways:
 
-| `--template` | Where the template comes from | Fonts (`TYPST_FONT_PATHS`) |
-| --- | --- | --- |
-| omitted | `../jdh-typst-template` next to the jdh-cli checkout | `<template>/fonts/fira_code` |
-| a path | that folder (absolute, or relative to the workdir) | `<template>/fonts/fira_code` |
-| a zip URL | downloaded by MyST into `_improved/_build/templates/typst/<sha256 of URL>/` and cached | that folder's `fonts/fira_code` |
+| `--template` | Where the template comes from                                                          | Fonts (`TYPST_FONT_PATHS`)      |
+| ------------ | -------------------------------------------------------------------------------------- | ------------------------------- |
+| omitted      | `../jdh-typst-template` next to the jdh-cli checkout                                   | `<template>/fonts/fira_code`    |
+| a path       | that folder (absolute, or relative to the workdir)                                     | `<template>/fonts/fira_code`    |
+| a zip URL    | downloaded by MyST into `_improved/_build/templates/typst/<sha256 of URL>/` and cached | that folder's `fonts/fira_code` |
 
 ```bash
 jdh-cli build                                          # sibling checkout
@@ -100,16 +102,16 @@ The first build needs network access; later builds reuse the cached copy. `jdh-c
 
 Both notebook citation formats are read. `citation-manager` keeps its items under `metadata['citation-manager']` and writes `<cite id="…">(Author, 2003)</cite>`; **cite2c** keeps them under `metadata.cite2c.citations` and writes an empty `<cite data-cite="1787664/QEP4R77C"></cite>`, with the item id in the attribute and nothing to fall back on. cite2c's `{year, month, day}` dates are converted to CSL `date-parts` on the way in. A cite2c marker whose id is in no bibliography is left in the markdown rather than deleted, so an empty `()` can't hide it.
 
-**One pair of parentheses.** Authors wrap citations in their own brackets, which would print as `((Author, 2023))`. A pair holding *nothing but* citations, page locators and short connectives is lifted whole into one MyST citation; anything longer is left alone:
+**One pair of parentheses.** Authors wrap citations in their own brackets, which would print as `((Author, 2023))`. A pair holding _nothing but_ citations, page locators and short connectives is lifted whole into one MyST citation; anything longer is left alone:
 
-| The author wrote | The PDF prints |
-|---|---|
-| `(<cite/>)` | `(Milligan, 2019)` |
-| `(<cite/> p. 203)` — comma optional | `(Milligan, 2019, p. 203)` |
-| `(<cite/>, <cite/>)` | `(Crane, 2018; Mold et al., 2019)` |
-| `(e.g. <cite/>, <cite/>)` | `(e.g. Crane, 2018; Mold et al., 2019)` |
-| `(<cite/>, 1085; <cite/>)` | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
-| `(as argued <cite/> and later)` | left as the author's own parentheses |
+| The author wrote                    | The PDF prints                                   |
+| ----------------------------------- | ------------------------------------------------ |
+| `(<cite/>)`                         | `(Milligan, 2019)`                               |
+| `(<cite/> p. 203)` — comma optional | `(Milligan, 2019, p. 203)`                       |
+| `(<cite/>, <cite/>)`                | `(Crane, 2018; Mold et al., 2019)`               |
+| `(e.g. <cite/>, <cite/>)`           | `(e.g. Crane, 2018; Mold et al., 2019)`          |
+| `(<cite/>, 1085; <cite/>)`          | `(Bialasiewicz & Minca, 2010, 1085; Faro, 2005)` |
+| `(as argued <cite/> and later)`     | left as the author's own parentheses             |
 
 A locator must open with a page marker, a number or a roman numeral, so prose isn't mistaken for one. `and` between two keys becomes `;`: MyST reads only `;` there, and Typst fails the whole document on the label it otherwise looks for.
 
@@ -123,7 +125,7 @@ Files the article repo provides take precedence. With `jdh-cli init`, edits to t
 
 ## Pipeline
 
-`jdh-cli article.md --list-steps` prints the 18 steps: prepare workdir, init `myst.yml`, cell numbers, citations, citation keys, front matter, ROR affiliations, document parts, hidden cells, anchors, figures (including video and audio), notebook tables, table regions, dialogues, hermeneutics blocks, images from untagged code cells (including the cover), GitHub link, and the JDH article metadata (DOI, URL, date, licence, issue). Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
+`jdh-cli article.md --list-steps` prints the 19 steps: prepare workdir, init `myst.yml`, cell numbers, citations, citation keys, front matter, ROR affiliations, document parts, hidden cells, anchors, figures (including video and audio), notebook tables, table regions, dialogues, hermeneutics blocks, images from untagged code cells (including the cover), GitHub link, the JDH article metadata (DOI, URL, date, licence, issue), and the QR code and fingerprint images. Figures and tables read `article.ipynb`: figure images and dataframe tables that exist only as notebook output end up in the PDF.
 
 ## Documentation
 
@@ -159,7 +161,7 @@ jdh-cli/
       common/            shared steps (one file each)
       jupytext/          notebook / region steps
       shared/            notebook reader, YAML read/write helpers, guards
-  templates/             shipped assets (meta-jdh.yml, plugins/*.mjs, placeholder generated/*.png)
+  templates/             shipped assets (meta-jdh.yml, plugins/*.mjs, placeholder generated/*.png, assets/ logo for the QR code)
 ```
 
 All pipeline logic lives in `src/steps/`.

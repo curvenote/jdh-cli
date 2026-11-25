@@ -223,7 +223,9 @@ async function enrichAuthorsAffiliations(
       affiliations.push({
         institution: resolved.name,
         ror: resolved.id,
-        ...(normalizeOrgName(resolved.name) !== normalizeOrgName(affiliation) ? { name: affiliation } : {}),
+        ...(normalizeOrgName(resolved.name) !== normalizeOrgName(affiliation)
+          ? { name: affiliation }
+          : {}),
       });
     }
     enriched.push({ ...author, affiliations });
@@ -236,9 +238,7 @@ async function enrichAuthorsAffiliations(
  * Enrich author affiliation strings in the project config using ROR (Research Organization Registry).
  * Resolves plain-string affiliations to MyST affiliation objects with `institution` and `ror` fields.
  */
-async function enrichAffiliationsRor(
-  options: RunEnrichAffiliationsRorOptions,
-): Promise<void> {
+async function enrichAffiliationsRor(options: RunEnrichAffiliationsRorOptions): Promise<void> {
   const cwd = options.cwd;
   const minScore = options.minScore ?? DEFAULT_MIN_SCORE;
 

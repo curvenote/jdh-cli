@@ -75,7 +75,9 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
   // Author-supplied bibliographies (e.g. direct.bib); registered by the citations step.
   for (const bib of listProjectBibFiles(projectRoot)) {
     const dest = authorBibWorkdirName(bib);
-    console.log(`  - ${options.dryRun ? 'would copy' : 'copy    '} ${bib}${dest !== bib ? ` → ${dest}` : ''}`);
+    console.log(
+      `  - ${options.dryRun ? 'would copy' : 'copy    '} ${bib}${dest !== bib ? ` → ${dest}` : ''}`,
+    );
     if (!options.dryRun) fs.copyFileSync(path.join(projectRoot, bib), path.join(workdirAbs, dest));
     copied++;
   }
@@ -88,18 +90,21 @@ export async function prepareWorkdir(ctx: RunContext): Promise<void> {
     { qrCode: options.qrCode, fingerprint: options.fingerprint },
     options.dryRun,
   );
-  const suppliedFiles = new Set(SIDEBAR_IMAGES.filter((i) => supplied.has(i.exportKey)).map((i) => i.file));
+  const suppliedFiles = new Set(
+    SIDEBAR_IMAGES.filter((i) => supplied.has(i.exportKey)).map((i) => i.file),
+  );
   const fromRepo = new Set(
-    SIDEBAR_IMAGES.filter((i) => !suppliedFiles.has(i.file) && fileExists(path.join(workdirAbs, GENERATED_DIR, i.file))).map(
-      (i) => i.file,
-    ),
+    SIDEBAR_IMAGES.filter(
+      (i) => !suppliedFiles.has(i.file) && fileExists(path.join(workdirAbs, GENERATED_DIR, i.file)),
+    ).map((i) => i.file),
   );
   copied += supplied.size;
   copied += deployBundledDefaults(workdirAbs, options.dryRun, suppliedFiles);
   if (!options.dryRun) {
-    for (const config of [META_JDH_FILE, 'myst.yml']) pointExportsAtSidebarImages(path.join(workdirAbs, config), supplied);
+    for (const config of [META_JDH_FILE, 'myst.yml'])
+      pointExportsAtSidebarImages(path.join(workdirAbs, config), supplied);
   }
-  reportSidebarImages(supplied, fromRepo);
+  reportSidebarImages(supplied, fromRepo, options.generateImages);
 
   // Keep the generated workdir out of the article repo without touching its .gitignore.
   if (!options.dryRun) fs.writeFileSync(path.join(workdirAbs, '.gitignore'), '*\n');

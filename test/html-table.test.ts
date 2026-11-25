@@ -105,7 +105,9 @@ describe('tableFromHtml', () => {
   });
 
   test('table without thead: leading all-th rows are the header', () => {
-    const t = tableFromHtml('<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>')!;
+    const t = tableFromHtml(
+      '<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>',
+    )!;
     expect(t.headerRows).toEqual([['a', 'b']]);
     expect(t.dataRows).toEqual([['1', '2']]);
   });
@@ -124,7 +126,8 @@ describe('tableFromHtml', () => {
 
 describe('tableFromMarkdown', () => {
   test('reads the table and ignores prose around it', () => {
-    const md = '\nA data.frame: 2 × 2\n\n| Topic &lt;chr&gt; | Terms |\n|---|---|\n| T1 | a, b |\n| T2 | c \\| d |\n\nafter';
+    const md =
+      '\nA data.frame: 2 × 2\n\n| Topic &lt;chr&gt; | Terms |\n|---|---|\n| T1 | a, b |\n| T2 | c \\| d |\n\nafter';
     const t = tableFromMarkdown(md)!;
     expect(t.headerRows).toEqual([['Topic <chr>', 'Terms']]);
     expect(t.dataRows).toEqual([
@@ -143,10 +146,14 @@ describe('tableFromOutputs', () => {
     const md = '| m |\n|---|\n| 1 |';
     const both = { text: { 'text/markdown': md, 'text/html': R_DATA_FRAME } };
     expect(tableFromOutputs([both])!.headerRows).toEqual([['title', 'description']]);
-    expect(tableFromOutputs([{ text: { 'text/markdown': md } }, { text: { 'text/html': STYLER } }])!.headerRows).toEqual([
-      ['HenryVIII', 'Victoria'],
-    ]);
-    expect(tableFromOutputs([{ text: { 'text/markdown': md, 'text/html': '<div>no table</div>' } }])!.headerRows).toEqual([['m']]);
+    expect(
+      tableFromOutputs([{ text: { 'text/markdown': md } }, { text: { 'text/html': STYLER } }])!
+        .headerRows,
+    ).toEqual([['HenryVIII', 'Victoria']]);
+    expect(
+      tableFromOutputs([{ text: { 'text/markdown': md, 'text/html': '<div>no table</div>' } }])!
+        .headerRows,
+    ).toEqual([['m']]);
     expect(tableFromOutputs([{ text: { 'text/plain': 'df' } }])).toBeNull();
   });
 });

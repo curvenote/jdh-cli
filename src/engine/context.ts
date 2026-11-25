@@ -24,9 +24,7 @@ export function buildRunContext(
 ): RunContext {
   const projectRoot = path.resolve(options.projectRoot ?? path.dirname(inputAbs));
   const workdir = options.workdir ?? DEFAULT_WORKDIR;
-  const workdirAbs = path.isAbsolute(workdir)
-    ? workdir
-    : path.resolve(projectRoot, workdir);
+  const workdirAbs = path.isAbsolute(workdir) ? workdir : path.resolve(projectRoot, workdir);
 
   return {
     rulesetId,
@@ -55,6 +53,7 @@ export function parseConvertOptions(opts: {
   zotero?: boolean;
   qrCode?: string;
   fingerprint?: string;
+  generateImages?: boolean;
   tableMaxRows?: string;
 }): ConvertOptions {
   const rorMinScore = opts.rorMinScore != null ? Number(opts.rorMinScore) : 0.8;
@@ -78,6 +77,7 @@ export function parseConvertOptions(opts: {
     zotero: opts.zotero !== false,
     qrCode: opts.qrCode,
     fingerprint: opts.fingerprint,
+    generateImages: opts.generateImages !== false,
     tableMaxRows,
   };
 }

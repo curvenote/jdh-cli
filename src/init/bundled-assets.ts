@@ -27,9 +27,7 @@ export function resolveBundledMetaJdhPath(): string {
     if (fileExists(candidate)) return candidate;
   }
 
-  throw new Error(
-    `Bundled ${META_JDH_FILE} template not found. Rebuild jdh-cli: bun run build`,
-  );
+  throw new Error(`Bundled ${META_JDH_FILE} template not found. Rebuild jdh-cli: bun run build`);
 }
 
 export function readBundledMetaJdhTemplate(): string {
@@ -44,6 +42,11 @@ export const GENERATED_IMAGES: readonly string[] = ['qr.png', 'fingerprint.png']
 /** Resolve the directory of placeholder `generated/` images bundled with jdh-cli. */
 export function resolveBundledGeneratedDir(): string {
   return path.join(path.dirname(resolveBundledMetaJdhPath()), GENERATED_DIR);
+}
+
+/** The JDH logo placed in the middle of generated QR codes. */
+export function resolveBundledLogo(): string {
+  return path.join(path.dirname(resolveBundledMetaJdhPath()), 'assets', 'jdh-logo.png');
 }
 
 /** jdh-cli package root (parent of `templates/` or `dist/`). */
@@ -89,6 +92,8 @@ export function deployBundledDefaults(
 }
 
 /** Placeholder images for figures that only exist online (interactive charts, video), and the sound icon. */
-export function resolveBundledPlaceholder(variant: 'interactive' | 'video' | 'sound' | 'figure'): string {
+export function resolveBundledPlaceholder(
+  variant: 'interactive' | 'video' | 'sound' | 'figure',
+): string {
   return path.join(path.dirname(resolveBundledMetaJdhPath()), 'placeholders', `${variant}.svg`);
 }

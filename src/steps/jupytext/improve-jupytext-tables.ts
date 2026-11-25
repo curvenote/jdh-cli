@@ -3,8 +3,12 @@ import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 import { countHeaderRows, isSeparatorRow } from '../../../templates/plugins/lib/table-truncate.mjs';
-import { captionFromJdh, kindFromTags, parseFenceMetadata, tableLabelFromTag } from '../shared/notebook-cells.js';
-
+import {
+  captionFromJdh,
+  kindFromTags,
+  parseFenceMetadata,
+  tableLabelFromTag,
+} from '../shared/notebook-cells.js';
 
 const DEFAULT_ARTICLE = 'article.md';
 
@@ -135,7 +139,8 @@ function processArticle(content: string): {
     const openEnd = openStart + openMatch[0].length;
     const openLine = openMatch[1];
 
-    const captionRaw = captionFromJdh(parseFenceMetadata(openLine, 'jdh')) ?? extractCaptionFromRegionLine(openLine);
+    const captionRaw =
+      captionFromJdh(parseFenceMetadata(openLine, 'jdh')) ?? extractCaptionFromRegionLine(openLine);
     const tags = parseTagsFromRegionLine(openLine);
     const tagLabel = firstTableTag(tags);
     if (!tagLabel || tags.some((t) => DIALOG_TAG.test(t))) continue;
@@ -184,8 +189,7 @@ function processArticle(content: string): {
   for (const r of regions) {
     const tableBlock = content.slice(r.openEnd, r.tableEnd).replace(/^\n+|\n+$/g, '');
     const headerRows = countHeaderRows(tableBlock);
-    const headerLine =
-      headerRows > 1 ? [`:header-rows: ${headerRows}`, ''] : [''];
+    const headerLine = headerRows > 1 ? [`:header-rows: ${headerRows}`, ''] : [''];
     // Keep the region markers so a `hermeneutics` tag on the same cell still wraps
     // the table; a backtick fence nests inside the hermeneutics `:::` block.
     const replacement = [
@@ -206,7 +210,10 @@ function processArticle(content: string): {
   // becomes an auto-numbered reference.
   for (const r of regions) {
     for (const anchor of r.anchors) {
-      const re = new RegExp(`\\[([^\\]]*)\\]\\(#${anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+      const re = new RegExp(
+        `\\[([^\\]]*)\\]\\(#${anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`,
+        'g',
+      );
       result = result.replace(re, (_m: string, text: string) =>
         /^table\s+\S+$/i.test(text.trim()) ? `[](#${r.label})` : `[${text}](#${r.label})`,
       );
@@ -264,10 +271,13 @@ function processArticle(content: string): {
       return '[](#' + label + ')';
     });
     const refLiteral = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(new RegExp('\\{ref\\}`' + refLiteral + '`', 'g'), (match: string, offset: number) => {
-      if (inSkip(offset)) return match;
-      return '[](#' + label + ')';
-    });
+    result = result.replace(
+      new RegExp('\\{ref\\}`' + refLiteral + '`', 'g'),
+      (match: string, offset: number) => {
+        if (inSkip(offset)) return match;
+        return '[](#' + label + ')';
+      },
+    );
     const oldStyleRef = new RegExp('\\{ref\\}`table-' + num + '-\\*`', 'g');
     result = result.replace(oldStyleRef, (match: string, offset: number) => {
       if (inSkip(offset)) return match;
@@ -286,7 +296,11 @@ function processArticle(content: string): {
   result = result.replace(/((?::::|```)\s*\{jdh-table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
   result = result.replace(/(:::\s*\{table\}\s*)Table\s+\d+[.:]\s*/gi, '$1');
 
-  return { content: result, tableNumToLabel, uncaptioned: regions.filter((r) => !r.caption).map((r) => r.label) };
+  return {
+    content: result,
+    tableNumToLabel,
+    uncaptioned: regions.filter((r) => !r.caption).map((r) => r.label),
+  };
 }
 
 export { processArticle };
@@ -294,9 +308,7 @@ export { processArticle };
 /**
  * Detects Jupytext table regions, wraps GFM tables in MyST `{jdh-table}` directives, and updates cross-references.
  */
-async function improveJupytextTables(
-  options: RunImproveJupytextTablesOptions,
-): Promise<void> {
+async function improveJupytextTables(options: RunImproveJupytextTablesOptions): Promise<void> {
   const articlePath = path.resolve(options.cwd, options.article || DEFAULT_ARTICLE);
   if (!fs.existsSync(articlePath)) {
     throw new Error(`Article not found: ${articlePath}`);
@@ -304,7 +316,8 @@ async function improveJupytextTables(
 
   const content = readUtf8(articlePath);
   const { content: processed, tableNumToLabel, uncaptioned } = processArticle(content);
-  const newContent = options.maxRows === undefined ? processed : applyTableMaxRows(processed, options.maxRows);
+  const newContent =
+    options.maxRows === undefined ? processed : applyTableMaxRows(processed, options.maxRows);
 
   if (newContent === content) {
     process.stdout.write('No table regions found; no changes.\n');

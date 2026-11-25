@@ -42,9 +42,7 @@ async function extractGithubRemote(options: {
 
   const existingGithub = readExistingProjectGithub(configPath);
   if (existingGithub) {
-    process.stdout.write(
-      `project.github already set (${existingGithub}); leaving unchanged.\n`,
-    );
+    process.stdout.write(`project.github already set (${existingGithub}); leaving unchanged.\n`);
     return;
   }
 

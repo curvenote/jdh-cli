@@ -3,7 +3,6 @@ import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
 
-
 const DEFAULT_ARTICLE = 'article.md';
 const TARGET_TAG = 'hermeneutics';
 

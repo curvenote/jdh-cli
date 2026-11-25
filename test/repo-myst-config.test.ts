@@ -82,13 +82,17 @@ test('front matter from the notebook does not overwrite keys set in the repo mys
   );
   const write = spyOn(process.stdout, 'write').mockImplementation(() => true);
   let out = '';
-  write.mockImplementation(((chunk: string) => ((out += chunk), true)) as typeof process.stdout.write);
+  write.mockImplementation(
+    ((chunk: string) => ((out += chunk), true)) as typeof process.stdout.write,
+  );
   try {
     await extractJupytextFrontmatter({ cwd: tmpDir, dryRun: false, orcidLookup: false });
   } finally {
     write.mockRestore();
   }
-  const project = readYaml<{ project: Record<string, unknown> }>(path.join(tmpDir, 'myst.yml')).project;
+  const project = readYaml<{ project: Record<string, unknown> }>(
+    path.join(tmpDir, 'myst.yml'),
+  ).project;
   expect(project.keywords).toEqual(['history of education', 'reflexivity']);
   expect(project.title).toBe('Title from the notebook');
   expect(project.authors).toEqual([{ name: 'Jane Doe', affiliations: ['Somewhere'] }]);

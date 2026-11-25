@@ -1,17 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isSeq } from 'yaml';
-import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
-import { resolveProjectConfigPath } from '../shared/myst-config.js';
+import type { PipelineStep } from '../../engine/types.js';
 import {
   findAuthorEntry,
   listProjectBibFiles,
   listWorkdirAuthorBibFiles,
   loadAuthorBibEntries,
 } from '../shared/author-bib.js';
-import { updateYamlFile } from '../shared/yaml-doc.js';
+import { resolveProjectConfigPath } from '../shared/myst-config.js';
 import { whenNotebook } from '../shared/when.js';
+import { updateYamlFile } from '../shared/yaml-doc.js';
 
 interface CitationManagerRef {
   source: string;
@@ -294,7 +294,9 @@ function renderBibtexEntry(
     'note',
   ];
 
-  const restKeys = Object.keys(fields).filter((k) => !orderedKeys.includes(k)).sort();
+  const restKeys = Object.keys(fields)
+    .filter((k) => !orderedKeys.includes(k))
+    .sort();
   const keys = [...orderedKeys.filter((k) => fields[k]), ...restKeys];
 
   const lines = keys.map((k) => `  ${k} = {${bibtexFieldValue(k, fields[k])}},`);
@@ -343,7 +345,9 @@ function cite2cDateToCsl(d: unknown): { 'date-parts'?: Array<Array<number | stri
  */
 function loadCite2cItemsFromNotebook(notebookPath: string): Record<string, CslItem> {
   if (!fileExists(notebookPath)) return {};
-  const nb = JSON.parse(readUtf8(notebookPath)) as { metadata?: Record<string, unknown> };
+  const nb = JSON.parse(readUtf8(notebookPath)) as {
+    metadata?: Record<string, unknown>;
+  };
   const cite2c = nb?.metadata?.cite2c as Record<string, unknown> | undefined;
   const citations = cite2c?.citations;
   if (!citations || typeof citations !== 'object') return {};
@@ -433,7 +437,9 @@ function extractCitationManagerMappingsFromMd(md: string): Map<string, CitationM
 
     let parsed: { citations?: Record<string, CitationManagerRef[]> };
     try {
-      parsed = JSON.parse(jsonText) as { citations?: Record<string, CitationManagerRef[]> };
+      parsed = JSON.parse(jsonText) as {
+        citations?: Record<string, CitationManagerRef[]>;
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       throw new Error(
@@ -495,7 +501,14 @@ export function zoteroIdsFromCiteHtml(html: string): string[] {
   return ids;
 }
 
-const HTML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
 
 /** Visible text of a `<cite>` element, e.g. "(Meadows & Sternfeld, 2023)". */
 export function citeVisibleText(html: string): string {
@@ -670,7 +683,7 @@ export function rewriteMdCitationsToMyst(
   // words directly before the citation, with the bracket closing straight after, so a
   // longer parenthesised aside is left alone (JDH-080).
   out = out.replace(
-    /\(\s*([A-Za-z][^()\[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
+    /\(\s*([A-Za-z][^()[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
     (_full: string, prefix: string, cite: string) => `[${prefix} ${cite.slice(1)}`,
   );
 
@@ -707,7 +720,10 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   // and keeps one code path for author-.bib matching (JDH-080).
   const zoteroItems = options.zotero === false ? {} : loadZoteroItemsFromNotebook(notebookPath);
   const cite2cItems = options.zotero === false ? {} : loadCite2cItemsFromNotebook(notebookPath);
-  const notebookItems: Record<string, CslItem> = { ...zoteroItems, ...cite2cItems };
+  const notebookItems: Record<string, CslItem> = {
+    ...zoteroItems,
+    ...cite2cItems,
+  };
   if (options.zotero === false) log.push('- Zotero:   skipped (--no-zotero)');
   if (Object.keys(cite2cItems).length)
     log.push(`- cite2c:   ${Object.keys(cite2cItems).length} items from notebook metadata`);
@@ -721,7 +737,11 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
   const authorKeyByZoteroId = new Map<string, string>();
   for (const [id, item] of Object.entries(notebookItems)) {
     const match = findAuthorEntry(
-      { doi: extractDoi(item), title: item.title ?? null, year: getIssuedDateParts(item).year },
+      {
+        doi: extractDoi(item),
+        title: item.title ?? null,
+        year: getIssuedDateParts(item).year,
+      },
       authorBibs.entries,
     );
     if (match) {
@@ -740,7 +760,11 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
     .sort()
     .map((id) => {
       const citekey = citekeyByZoteroId.get(id)!;
-      return renderBibtexEntry(pickBibtexType(ownItems[id]), citekey, buildBibtexFields(ownItems[id], citekey));
+      return renderBibtexEntry(
+        pickBibtexType(ownItems[id]),
+        citekey,
+        buildBibtexFields(ownItems[id], citekey),
+      );
     });
 
   // An empty references.bib breaks myst build, so only write it when there are entries.
@@ -787,7 +811,9 @@ export async function jupyterZotero(options: JupyterZoteroOptions): Promise<void
 
   if (options.updateMyst && bibliography.length && fileExists(mystPath)) {
     for (const bib of bibliography) ensureMystBibliography(mystPath, bib, options.dryRun);
-    log.push(`- Updated:  ${path.relative(cwd, mystPath)} (bibliography: ${bibliography.join(', ')})`);
+    log.push(
+      `- Updated:  ${path.relative(cwd, mystPath)} (bibliography: ${bibliography.join(', ')})`,
+    );
   }
 
   if (options.dryRun) log.push('(dry-run: no files written)');

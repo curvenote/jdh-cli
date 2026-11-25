@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { processArticle } from '../src/steps/jupytext/improve-notebook-tables.js';
 import { processArticle as processTableRefs } from '../src/steps/jupytext/improve-jupytext-tables.js';
-import { readTaggedCells, tableLabelFromTag, type RawNotebook } from '../src/steps/shared/notebook-cells.js';
+import {
+  readTaggedCells,
+  tableLabelFromTag,
+  type RawNotebook,
+} from '../src/steps/shared/notebook-cells.js';
 
 const PANDAS_HTML = [
   '<table border="1" class="dataframe">',
@@ -54,7 +58,11 @@ describe('improve notebook tables', () => {
   test('a table that has a caption is not reported', () => {
     const article = ['```python tags=["table-1"]', 'df', '```'].join('\n');
     const nb = notebook([
-      { tags: ['table-1'], outputs: [html(PANDAS_HTML)], jdh: { object: { source: ['Counts by year'] } } },
+      {
+        tags: ['table-1'],
+        outputs: [html(PANDAS_HTML)],
+        jdh: { object: { source: ['Counts by year'] } },
+      },
     ]);
     const { content, report } = processArticle(article, readTaggedCells(nb));
     expect(content).toContain(':::{jdh-table} Counts by year');
@@ -72,7 +80,9 @@ describe('improve notebook tables', () => {
       '',
       'After.',
     ].join('\n');
-    const cells = readTaggedCells(notebook([{ tags: ['table-1', 'data-table'], outputs: [html(PANDAS_HTML)] }]));
+    const cells = readTaggedCells(
+      notebook([{ tags: ['table-1', 'data-table'], outputs: [html(PANDAS_HTML)] }]),
+    );
 
     const { content, report } = processArticle(article, cells);
 
@@ -99,10 +109,16 @@ describe('improve notebook tables', () => {
   });
 
   test('an HTML-exported table with its caption only in the output metadata', () => {
-    const article = '```python tags=["table-2"]\ndisplay(HTML(df.to_html()), metadata=metadata)\n```';
+    const article =
+      '```python tags=["table-2"]\ndisplay(HTML(df.to_html()), metadata=metadata)\n```';
     const caption = { jdh: { object: { source: ['table 2: From the output'] } } };
     const cells = readTaggedCells(
-      notebook([{ tags: ['table-2'], outputs: [html('<table><tr><th>a</th></tr><tr><td>1</td></tr></table>', caption)] }]),
+      notebook([
+        {
+          tags: ['table-2'],
+          outputs: [html('<table><tr><th>a</th></tr><tr><td>1</td></tr></table>', caption)],
+        },
+      ]),
     );
 
     const { content } = processArticle(article, cells);
@@ -112,7 +128,8 @@ describe('improve notebook tables', () => {
   });
 
   test('falls back to the HTML <caption>, then to no caption', () => {
-    const styler = '<table><caption>table 3: Styler caption</caption><tr><th>a</th></tr><tr><td>1</td></tr></table>';
+    const styler =
+      '<table><caption>table 3: Styler caption</caption><tr><th>a</th></tr><tr><td>1</td></tr></table>';
     const plain = '<table><tr><th>a</th></tr><tr><td>1</td></tr></table>';
     const article = '```python tags=["table-3"]\ndf\n```\n\n```python tags=["table-4"]\ndf\n```';
     const cells = readTaggedCells(
@@ -134,7 +151,13 @@ describe('improve notebook tables', () => {
       notebook([
         {
           tags: ['table-5'],
-          outputs: [{ output_type: 'execute_result', data: { 'text/markdown': '| m |\n|---|\n| 1 |' }, metadata: {} }],
+          outputs: [
+            {
+              output_type: 'execute_result',
+              data: { 'text/markdown': '| m |\n|---|\n| 1 |' },
+              metadata: {},
+            },
+          ],
         },
       ]),
     );
@@ -143,9 +166,12 @@ describe('improve notebook tables', () => {
   });
 
   test('cells with no table output stay as code, with a reason', () => {
-    const article = '```python tags=["table-6"]\nprint(df)\n```\n\n```python tags=["table-7"]\ndf\n```';
+    const article =
+      '```python tags=["table-6"]\nprint(df)\n```\n\n```python tags=["table-7"]\ndf\n```';
     const cells = readTaggedCells(
-      notebook([{ tags: ['table-6'], outputs: [{ output_type: 'stream', name: 'stdout', text: 'x' }] }]),
+      notebook([
+        { tags: ['table-6'], outputs: [{ output_type: 'stream', name: 'stdout', text: 'x' }] },
+      ]),
     );
 
     const { content, report } = processArticle(article, cells);
@@ -158,10 +184,13 @@ describe('improve notebook tables', () => {
   });
 
   test('R cells are converted too', () => {
-    const article = '```R jdh={"object": {"source": ["table 1: Topics"]}} tags=["table-1"]\ndf\n```';
+    const article =
+      '```R jdh={"object": {"source": ["table 1: Topics"]}} tags=["table-1"]\ndf\n```';
     const cells = readTaggedCells(notebook([{ tags: ['table-1'], outputs: [html(PANDAS_HTML)] }]));
 
-    expect(processArticle(article, cells).content).toStartWith(':::{jdh-table} Topics\n:label: table:1');
+    expect(processArticle(article, cells).content).toStartWith(
+      ':::{jdh-table} Topics\n:label: table:1',
+    );
   });
 
   test('other code cells are untouched', () => {
@@ -170,7 +199,8 @@ describe('improve notebook tables', () => {
   });
 
   test('references to a converted table become label links', () => {
-    const article = 'As Table 1 shows, see [Table 1](#table-1).\n\n```python tags=["table-1"]\ndf\n```';
+    const article =
+      'As Table 1 shows, see [Table 1](#table-1).\n\n```python tags=["table-1"]\ndf\n```';
     const cells = readTaggedCells(notebook([{ tags: ['table-1'], outputs: [html(PANDAS_HTML)] }]));
 
     const { content } = processTableRefs(processArticle(article, cells).content);

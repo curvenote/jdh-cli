@@ -24,9 +24,10 @@ export const KNOWN_MYST_PARTS = new Set<string>([
   'acknowledgements',
 ]);
 
-export function partitionPartsByKind(
-  parts: Record<string, string>,
-): { knownParts: Record<string, string>; customParts: Record<string, string> } {
+export function partitionPartsByKind(parts: Record<string, string>): {
+  knownParts: Record<string, string>;
+  customParts: Record<string, string>;
+} {
   const knownParts: Record<string, string> = {};
   const customParts: Record<string, string> = {};
 

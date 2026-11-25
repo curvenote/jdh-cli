@@ -49,13 +49,10 @@ function wrapNarrativeCode(tree, utils) {
         if (isFigureCodeLabel(node.identifier) || isFigureCodeLabel(node.label)) continue;
 
         node.data = { ...(node.data ?? {}), narrativeCodeWrapped: true };
-        children.splice(
-          i,
-          1,
-          { type: 'raw', typst: '#narrative-code-block[\n' },
-          node,
-          { type: 'raw', typst: '\n]' },
-        );
+        children.splice(i, 1, { type: 'raw', typst: '#narrative-code-block[\n' }, node, {
+          type: 'raw',
+          typst: '\n]',
+        });
         i += 2;
         continue;
       }

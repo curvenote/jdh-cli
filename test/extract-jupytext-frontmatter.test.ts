@@ -65,8 +65,18 @@ describe('extractFrontmatter', () => {
     expect(title).toBe('Chronoferencing the Borderlands');
     expect(keywords).toEqual(['borders', 'memory']);
     expect(contributors).toEqual([
-      { name: 'Machteld Venken', orcid: '0000-0002-0358-0827', email: null, affiliationLines: ['University of Luxembourg'] },
-      { name: 'Johanna Jaschik', orcid: '0000-0002-0197-6748', email: null, affiliationLines: ['C²DH, University of Luxembourg'] },
+      {
+        name: 'Machteld Venken',
+        orcid: '0000-0002-0358-0827',
+        email: null,
+        affiliationLines: ['University of Luxembourg'],
+      },
+      {
+        name: 'Johanna Jaschik',
+        orcid: '0000-0002-0197-6748',
+        email: null,
+        affiliationLines: ['C²DH, University of Luxembourg'],
+      },
       {
         name: 'Emmanuelle Vollenweider',
         orcid: null,
@@ -99,11 +109,25 @@ describe('extractJupytextFrontmatter', () => {
       write.mockRestore();
     }
 
-    const project = readYaml<{ project: { authors: unknown[] } }>(path.join(tmpDir, 'myst.yml')).project;
+    const project = readYaml<{ project: { authors: unknown[] } }>(
+      path.join(tmpDir, 'myst.yml'),
+    ).project;
     expect(project.authors).toEqual([
-      { name: 'Machteld Venken', orcid: 'https://orcid.org/0000-0002-0358-0827', affiliations: ['University of Luxembourg'] },
-      { name: 'Johanna Jaschik', orcid: 'https://orcid.org/0000-0002-0197-6748', affiliations: ['C²DH, University of Luxembourg'] },
-      { name: 'Emmanuelle Vollenweider', email: 'emmanuelle.vollenweider@hepl.ch', affiliations: ['Haute Ecole Pédagogique Vaud'] },
+      {
+        name: 'Machteld Venken',
+        orcid: 'https://orcid.org/0000-0002-0358-0827',
+        affiliations: ['University of Luxembourg'],
+      },
+      {
+        name: 'Johanna Jaschik',
+        orcid: 'https://orcid.org/0000-0002-0197-6748',
+        affiliations: ['C²DH, University of Luxembourg'],
+      },
+      {
+        name: 'Emmanuelle Vollenweider',
+        email: 'emmanuelle.vollenweider@hepl.ch',
+        affiliations: ['Haute Ecole Pédagogique Vaud'],
+      },
     ]);
     const md = fs.readFileSync(path.join(tmpDir, 'article.md'), 'utf8');
     expect(md).not.toContain('contributor');
@@ -122,7 +146,11 @@ describe('parseKeywords', () => {
   });
 
   test('a bold label, semicolons and a full stop (MiDeVUZqdmue)', () => {
-    expect(parseKeywords('**Keywords:** history of education; reflexivity; teacher training; cross-curricular skills.')).toEqual([
+    expect(
+      parseKeywords(
+        '**Keywords:** history of education; reflexivity; teacher training; cross-curricular skills.',
+      ),
+    ).toEqual([
       'history of education',
       'reflexivity',
       'teacher training',

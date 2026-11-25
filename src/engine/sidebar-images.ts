@@ -21,8 +21,22 @@ export interface SidebarImageFlags {
 }
 
 export const SIDEBAR_IMAGES = [
-  { file: 'qr.png', option: 'qrCode', flag: '--qr-code', exportKey: 'qr_code', label: 'QR code', noun: 'QR code' },
-  { file: 'fingerprint.png', option: 'fingerprint', flag: '--fingerprint', exportKey: 'fingerprint', label: 'Fingerprint', noun: 'fingerprint' },
+  {
+    file: 'qr.png',
+    option: 'qrCode',
+    flag: '--qr-code',
+    exportKey: 'qr_code',
+    label: 'QR code',
+    noun: 'QR code',
+  },
+  {
+    file: 'fingerprint.png',
+    option: 'fingerprint',
+    flag: '--fingerprint',
+    exportKey: 'fingerprint',
+    label: 'Fingerprint',
+    noun: 'fingerprint',
+  },
 ] as const;
 
 const DOWNLOAD_TIMEOUT_MS = 30_000;
@@ -34,7 +48,10 @@ export async function readImageSource(spec: string, fetchImpl: Fetch = fetch): P
     try {
       res = await fetchImpl(spec, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
     } catch (err) {
-      throw new Error(`could not download ${spec}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+      throw new Error(
+        `could not download ${spec}: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
+      );
     }
     if (!res.ok) throw new Error(`could not download ${spec}: HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
@@ -63,7 +80,9 @@ export async function installSuppliedSidebarImages(
     try {
       bytes = await readImageSource(spec, fetchImpl);
     } catch (err) {
-      throw new Error(`${img.flag}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+      throw new Error(`${img.flag}: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
+      });
     }
     const ext = isSvg(bytes) ? 'svg' : imageFormat(bytes);
     if (!ext) throw new Error(`${img.flag}: ${spec} is not a PNG, JPEG, GIF or SVG image`);
@@ -104,18 +123,33 @@ export function pointExportsAtSidebarImages(
   });
 }
 
-/** Say where each sidebar image came from; warn when the PDF will show a placeholder. */
-export function reportSidebarImages(supplied: ReadonlyMap<string, string>, fromRepo: ReadonlySet<string>): void {
+export function placeholderWarning(img: (typeof SIDEBAR_IMAGES)[number], reason?: string): string {
+  return (
+    `Warning: no ${img.noun} given (${img.flag} <path|url>) and none in the repo's ` +
+    `${GENERATED_DIR}/${img.file}${reason ? `, and it could not be generated (${reason})` : ''}; ` +
+    `the PDF will show a PLACEHOLDER ${img.noun}.`
+  );
+}
+
+/**
+ * Say where each sidebar image came from; warn when the PDF will show a placeholder.
+ * With `generating`, an image that is neither given nor in the repo is left to the
+ * generate step, which reports it.
+ */
+export function reportSidebarImages(
+  supplied: ReadonlyMap<string, string>,
+  fromRepo: ReadonlySet<string>,
+  generating = false,
+): void {
   for (const img of SIDEBAR_IMAGES) {
     if (supplied.has(img.exportKey)) {
       console.log(`${img.label}: ${supplied.get(img.exportKey)} (from ${img.flag})`);
     } else if (fromRepo.has(img.file)) {
       console.log(`${img.label}: ${GENERATED_DIR}/${img.file} from the article repo`);
+    } else if (generating) {
+      console.log(`${img.label}: to be generated (last pipeline step)`);
     } else {
-      console.log(
-        `Warning: no ${img.noun} given (${img.flag} <path|url>) and none in the repo's ` +
-          `${GENERATED_DIR}/${img.file}; the PDF will show a PLACEHOLDER ${img.noun}.`,
-      );
+      console.log(placeholderWarning(img));
     }
   }
 }

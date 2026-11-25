@@ -49,7 +49,10 @@ function findTaggedRegions(
 
     for (let j = i + 1; j < lines.length; j++) {
       if (lines[j].includes('#endregion')) {
-        const content = lines.slice(i + 1, j).join('\n').trim();
+        const content = lines
+          .slice(i + 1, j)
+          .join('\n')
+          .trim();
         found.push({ start: i, end: j, content });
         i = j;
         break;
@@ -110,8 +113,12 @@ async function extractJupytextParts(options: RunExtractJupytextPartsOptions): Pr
       'Done.',
       `- Article: ${path.relative(options.cwd, articlePath)}`,
       `- Extracted parts: ${extractedCount}`,
-      Object.keys(knownParts).length ? `- Known parts: ${Object.keys(knownParts).join(', ')}` : null,
-      Object.keys(customParts).length ? `- Custom parts: ${Object.keys(customParts).join(', ')}` : null,
+      Object.keys(knownParts).length
+        ? `- Known parts: ${Object.keys(knownParts).join(', ')}`
+        : null,
+      Object.keys(customParts).length
+        ? `- Custom parts: ${Object.keys(customParts).join(', ')}`
+        : null,
       changed ? `- Updated: ${path.relative(options.cwd, articlePath)}` : '- No changes needed',
       options.dryRun ? '(dry-run: no files written)' : null,
     ]

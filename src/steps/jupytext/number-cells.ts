@@ -8,9 +8,26 @@ import type { RawNotebook } from '../shared/notebook-cells.js';
  * Cell sections the JDH website treats as metadata: they get no paragraph
  * number (`SectionChoices` in C2DH/journal-of-digital-history).
  */
-const METADATA_SECTIONS = ['title', 'abstract', 'contributor', 'collaborators', 'keywords', 'disclaimer'];
+const METADATA_SECTIONS = [
+  'title',
+  'abstract',
+  'contributor',
+  'collaborators',
+  'keywords',
+  'disclaimer',
+];
 /** Tag prefixes the website reads as figures (`AvailableFigureRefPrefixes`); a tag must start with one. */
-const FIGURE_PREFIXES = ['figure-', 'table-', 'quote-', 'dialog-', 'sound-', 'video-', 'gallery-', 'cover', 'data-table-'];
+const FIGURE_PREFIXES = [
+  'figure-',
+  'table-',
+  'quote-',
+  'dialog-',
+  'sound-',
+  'video-',
+  'gallery-',
+  'cover',
+  'data-table-',
+];
 /** Cells moved out of the body by earlier steps (front matter, parts) or kept whole by later ones. */
 const NO_MARKER_TAGS = /^(copyright|dialog(?:ue)?(?:$|[-_:]))/i;
 
@@ -43,7 +60,11 @@ export function websiteCellNumbers(nb: RawNotebook): NumberedCell[] {
     const isMetadata = !isFigure && !isHidden && tags.some((t) => METADATA_SECTIONS.includes(t));
     const num = isMetadata ? null : ++n;
     const shown =
-      num !== null && cell.cell_type === 'markdown' && !isFigure && !isHidden && !tags.some((t) => NO_MARKER_TAGS.test(t));
+      num !== null &&
+      cell.cell_type === 'markdown' &&
+      !isFigure &&
+      !isHidden &&
+      !tags.some((t) => NO_MARKER_TAGS.test(t));
     return { index, num, shown };
   });
 }
@@ -59,7 +80,10 @@ export function cellMarker(num: number): string {
  * (Jupytext copies markdown cells verbatim); a cell with metadata gets the marker before its
  * `<!-- #region … -->` line. Returns the article and the cells not found.
  */
-export function markCellNumbers(md: string, nb: RawNotebook): { content: string; marked: number; missing: number[] } {
+export function markCellNumbers(
+  md: string,
+  nb: RawNotebook,
+): { content: string; marked: number; missing: number[] } {
   const lines = md.split('\n');
   const inserts = new Map<number, number>();
   const missing: number[] = [];
@@ -122,7 +146,9 @@ export const numberCellsStep: PipelineStep = {
     const nb = JSON.parse(fs.readFileSync(notebookPath, 'utf8')) as RawNotebook;
     const { content, marked, missing } = markCellNumbers(fs.readFileSync(articlePath, 'utf8'), nb);
     if (!o.dryRun) fs.writeFileSync(articlePath, content, 'utf8');
-    process.stdout.write(`${o.dryRun ? '[dry-run] Would number' : 'Numbered'} ${marked} cell(s) as on the JDH website.\n`);
+    process.stdout.write(
+      `${o.dryRun ? '[dry-run] Would number' : 'Numbered'} ${marked} cell(s) as on the JDH website.\n`,
+    );
     if (missing.length) {
       process.stdout.write(
         `Warning: ${missing.length} markdown cell(s) not found in article.md (cells ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ', …' : ''}); their paragraphs get no number.\n`,

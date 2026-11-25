@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { afterEach, describe, expect, test } from 'bun:test';
 import { fileExists } from '../src/engine/context.js';
 
 const JDH_ROOT = path.resolve(import.meta.dir, '../..');
@@ -48,7 +48,15 @@ describe('build integration (meta-jdh extends)', () => {
       runCli(['clean'], ARTICLE_REPO);
 
       const improve = runCli(
-        ['article.md', '--project-root', '.', '--workdir', '_improved', '--no-ror-lookup'],
+        [
+          'article.md',
+          '--project-root',
+          '.',
+          '--workdir',
+          '_improved',
+          '--no-ror-lookup',
+          '--no-generate-images',
+        ],
         ARTICLE_REPO,
       );
       expect(improve.status).toBe(0);

@@ -27,7 +27,8 @@ export function processArticle(content: string): { content: string; anchors: str
   for (const cell of findJupytextCells(lines)) {
     const anchors = cell.tags.filter((t) => ANCHOR_TAG.test(t) && !targets.has(t));
     if (!anchors.length) continue;
-    if (kindFromTags(cell.tags)?.kind === 'table' || cell.tags.some((t) => DIALOG_TAG.test(t))) continue;
+    if (kindFromTags(cell.tags)?.kind === 'table' || cell.tags.some((t) => DIALOG_TAG.test(t)))
+      continue;
     let label = firstFigureTag(cell.tags);
     if (!label) {
       // A target placed in front of a labelled figure would replace its label, so only here.
@@ -68,6 +69,8 @@ export const improveJupytextAnchorsStep: PipelineStep = {
       return;
     }
     if (!o.dryRun) fs.writeFileSync(articlePath, content, 'utf8');
-    process.stdout.write(`${o.dryRun ? '[dry-run] Would link' : 'Linked'} ${anchors.length} anchor(s).\n`);
+    process.stdout.write(
+      `${o.dryRun ? '[dry-run] Would link' : 'Linked'} ${anchors.length} anchor(s).\n`,
+    );
   },
 };

@@ -48,18 +48,28 @@ describe('author .bib entries', () => {
     expect(usableFiles).toEqual(['direct.bib']);
 
     expect(
-      findAuthorEntry({ doi: 'https://doi.org/10.1093/AHR/rhad362', title: null, year: null }, entries)?.key,
+      findAuthorEntry(
+        { doi: 'https://doi.org/10.1093/AHR/rhad362', title: null, year: null },
+        entries,
+      )?.key,
     ).toBe('Meadows2023');
     expect(
-      findAuthorEntry({ doi: null, title: 'Exploring big historical data!', year: '2015' }, entries)?.key,
+      findAuthorEntry({ doi: null, title: 'Exploring big historical data!', year: '2015' }, entries)
+        ?.key,
     ).toBe('Graham2015');
-    expect(findAuthorEntry({ doi: null, title: 'Exploring big historical data', year: '2016' }, entries)).toBeNull();
+    expect(
+      findAuthorEntry({ doi: null, title: 'Exploring big historical data', year: '2016' }, entries),
+    ).toBeNull();
   });
 
   test('reports files without entries', () => {
     const dir = mkTmp();
     fs.writeFileSync(path.join(dir, 'empty.bib'), '');
-    expect(loadAuthorBibEntries(dir, ['empty.bib'])).toEqual({ entries: [], usableFiles: [], emptyFiles: ['empty.bib'] });
+    expect(loadAuthorBibEntries(dir, ['empty.bib'])).toEqual({
+      entries: [],
+      usableFiles: [],
+      emptyFiles: ['empty.bib'],
+    });
   });
 
   test('an author file called references.bib is renamed in the workdir', () => {
@@ -91,7 +101,9 @@ describe('rewriteMdCitationsToMyst', () => {
       ]),
       (id) => keys[id],
     );
-    expect(out).toBe(['A [@Rosenzweig2003].', 'B [@Meadows2023].', 'C (Missing, 2020).'].join('\n'));
+    expect(out).toBe(
+      ['A [@Rosenzweig2003].', 'B [@Meadows2023].', 'C (Missing, 2020).'].join('\n'),
+    );
     expect(unresolved).toEqual(['(Missing, 2020)']);
   });
 
@@ -174,7 +186,9 @@ describe('rewriteMdCitationsToMyst', () => {
     test('takes a locator written without a comma', () => {
       expect(run(`cannot’ (${c2('A')} p. iii).`)).toBe('cannot’ [@KeyA, p. iii].');
       expect(run(`term (${c2('A')} esp. p. 67).`)).toBe('term [@KeyA, esp. p. 67].');
-      expect(run(`Milligan (${c2('A')} esp. pp. 205–10).`)).toBe('Milligan [@KeyA, esp. pp. 205–10].');
+      expect(run(`Milligan (${c2('A')} esp. pp. 205–10).`)).toBe(
+        'Milligan [@KeyA, esp. pp. 205–10].',
+      );
     });
 
     test('still takes one written with a comma', () => {
@@ -234,11 +248,12 @@ describe('rewriteMdCitationsToMyst', () => {
   });
 
   test('reads Zotero ids and visible text from cite HTML', () => {
-    expect(zoteroIdsFromCiteHtml('<a href="#zotero%7C1%2FAB12">x</a><a href="#zotero|2/CD34">y</a>')).toEqual([
-      '1/AB12',
-      '2/CD34',
-    ]);
-    expect(citeVisibleText('<a href="#x">(Meadows &#38; Sternfeld, 2023)</a>')).toBe('(Meadows & Sternfeld, 2023)');
+    expect(
+      zoteroIdsFromCiteHtml('<a href="#zotero%7C1%2FAB12">x</a><a href="#zotero|2/CD34">y</a>'),
+    ).toEqual(['1/AB12', '2/CD34']);
+    expect(citeVisibleText('<a href="#x">(Meadows &#38; Sternfeld, 2023)</a>')).toBe(
+      '(Meadows & Sternfeld, 2023)',
+    );
   });
 });
 
@@ -250,8 +265,21 @@ describe('jupyterZotero with author .bib files', () => {
         'citation-manager': {
           items: {
             zotero: {
-              '1/AAA': { id: '1/AAA', type: 'article-journal', title: 'Artificial intelligence and the practice of history', DOI: '10.1093/ahr/rhad362', issued: { 'date-parts': [[2023]] }, author: [{ family: 'Meadows', given: 'R.' }] },
-              '1/BBB': { id: '1/BBB', type: 'book', title: 'Clio Wired', issued: { 'date-parts': [[2011]] }, author: [{ family: 'Rosenzweig', given: 'Roy' }] },
+              '1/AAA': {
+                id: '1/AAA',
+                type: 'article-journal',
+                title: 'Artificial intelligence and the practice of history',
+                DOI: '10.1093/ahr/rhad362',
+                issued: { 'date-parts': [[2023]] },
+                author: [{ family: 'Meadows', given: 'R.' }],
+              },
+              '1/BBB': {
+                id: '1/BBB',
+                type: 'book',
+                title: 'Clio Wired',
+                issued: { 'date-parts': [[2011]] },
+                author: [{ family: 'Rosenzweig', given: 'Roy' }],
+              },
             },
           },
         },
@@ -291,29 +319,33 @@ describe('jupyterZotero with author .bib files', () => {
     expect(bib).not.toContain('Artificial intelligence');
     const md = fs.readFileSync(path.join(dir, 'article.md'), 'utf8');
     expect(md).toContain('See [@Meadows2023] and [@');
-    expect(readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project.bibliography).toEqual([
-      'references.bib',
-      'direct.bib',
-    ]);
+    expect(
+      readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project
+        .bibliography,
+    ).toEqual(['references.bib', 'direct.bib']);
   });
 
   test('--no-zotero uses only the author .bib; <cite> tags become plain text', async () => {
     const dir = setup();
     await run(dir, false);
     expect(fs.existsSync(path.join(dir, 'references.bib'))).toBe(false);
-    expect(fs.readFileSync(path.join(dir, 'article.md'), 'utf8')).toContain('See (Meadows, 2023) and (Rosenzweig, 2011).');
-    expect(readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project.bibliography).toEqual([
-      'direct.bib',
-    ]);
+    expect(fs.readFileSync(path.join(dir, 'article.md'), 'utf8')).toContain(
+      'See (Meadows, 2023) and (Rosenzweig, 2011).',
+    );
+    expect(
+      readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project
+        .bibliography,
+    ).toEqual(['direct.bib']);
   });
 
   test('an empty author .bib is not registered', async () => {
     const dir = setup();
     fs.writeFileSync(path.join(dir, 'direct.bib'), '');
     await run(dir);
-    expect(readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project.bibliography).toEqual([
-      'references.bib',
-    ]);
+    expect(
+      readYaml<{ project: { bibliography: string[] } }>(path.join(dir, 'myst.yml')).project
+        .bibliography,
+    ).toEqual(['references.bib']);
   });
 });
 

@@ -53,7 +53,10 @@ function parseTagsFromRegionLine(line: string): string[] {
 }
 
 /** Every `#region` tagged `tag`, in document order. */
-function findTaggedRegions(lines: string[], tag: string): { content: string; start: number; end: number }[] {
+function findTaggedRegions(
+  lines: string[],
+  tag: string,
+): { content: string; start: number; end: number }[] {
   const regions: { content: string; start: number; end: number }[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -61,13 +64,23 @@ function findTaggedRegions(lines: string[], tag: string): { content: string; sta
     if (!parseTagsFromRegionLine(line).includes(tag)) continue;
     const j = lines.findIndex((l, k) => k > i && l.includes('#endregion'));
     if (j === -1) break;
-    regions.push({ content: lines.slice(i + 1, j).join('\n').trim(), start: i, end: j });
+    regions.push({
+      content: lines
+        .slice(i + 1, j)
+        .join('\n')
+        .trim(),
+      start: i,
+      end: j,
+    });
     i = j;
   }
   return regions;
 }
 
-function findTaggedRegion(lines: string[], tag: string): { content: string; start: number; end: number } | null {
+function findTaggedRegion(
+  lines: string[],
+  tag: string,
+): { content: string; start: number; end: number } | null {
   return findTaggedRegions(lines, tag)[0] ?? null;
 }
 
@@ -88,12 +101,21 @@ function extractOrcidId(s: string): string | null {
 
 /** Strip MyST/Markdown ORCID badge links from an author name line. */
 export function stripOrcidMarkdownFromName(name: string): string {
-  return name
-    .replace(/\s*\[!\[[^\]]*\]\([^)]*\)\]\([^)]*orcid\.org\/[^)]*\)/gi, '')
-    .trim();
+  return name.replace(/\s*\[!\[[^\]]*\]\([^)]*\)\]\([^)]*orcid\.org\/[^)]*\)/gi, '').trim();
 }
 
-const SUPERSCRIPT: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+const SUPERSCRIPT: Record<string, string> = {
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+};
 const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
 /** Plain text for a contributor line: `C<sup>2</sup>DH` → `C²DH`, `<br/>` and other tags dropped. */
@@ -144,7 +166,12 @@ export function parseKeywords(content: string): string[] {
   if (!line) return [];
   return line
     .split(/[,;]/)
-    .map((k) => k.replace(/^[*_\s]+|[*_\s]+$/g, '').replace(/\.$/, '').trim())
+    .map((k) =>
+      k
+        .replace(/^[*_\s]+|[*_\s]+$/g, '')
+        .replace(/\.$/, '')
+        .trim(),
+    )
     .filter(Boolean);
 }
 

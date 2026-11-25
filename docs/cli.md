@@ -6,12 +6,12 @@ title: CLI usage
 
 ## Commands
 
-| Command | Description |
-| --- | --- |
-| `jdh-cli init` | Optional: write `myst.yml` and `meta-jdh.yml` into an article repo to customise them |
-| `jdh-cli <file.md>` | Run the jupytext conversion pipeline (default workdir `_improved/`) |
-| `jdh-cli clean` | Remove the pipeline workdir and legacy `.bak` files |
-| `jdh-cli build` | Build PDF from the workdir via `myst build --pdf` |
+| Command             | Description                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `jdh-cli init`      | Optional: write `myst.yml` and `meta-jdh.yml` into an article repo to customise them |
+| `jdh-cli <file.md>` | Run the jupytext conversion pipeline (default workdir `_improved/`)                  |
+| `jdh-cli clean`     | Remove the pipeline workdir and legacy `.bak` files                                  |
+| `jdh-cli build`     | Build PDF from the workdir via `myst build --pdf`                                    |
 
 ## Convert (`jdh-cli <file.md>`)
 
@@ -24,42 +24,43 @@ jdh-cli article.md --list-steps          # print planned steps, no writes
 jdh-cli article.md --dry-run             # log actions without writing
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--workdir <path>` | `_improved` | Output directory (relative to project root) |
-| `--project-root <path>` | input directory | Article repo root for assets |
-| `-d, --dry-run` | off | Preview without writing files |
-| `--orcid-lookup` | off | Enable ORCID enrichment in frontmatter step |
-| `--ror-lookup` / `--no-ror-lookup` | on | ROR affiliation resolution |
-| `--ror-min-score <float>` | `0.8` | ROR match threshold (0–1) |
-| `--no-zotero` | notebook metadata used | Ignore the notebook's citation metadata (`citation-manager` and cite2c alike); use the repo's `.bib` files only |
-| `--doi <doi>` | JDH API lookup | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL |
-| `--url <url>` | JDH article page | Set the article URL (`project.social.url`) |
-| `--qr-code <path\|url>` | repo image, else placeholder | QR code for the PDF sidebar (see below) |
-| `--fingerprint <path\|url>` | repo image, else placeholder | Fingerprint for the PDF sidebar (see below) |
-| `--table-max-rows <n>` | `4` (plugin default) | Rows every table shows before "K rows more"; `0` shows all. A table's own `:max-rows:` wins |
-| `--list-steps` | off | List pipeline steps and exit |
+| Option                             | Default                    | Description                                                                                                     |
+| ---------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--workdir <path>`                 | `_improved`                | Output directory (relative to project root)                                                                     |
+| `--project-root <path>`            | input directory            | Article repo root for assets                                                                                    |
+| `-d, --dry-run`                    | off                        | Preview without writing files                                                                                   |
+| `--orcid-lookup`                   | off                        | Enable ORCID enrichment in frontmatter step                                                                     |
+| `--ror-lookup` / `--no-ror-lookup` | on                         | ROR affiliation resolution                                                                                      |
+| `--ror-min-score <float>`          | `0.8`                      | ROR match threshold (0–1)                                                                                       |
+| `--no-zotero`                      | notebook metadata used     | Ignore the notebook's citation metadata (`citation-manager` and cite2c alike); use the repo's `.bib` files only |
+| `--doi <doi>`                      | JDH API lookup             | Set `project.doi`; accepts `10.…`, `doi:10.…` or a doi.org URL                                                  |
+| `--url <url>`                      | JDH article page           | Set the article URL (`project.social.url`)                                                                      |
+| `--qr-code <path\|url>`            | repo image, else generated | QR code for the PDF sidebar (see below)                                                                         |
+| `--fingerprint <path\|url>`        | repo image, else generated | Fingerprint for the PDF sidebar (see below)                                                                     |
+| `--no-generate-images`             | images generated           | Skip generating the QR code and fingerprint; missing ones become placeholders                                   |
+| `--table-max-rows <n>`             | `4` (plugin default)       | Rows every table shows before "K rows more"; `0` shows all. A table's own `:max-rows:` wins                     |
+| `--list-steps`                     | off                        | List pipeline steps and exit                                                                                    |
 
 ### DOI and URL
 
 The last step sets the article's DOI and URL in `_improved/myst.yml`. The JDH article id is read from the repo name (`origin` remote, else the project folder name), e.g. `BHmHNQKJaSWT` from `jdh-observer/BHmHNQKJaSWT` or `jdh001-L2gBr3BzwH8Z`.
 
-| Field | Written to | Source, in order |
-| --- | --- | --- |
-| DOI | `project.doi` | `--doi` (no lookup), else the JDH API (`/api/articles/<id>/?format=json`): `citation.URL`, else the `doi` field |
-| URL | `project.social.url` | `--url`, then `https://journalofdigitalhistory.org/en/article/<id>` |
+| Field | Written to           | Source, in order                                                                                                |
+| ----- | -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| DOI   | `project.doi`        | `--doi` (no lookup), else the JDH API (`/api/articles/<id>/?format=json`): `citation.URL`, else the `doi` field |
+| URL   | `project.social.url` | `--url`, then `https://journalofdigitalhistory.org/en/article/<id>`                                             |
 
 The API's `doi` field holds the manuscript id (`10.1515/JDH.2023.0020.R2`), not the registered DOI. jdh-cli prefers the doi.org link in `citation.URL`; failing that, it converts the manuscript id (`→ 10.1515/jdh-2023-0020`) and prints a note to check that the DOI resolves.
 
 When no DOI can be found, the step prints one warning saying why, and the build goes on without a DOI (the PDF shows "DOI unknown"):
 
-| Warning | Cause |
-| --- | --- |
-| `could not reach the JDH API (…)` | Network error or timeout (15 s) |
-| `article <id> is not in the JDH API (HTTP 404)` | Unknown article id |
+| Warning                                                    | Cause                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| `could not reach the JDH API (…)`                          | Network error or timeout (15 s)                                    |
+| `article <id> is not in the JDH API (HTTP 404)`            | Unknown article id                                                 |
 | `article <id> is not public in the JDH API yet (HTTP 403)` | Unpublished article: during production, pass `--doi` (and `--url`) |
-| `the JDH API returned HTTP <n> …` / `… is not JSON` | Other server errors |
-| `the JDH API record for <id> has no usable DOI (…)` | `doi` field missing or not a JDH DOI, and no `citation.URL` |
+| `the JDH API returned HTTP <n> …` / `… is not JSON`        | Other server errors                                                |
+| `the JDH API record for <id> has no usable DOI (…)`        | `doi` field missing or not a JDH DOI, and no `citation.URL`        |
 
 ```bash
 jdh-cli article.md --doi 10.1515/jdh-2025-0002
@@ -72,9 +73,10 @@ The PDF sidebar shows the article's QR code and fingerprint (`qr_code` and `fing
 
 1. `--qr-code` / `--fingerprint`: a local file (relative to the current directory) or an `http(s)` URL, downloaded during convert. The image is checked by its bytes (PNG, JPEG, GIF or SVG; anything else stops the convert with an error) and written to `generated/qr.<ext>` / `generated/fingerprint.<ext>`; the PDF export is pointed at it.
 2. The article repo's own `generated/qr.png` / `generated/fingerprint.png`.
-3. A bundled placeholder, with a warning: `the PDF will show a PLACEHOLDER QR code`.
-
-jdh-cli doesn't generate either image.
+3. Generated by the last pipeline step into the workdir's `generated/` (skipped with `--no-generate-images`):
+   - **QR code** (`qr.png`): the article URL (`--url`, else `project.social.url`, else the JDH page for the article id), with the JDH logo in the middle. Works offline.
+   - **Fingerprint** (`fingerprint.svg`): drawn from the repo's own `article.ipynb`, so unpublished articles work. No browser and no network call — jdh-cli ports the JDH website's own fingerprint code (see `src/steps/shared/fingerprint-draw/AGENTS.md` for what it was taken from and how to check it still matches). It is written as SVG so it stays vector in the PDF, where the sidebar scales it to about 38mm.
+4. A bundled placeholder, with a warning such as `the PDF will show a PLACEHOLDER QR code`, when generation isn't possible (no article id, no `article.ipynb`, no browser, offline).
 
 ```bash
 jdh-cli article.md --qr-code ./qr.png --fingerprint https://example.org/fingerprint.png
@@ -134,6 +136,7 @@ Requires a prior `improve` run, the [MyST CLI](https://mystmd.org), and [Typst](
 `--template <zip URL>` builds with a pinned release and needs no template checkout. MyST downloads the zip into `_build/templates/typst/<sha256 of URL>/` on the first build (network needed) and reuses it afterwards. jdh-cli sets the export to `format: typst`, runs `myst build --typst`, and points `TYPST_FONT_PATHS` at that folder's `fonts/fira_code` before the download happens, since MyST doesn't pass font paths to Typst itself. See [Typst integration](typst.md#how-the-template-is-found).
 
 `--figure-placement` sets where figures go:
+
 - `none` (default) keeps each figure where it is in the text, so the PDF reads in the same order as the online article (JDH-043). A figure that doesn't fit at the bottom of a page moves to the next one and leaves a gap.
 - `auto` floats figures to the top or bottom of a page instead. That packs pages more tightly, but figures can move away from the paragraphs around them.
 
