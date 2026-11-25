@@ -670,7 +670,7 @@ export function rewriteMdCitationsToMyst(
   // words directly before the citation, with the bracket closing straight after, so a
   // longer parenthesised aside is left alone (JDH-080).
   out = out.replace(
-    /\(\s*([A-Za-z][^()\[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
+    /\(\s*([A-Za-z][^()[\]]{0,38}?)\s+(\[@[^\]]+?\])\s*\)/g,
     (_full: string, prefix: string, cite: string) => `[${prefix} ${cite.slice(1)}`,
   );
 
