@@ -11,6 +11,9 @@
  *
  * Self-contained on purpose — no dependencies. The only thing borrowed from d3 is
  * `scalePow`, which is six lines.
+ *
+ * See AGENTS.md in this folder for the upstream commits this was taken from, what was
+ * left out, and how to check it against the website again.
  */
 
 /** One notebook cell, reduced to what the drawing needs. */

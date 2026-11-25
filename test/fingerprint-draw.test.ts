@@ -3,7 +3,7 @@ import {
   drawFingerprint,
   fingerprintFromNotebook,
   parseNotebook,
-} from "../src/steps/shared/fingerprint-draw.js";
+} from "../src/steps/shared/fingerprint-draw/index.js";
 
 const cell = (
   cell_type: string,
