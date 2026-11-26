@@ -5,6 +5,9 @@ import {
   tableFromHtml,
   tableFromMarkdown,
   tableFromOutputs,
+  mergeChunkedTables,
+  tablesFromHtml,
+  tablesFromOutputs,
 } from '../src/steps/shared/html-table.js';
 
 // Shapes below are trimmed copies of real outputs in the JDH corpus.
@@ -184,4 +187,77 @@ describe('outputTableToGfm', () => {
 
 test('decodeEntities', () => {
   expect(decodeEntities('&lt;a&gt; &amp; &#39;q&#x27; &unknown;')).toBe("<a> & 'q' &unknown;");
+});
+
+describe('several tables in one output (JDH-086)', () => {
+  const t = (header: string, ...rows: string[]) =>
+    `<table><thead><tr>${header}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  const YEARS = '<th>year</th><th>n</th>';
+  const row = (y: string, n: string) => `<tr><td>${y}</td><td>${n}</td></tr>`;
+
+  test('tablesFromHtml finds every table, not just the first', () => {
+    const html = `<div style="display: flex">${t(YEARS, row('2013', '1'))}${t(YEARS, row('2014', '2'))}</div>`;
+    expect(tablesFromHtml(html)).toHaveLength(2);
+    // The single-table reader still answers with the first, as it always did.
+    expect(tableFromHtml(html)?.dataRows).toEqual([['2013', '1']]);
+  });
+
+  test('a chunked series is joined back into one table', () => {
+    // 5dfgdpiURy8S splits 2013-2024 across four tables in a flex row; identical headers
+    // are the tell that it is one table laid out for width, not four tables.
+    const html = [
+      t(YEARS, row('2013', '1'), row('2014', '2')),
+      t(YEARS, row('2015', '3')),
+      t(YEARS, row('2016', '4')),
+    ].join('');
+    const merged = mergeChunkedTables(tablesFromHtml(html));
+    expect(merged).toHaveLength(1);
+    expect(merged[0].dataRows).toEqual([
+      ['2013', '1'],
+      ['2014', '2'],
+      ['2015', '3'],
+      ['2016', '4'],
+    ]);
+    expect(merged[0].headerRows).toEqual([['year', 'n']]);
+  });
+
+  test("a value repeated at a chunk boundary is kept — it is the author's data", () => {
+    const html =
+      t(YEARS, row('2020', '1'), row('2021', '2')) + t(YEARS, row('2021', '2'), row('2022', '3'));
+    const merged = mergeChunkedTables(tablesFromHtml(html));
+    expect(merged[0].dataRows.filter((r) => r[0] === '2021')).toHaveLength(2);
+  });
+
+  test('tables with different headers stay separate', () => {
+    const html = t(YEARS, row('2013', '1')) + t('<th>city</th><th>n</th>', row('Delft', '9'));
+    expect(mergeChunkedTables(tablesFromHtml(html))).toHaveLength(2);
+  });
+
+  test("a chunk's own footer is dropped, since it cannot describe the join", () => {
+    // Each chunk would otherwise claim the whole table was its own few rows.
+    const html =
+      t(YEARS, row('2013', '1')) + '<p>1 rows × 2 columns</p>' + t(YEARS, row('2014', '2'));
+    const merged = mergeChunkedTables(tablesFromHtml(html));
+    expect(merged).toHaveLength(1);
+    expect(merged[0].totalRows).toBeNull();
+  });
+
+  test('a footer is read from its own table, not a later one', () => {
+    const html =
+      t('<th>a</th>', '<tr><td>1</td></tr>') +
+      '<p>9 rows × 1 columns</p>' +
+      t('<th>b</th>', '<tr><td>2</td></tr>') +
+      '<p>7 rows × 1 columns</p>';
+    const tables = tablesFromHtml(html);
+    expect(tables[0].totalRows).toBe(9);
+    expect(tables[1].totalRows).toBe(7);
+  });
+
+  test('tablesFromOutputs merges across one output and keeps separate outputs in order', () => {
+    const outputs = [
+      { text: { 'text/html': t(YEARS, row('2013', '1')) + t(YEARS, row('2014', '2')) } },
+    ];
+    expect(tablesFromOutputs(outputs)).toHaveLength(1);
+    expect(tablesFromOutputs(outputs)[0].dataRows).toHaveLength(2);
+  });
 });
