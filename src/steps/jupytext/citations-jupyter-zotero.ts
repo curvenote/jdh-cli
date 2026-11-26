@@ -40,6 +40,7 @@ interface CslItem {
   event?: string;
   'number-of-pages'?: number | string;
   issued?: { 'date-parts'?: Array<Array<number | string>> };
+  accessed?: { 'date-parts'?: Array<Array<number | string>> };
   author?: Array<{ family?: string; given?: string; literal?: string }>;
   editor?: Array<{ family?: string; given?: string; literal?: string }>;
 }
@@ -137,6 +138,23 @@ function getIssuedDateParts(item: CslItem): {
       typeof month === 'number' ? String(month).padStart(2, '0') : month ? String(month) : null,
     day: typeof day === 'number' ? String(day).padStart(2, '0') : day ? String(day) : null,
   };
+}
+
+/** Marker that smuggles the access date through MyST's bibliography rebuild (JDH-083). */
+export const URLDATE_NOTE_PREFIX = 'jdh-urldate=';
+
+/**
+ * `urldate` as ISO yyyy-mm-dd, from the CSL `accessed` date.
+ *
+ * APA 7th prints it as "Retrieved January 5, 2023, from <url>". Without it hayagriva has
+ * no date to show and leaves a bare "Retrieved <url>" — 22 of those across the corpus.
+ */
+export function accessedToUrlDate(item: CslItem): string | null {
+  const first = item?.accessed?.['date-parts']?.[0];
+  if (!Array.isArray(first) || !first.length) return null;
+  const [y, m, d] = first.map((v) => (v == null ? null : String(v)));
+  if (!y || !/^\d{4}$/.test(y)) return null;
+  return [y, m?.padStart(2, '0'), d?.padStart(2, '0')].filter(Boolean).join('-');
 }
 
 function normalizePages(pages: string | number | null | undefined): string | null {
@@ -267,6 +285,18 @@ function buildBibtexFields(item: CslItem, _citekey: string): Record<string, stri
     fields.note = fields.note ? `${fields.note}; ${item.system_id}` : item.system_id;
   else if (item.id) fields.note = fields.note ? `${fields.note}; ${item.id}` : item.id;
 
+  // MyST rebuilds its own main.bib from a fixed field set that has no `urldate`, so the
+  // date would be dropped on the way to Typst. `note` does survive that filter, so the
+  // date rides through it behind a marker and the template lifts it back out (JDH-083).
+  if (fields.url) {
+    const urldate = accessedToUrlDate(item);
+    if (urldate) {
+      fields.urldate = urldate;
+      const marker = `${URLDATE_NOTE_PREFIX}${urldate}`;
+      fields.note = fields.note ? `${fields.note}; ${marker}` : marker;
+    }
+  }
+
   return fields;
 }
 
@@ -290,6 +320,7 @@ function renderBibtexEntry(
     'address',
     'doi',
     'url',
+    'urldate',
     'isbn',
     'note',
   ];
