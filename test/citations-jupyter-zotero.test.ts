@@ -165,3 +165,43 @@ test('no url or no access date means neither field', async () => {
   expect(noUrl).not.toContain('urldate');
   expect(noUrl).not.toContain(URLDATE_NOTE_PREFIX);
 });
+
+test('a cite2c access date is normalised like its issued date', async () => {
+  // cite2c writes dates as {year, month, day}; without normalising `accessed` the urldate
+  // was silently dropped for the three cite2c articles (JDH-083).
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-cite2c-'));
+  fs.writeFileSync(path.join(dir, 'myst.yml'), 'version: 1\nproject: {}\n');
+  fs.writeFileSync(
+    path.join(dir, 'nb.ipynb'),
+    JSON.stringify({
+      metadata: {
+        cite2c: {
+          citations: {
+            'g/SHINE': {
+              type: 'webpage',
+              title: 'SHINE',
+              URL: 'https://www.webarchive.org.uk/shine',
+              accessed: { year: 2024, month: 3, day: 7 },
+            },
+          },
+        },
+      },
+      cells: [],
+    }),
+  );
+  await jupyterZotero({
+    article: 'article.md',
+    notebook: 'nb.ipynb',
+    bib: 'refs.bib',
+    myst: 'myst.yml',
+    dryRun: false,
+    rewriteMd: false,
+    updateMyst: false,
+    stripCitationManagerComments: false,
+    cwd: dir,
+  });
+  const bib = fs.readFileSync(path.join(dir, 'refs.bib'), 'utf8');
+  expect(bib).toContain('urldate = {2024-03-07}');
+  expect(bib).toContain(`${URLDATE_NOTE_PREFIX}2024-03-07`);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
