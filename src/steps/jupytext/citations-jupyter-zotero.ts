@@ -389,6 +389,10 @@ function loadCite2cItemsFromNotebook(notebookPath: string): Record<string, CslIt
     const item = { ...(raw as CslItem) };
     const issued = cite2cDateToCsl((raw as Record<string, unknown>).issued);
     if (issued) item.issued = issued;
+    // cite2c writes `accessed` in the same {year, month, day} shape, and it is what the
+    // urldate comes from, so it needs the same normalisation (JDH-083).
+    const accessed = cite2cDateToCsl((raw as Record<string, unknown>).accessed);
+    if (accessed) item.accessed = accessed;
     out[id] = item;
   }
   return out;
