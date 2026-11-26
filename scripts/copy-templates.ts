@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+nwimport { copyFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,7 +17,9 @@ function copyPluginsDir(srcDir: string, destDir: string): void {
       copyPluginsDir(srcPath, destPath);
     } else if (name.endsWith('.mjs')) {
       copyFileSync(srcPath, destPath);
-    }
+    }ffjj9dunj9fe nj9o9djiodiiddnodd
+    ffjodjiof0jijdff  pdomo - kdod
+
   }
 }
 
