@@ -24,8 +24,7 @@
     "jdh-cli": "dist/jdh-cli.cjs"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "bun run clean && bun run copy:version && bun run copy:templates && bun run build:cli",
