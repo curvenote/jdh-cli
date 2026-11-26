@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { PipelineStep } from '../../engine/types.js';
 import { stepOpts } from '../../engine/step-context.js';
-import { outputTableToGfm, tableFromOutputs } from '../shared/html-table.js';
+import { outputTableToGfm, tablesFromOutputs } from '../shared/html-table.js';
 import {
   captionFromCode,
   captionFromJdh,
@@ -66,7 +66,8 @@ export function processArticle(
       if (found?.kind !== 'table') return block;
       const label = tableLabelFromTag(found.tag);
       const cell = byTag.get(found.tag)?.shift();
-      const table = cell ? tableFromOutputs(cell.outputs) : null;
+      const tables = cell ? tablesFromOutputs(cell.outputs) : [];
+      const table = tables[0] ?? null;
       if (!table) {
         const mimes = cell?.outputs.map((o) => o.mime) ?? [];
         report.skipped.push({
@@ -95,21 +96,30 @@ export function processArticle(
           ),
         });
       }
-      const caption = cleanCaption(resolved.text ?? table.caption ?? '');
-      const { markdown, headerRows } = outputTableToGfm(table);
-      report.converted.push(label);
-      if (!caption) report.uncaptioned.push(label);
-      return [
-        ':::{jdh-table}' + (caption ? ` ${caption.replace(/`/g, '\\`')}` : ''),
-        `:label: ${label}`,
-        ':align: center',
-        ...(headerRows > 1 ? [`:header-rows: ${headerRows}`] : []),
-        ...(table.totalRows ? [`:total-rows: ${table.totalRows}`] : []),
-        ...(table.totalColumns ? [`:total-columns: ${table.totalColumns}`] : []),
-        '',
-        markdown,
-        ':::',
-      ].join('\n');
+      // A cell can hold several tables — a side-by-side comparison arrives as one
+      // text/html with the tables inside a flex container (JDH-086). Each becomes its own
+      // numbered `{jdh-table}`; only the first takes the cell's caption, since a caption
+      // written for the cell describes the set rather than any one of them.
+      const directives = tables.map((t, i) => {
+        const tableLabel = tables.length > 1 ? `${label}-${i + 1}` : label;
+        const tableCaption =
+          i === 0 ? cleanCaption(resolved.text ?? t.caption ?? '') : cleanCaption(t.caption ?? '');
+        const { markdown, headerRows } = outputTableToGfm(t);
+        report.converted.push(tableLabel);
+        if (!tableCaption) report.uncaptioned.push(tableLabel);
+        return [
+          ':::{jdh-table}' + (tableCaption ? ` ${tableCaption.replace(/`/g, '\\`')}` : ''),
+          `:label: ${tableLabel}`,
+          ':align: center',
+          ...(headerRows > 1 ? [`:header-rows: ${headerRows}`] : []),
+          ...(t.totalRows ? [`:total-rows: ${t.totalRows}`] : []),
+          ...(t.totalColumns ? [`:total-columns: ${t.totalColumns}`] : []),
+          '',
+          markdown,
+          ':::',
+        ].join('\n');
+      });
+      return directives.join('\n\n');
     }),
     report,
   };

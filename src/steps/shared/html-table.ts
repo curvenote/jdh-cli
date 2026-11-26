@@ -103,9 +103,27 @@ function dropRangeIndex(table: { headerRows: string[][]; dataRows: string[][] })
 
 /** The first `<table>` in an HTML output, or null when there is none. */
 export function tableFromHtml(html: string): OutputTable | null {
-  const match = html.match(/<table\b[\s\S]*?<\/table>/i);
-  if (!match) return null;
-  const tableHtml = match[0];
+  return tablesFromHtml(html)[0] ?? null;
+}
+
+/**
+ * Every `<table>` in an HTML output, in document order.
+ *
+ * One output can hold several tables: a cell that prints a side-by-side comparison emits
+ * a single `text/html` with the tables inside a flex container, so iterating a cell's
+ * *outputs* finds only one thing to render (JDH-086).
+ */
+export function tablesFromHtml(html: string): OutputTable[] {
+  const out: OutputTable[] = [];
+  for (const match of html.matchAll(/<table\b[\s\S]*?<\/table>/gi)) {
+    const table = parseTableHtml(html, match[0], match.index ?? 0);
+    if (table) out.push(table);
+  }
+  return out;
+}
+
+/** One `<table>`, with the footer and caption that belong to it. */
+function parseTableHtml(html: string, tableHtml: string, offset: number): OutputTable | null {
   const theadHtml = tableHtml.match(/<thead\b[\s\S]*?<\/thead>/i)?.[0] ?? '';
   const headRows = theadHtml ? rowsOf(theadHtml).map((r) => r.cells) : [];
   const bodyRows = rowsOf(theadHtml ? tableHtml.replace(theadHtml, '') : tableHtml);
@@ -120,9 +138,14 @@ export function tableFromHtml(html: string): OutputTable | null {
   tidyHeaders(table);
   dropEllipses(table);
   dropRangeIndex(table);
-  const footer = html
-    .slice((match.index ?? 0) + tableHtml.length)
-    .match(/(\d[\d,]*)\s+rows\s+×\s+(\d[\d,]*)\s+columns/);
+  // The "N rows × M columns" footer pandas prints after a truncated table. With several
+  // tables in one output, stop at the next one so a later footer is not read as this
+  // table's.
+  const after = html.slice(offset + tableHtml.length);
+  const nextTable = after.search(/<table\b/i);
+  const footer = (nextTable === -1 ? after : after.slice(0, nextTable)).match(
+    /(\d[\d,]*)\s+rows\s+×\s+(\d[\d,]*)\s+columns/,
+  );
   const captionText = htmlText(
     tableHtml.match(/<caption\b[^>]*>([\s\S]*?)<\/caption>/i)?.[1] ?? '',
   );
@@ -132,6 +155,41 @@ export function tableFromHtml(html: string): OutputTable | null {
     totalColumns: footer ? parseInt(footer[2].replace(/,/g, ''), 10) : null,
     caption: captionText && !/^A data\.frame:/i.test(captionText) ? captionText : null,
   };
+}
+
+/**
+ * Join tables that are one table split for layout.
+ *
+ * A cell that lays several tables out side by side is usually chunking one series to fit
+ * the page width — 5dfgdpiURy8S splits 2013-2024 into four blocks inside a flex container
+ * (JDH-086). Identical header rows are the tell, and joining them back restores the table
+ * the reader sees online. Tables whose headers differ are genuinely separate and are left
+ * alone.
+ *
+ * Rows are concatenated as they stand: a value repeated at a chunk boundary is the
+ * author's data and appears online too, so it is not deduplicated here.
+ */
+export function mergeChunkedTables(tables: readonly OutputTable[]): OutputTable[] {
+  const sameHeader = (a: OutputTable, b: OutputTable) =>
+    a.headerRows.length > 0 && JSON.stringify(a.headerRows) === JSON.stringify(b.headerRows);
+
+  const out: OutputTable[] = [];
+  for (const table of tables) {
+    const last = out[out.length - 1];
+    if (last && sameHeader(last, table)) {
+      out[out.length - 1] = {
+        ...last,
+        dataRows: [...last.dataRows, ...table.dataRows],
+        // A chunk's own footer counts only its own rows, so it cannot describe the join.
+        totalRows: null,
+        totalColumns: last.totalColumns ?? table.totalColumns,
+        caption: last.caption ?? table.caption,
+      };
+      continue;
+    }
+    out.push(table);
+  }
+  return out;
 }
 
 /** The table in a `text/markdown` output (prose lines around it are ignored), or null. */
@@ -166,15 +224,27 @@ export function tableFromMarkdown(markdown: string): OutputTable | null {
 export function tableFromOutputs(
   outputs: readonly { text: Record<string, string> }[],
 ): OutputTable | null {
-  for (const o of outputs) {
-    const t = o.text['text/html'] ? tableFromHtml(o.text['text/html']) : null;
-    if (t) return t;
-  }
-  for (const o of outputs) {
+  return tablesFromOutputs(outputs)[0] ?? null;
+}
+
+/**
+ * Every table a cell's outputs hold, in order.
+ *
+ * Covers both shapes the corpus has: one cell with several outputs, and one output
+ * holding several tables (JDH-086). HTML wins over markdown, as a cell that emits both
+ * is emitting two renderings of the same thing.
+ */
+export function tablesFromOutputs(
+  outputs: readonly { text: Record<string, string> }[],
+): OutputTable[] {
+  const html = outputs.flatMap((o) =>
+    o.text['text/html'] ? mergeChunkedTables(tablesFromHtml(o.text['text/html'])) : [],
+  );
+  if (html.length) return html;
+  return outputs.flatMap((o) => {
     const t = o.text['text/markdown'] ? tableFromMarkdown(o.text['text/markdown']) : null;
-    if (t) return t;
-  }
-  return null;
+    return t ? [t] : [];
+  });
 }
 
 /** Escape text for a GFM table cell (backslash-escaped punctuation reads back as the same text). */

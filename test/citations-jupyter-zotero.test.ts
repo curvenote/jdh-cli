@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
-import { formatNameList, jupyterZotero } from '../src/steps/jupytext/citations-jupyter-zotero.js';
+import {
+  accessedToUrlDate,
+  formatNameList,
+  jupyterZotero,
+  URLDATE_NOTE_PREFIX,
+} from '../src/steps/jupytext/citations-jupyter-zotero.js';
 
 let tmpDir: string | undefined;
 afterEach(() => {
@@ -82,4 +87,81 @@ test('DOIs and URLs are written verbatim, without escaped underscores', async ()
   expect(bib).toContain('doi = {10.17104/1611-8944_2012_1_98}');
   expect(bib).toContain('url = {https://example.org/a_b%20c}');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// --- Access dates (JDH-083) ---------------------------------------------------------
+
+test('accessedToUrlDate reads the CSL accessed date as ISO', () => {
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [[2021, 6, 19]] } })).toBe('2021-06-19');
+  // Month and day are zero-padded; a year alone is still a usable urldate.
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [[2021, 6]] } })).toBe('2021-06');
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [[2021]] } })).toBe('2021');
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [['2021', '12', '3']] } })).toBe(
+    '2021-12-03',
+  );
+});
+
+test('accessedToUrlDate rejects anything it cannot trust', () => {
+  expect(accessedToUrlDate({})).toBeNull();
+  expect(accessedToUrlDate({ accessed: {} })).toBeNull();
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [] } })).toBeNull();
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [[]] } })).toBeNull();
+  // "n.d." and a two-digit year are not years.
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [['n.d.']] } })).toBeNull();
+  expect(accessedToUrlDate({ accessed: { 'date-parts': [[21, 6, 19]] } })).toBeNull();
+});
+
+async function bibFor(items: Record<string, unknown>): Promise<string> {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jdh-urldate-'));
+  fs.writeFileSync(path.join(dir, 'myst.yml'), 'version: 1\nproject: {}\n');
+  fs.writeFileSync(
+    path.join(dir, 'nb.ipynb'),
+    JSON.stringify({
+      metadata: { 'citation-manager': { items: { zotero: items } } },
+      cells: [],
+    }),
+  );
+  await jupyterZotero({
+    article: 'article.md',
+    notebook: 'nb.ipynb',
+    bib: 'refs.bib',
+    myst: 'myst.yml',
+    dryRun: false,
+    rewriteMd: false,
+    updateMyst: false,
+    stripCitationManagerComments: false,
+    cwd: dir,
+  });
+  const bib = fs.readFileSync(path.join(dir, 'refs.bib'), 'utf8');
+  fs.rmSync(dir, { recursive: true, force: true });
+  return bib;
+}
+
+test('the access date is written as urldate and mirrored into note', async () => {
+  // MyST's bibliography rebuild keeps `note` but drops `urldate`, so the date rides
+  // through the note behind a marker and the template lifts it back out.
+  const bib = await bibFor({
+    'g/K': {
+      type: 'webpage',
+      title: 'Wayback Machine APIs',
+      URL: 'https://archive.org/help/wayback_api.php',
+      accessed: { 'date-parts': [[2021, 6, 19]] },
+    },
+  });
+  expect(bib).toContain('urldate = {2021-06-19}');
+  expect(bib).toContain(`${URLDATE_NOTE_PREFIX}2021-06-19`);
+});
+
+test('no url or no access date means neither field', async () => {
+  const noDate = await bibFor({
+    'g/A': { type: 'webpage', title: 'No access date', URL: 'https://example.org/' },
+  });
+  expect(noDate).not.toContain('urldate');
+  expect(noDate).not.toContain(URLDATE_NOTE_PREFIX);
+
+  const noUrl = await bibFor({
+    'g/B': { type: 'book', title: 'A book', accessed: { 'date-parts': [[2021, 6, 19]] } },
+  });
+  expect(noUrl).not.toContain('urldate');
+  expect(noUrl).not.toContain(URLDATE_NOTE_PREFIX);
 });
