@@ -1,15 +1,31 @@
 {
   "name": "jdh-cli",
-  "version": "0.0.1",
-  "description": "CLI for improving and enriching Jupytext-exported MyST Markdown articles.",
+  "version": "1.0.0",
+  "description": "CLI that converts Jupyter articles from the Journal of Digital History into a MyST project and builds a PDF with Typst.",
+  "homepage": "https://github.com/C2DH/jdh-cli#readme",
+  "bugs": {
+    "url": "https://github.com/C2DH/jdh-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/C2DH/jdh-cli.git"
+  },
+  "keywords": [
+    "jupyter",
+    "markdown",
+    "myst",
+    "pdf",
+    "typst",
+    "conversion"
+  ],
   "license": "MIT",
   "type": "module",
   "bin": {
-    "jdh-cli": "./dist/jdh-cli.cjs"
+    "jdh-cli": "dist/jdh-cli.cjs"
   },
   "files": [
     "dist",
-    "templates"
+    "README.md"
   ],
   "scripts": {
     "build": "bun run clean && bun run copy:version && bun run copy:templates && bun run build:cli",
@@ -51,6 +67,6 @@
     "typescript-eslint": "^8.60.1"
   },
   "engines": {
-    "node": ">=20 <25"
+    "node": ">=20 <=26"
   }
 }
