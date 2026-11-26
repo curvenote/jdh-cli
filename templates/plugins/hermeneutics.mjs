@@ -71,6 +71,58 @@ function joinable(node) {
   return node?.type === 'block' && node.kind === 'hermeneutics' && !hasCode(node);
 }
 
+/**
+ * Media a hermeneutics run reaches over (JDH-092).
+ *
+ * The tag is not applied consistently in the sources: 6ig87tC5GKjQ has five figures
+ * sitting untagged between tagged cells, which split one run into several and left the
+ * figures outside the band. On the website the region is continuous and paints them too.
+ */
+const BRIDGEABLE = new Set(['image', 'figure', 'container', 'table']);
+
+function bridgeable(node) {
+  return BRIDGEABLE.has(node?.type);
+}
+
+/** Markup that carries no content of its own and never ends a run. */
+function ignorable(node) {
+  if (node?.type === 'raw' || node?.type === 'comment') return true;
+  return node?.type === 'text' && !(node.value ?? '').trim();
+}
+
+/** The nodes between `i` and the nearest hermeneutics block in `step`, in document order. */
+function spanTo(sequence, i, step) {
+  const span = [];
+  for (let j = i + step; j >= 0 && j < sequence.length; j += step) {
+    const node = sequence[j];
+    if (node?.type === 'block' && node.kind === 'hermeneutics') {
+      return { block: node, span: step < 0 ? span.reverse() : span };
+    }
+    span.push(node);
+  }
+  return { block: undefined, span: step < 0 ? span.reverse() : span };
+}
+
+/**
+ * Whether a run should reach across this span.
+ *
+ * Media bridges, and so does the loose text and line breaks that follow it — a figure's
+ * caption arrives that way and belongs to the figure. Prose does not bridge: the same
+ * article has a paragraph between two tagged cells, and which layer a piece of *writing*
+ * belongs to is an editorial question, not something to infer from its neighbours.
+ * Guessing wrong paints narrative text teal, which is far more visible than a figure
+ * sitting outside the band.
+ *
+ * The span is always read in document order, so the block on each side of it agrees and
+ * the Typst brackets stay balanced.
+ */
+function spanBridges(span) {
+  const content = span.filter((n) => !ignorable(n));
+  if (!content.length) return true;
+  if (!bridgeable(content[0])) return false;
+  return content.every((n) => bridgeable(n) || n.type === 'text' || n.type === 'break');
+}
+
 const wrapHermeneuticsForTypst = {
   name: 'wrap-hermeneutics-for-typst',
   stage: 'document',
@@ -96,8 +148,10 @@ const wrapHermeneuticsForTypst = {
     sequence.forEach((node, i) => {
       if (node.kind !== 'hermeneutics' || node.data?.hermeneuticsWrapped) return;
       node.data = { ...(node.data ?? {}), hermeneuticsWrapped: true };
-      const joinedBefore = joinable(node) && joinable(sequence[i - 1]);
-      const joinedAfter = joinable(node) && joinable(sequence[i + 1]);
+      const before = spanTo(sequence, i, -1);
+      const after = spanTo(sequence, i, 1);
+      const joinedBefore = joinable(node) && joinable(before.block) && spanBridges(before.span);
+      const joinedAfter = joinable(node) && joinable(after.block) && spanBridges(after.span);
       node.children = [
         ...(joinedBefore ? [] : [{ type: 'raw', typst: '#hermeneutics-block[\n' }]),
         ...(node.children ?? []),
